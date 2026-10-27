@@ -9,14 +9,13 @@ import { BookGrid } from "../components/BookGrid";
 import { EmptyState, PageHeader, Skeleton } from "../components/Ui";
 import { useOpenBook } from "../lib/readerChoice";
 
-type TabKey = "lendo" | "ler-depois" | "finalizado" | "favoritos" | "recomendados";
+type TabKey = "lendo" | "favoritos" | "ler-depois" | "finalizado";
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: "lendo", label: "Lendo" },
+  { key: "favoritos", label: "Favoritos" },
   { key: "ler-depois", label: "Ler depois" },
   { key: "finalizado", label: "Lidos" },
-  { key: "favoritos", label: "Favoritos" },
-  { key: "recomendados", label: "Para você" },
 ];
 
 export function MyBooks() {
@@ -24,7 +23,7 @@ export function MyBooks() {
   const [tab, setTab] = useState<TabKey>("lendo");
   const [shelfMode, setShelfMode] = useState(false);
 
-  const { data, isLoading } = useLiveData<{
+  const { data, isLoading, setData } = useLiveData<{
     books: Book[];
     progress: ReadingProgress[];
     savedIds: string[];
@@ -45,41 +44,30 @@ export function MyBooks() {
   const progress = data?.progress ?? [];
   const savedIds = data?.savedIds ?? [];
 
+  const handleSavedChange = (bookId: string, saved: boolean) =>
+    setData((current) => current ? {
+      ...current,
+      savedIds: saved
+        ? [bookId, ...current.savedIds.filter((id) => id !== bookId)]
+        : current.savedIds.filter((id) => id !== bookId),
+    } : current);
+
   const progressOf = useMemo(() => new Map(progress.map((p) => [p.bookId, p])), [progress]);
 
-  /** Sugestões por afinidade de gênero com o que a pessoa já leu. */
-  const recommended = useMemo(() => {
-    const genreScore: Record<string, number> = {};
-    progress.forEach((p) => {
-      const book = books.find((b) => b.id === p.bookId);
-      if (book?.genre) {
-        const key = book.genre.trim().toLowerCase();
-        genreScore[key] = (genreScore[key] || 0) + 1;
-      }
-    });
-
-    const untouched = books.filter((b) => {
-      const p = progressOf.get(b.id);
-      return !p || (p.status !== "lendo" && p.status !== "finalizado");
-    });
-
-    return [...untouched].sort((a, b) => {
-      const scoreA = genreScore[(a.genre || "").trim().toLowerCase()] || 0;
-      const scoreB = genreScore[(b.genre || "").trim().toLowerCase()] || 0;
-      return scoreB - scoreA || (b.popularity ?? 0) - (a.popularity ?? 0) || b.addedAt - a.addedAt;
-    });
-  }, [books, progress, progressOf]);
-
   const listFor = (key: TabKey): Book[] => {
-    if (key === "favoritos") return books.filter((b) => savedIds.includes(b.id));
-    if (key === "recomendados") return recommended;
-    return books.filter((b) => progressOf.get(b.id)?.status === key);
+    if (key === "favoritos") {
+      const order = new Map(savedIds.map((id, index) => [id, index]));
+      return books.filter((b) => order.has(b.id)).sort((a, b) => order.get(a.id)! - order.get(b.id)!);
+    }
+    return books
+      .filter((b) => progressOf.get(b.id)?.status === key)
+      .sort((a, b) => (progressOf.get(b.id)?.lastReadAt || 0) - (progressOf.get(a.id)?.lastReadAt || 0));
   };
 
   const counts = useMemo(
     () => Object.fromEntries(TABS.map((t) => [t.key, listFor(t.key).length])) as Record<TabKey, number>,
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [books, progress, savedIds, recommended]
+    [books, progress, savedIds]
   );
 
   const visible = listFor(tab);
@@ -90,9 +78,9 @@ export function MyBooks() {
   return (
     <div className="mb-screen mb-screen--wide mb-mybooks space-y-6">
       <PageHeader
-        title="Histórias que"
-        highlight="ficam com você."
-        subtitle="Suas leituras, favoritos e o que vem a seguir."
+        title="Meus"
+        highlight="livros."
+        subtitle="Continue de onde parou ou visite seus favoritos."
         icon={<Heart className="w-5 h-5" />}
         gradient="linear-gradient(140deg,#e0a33c,#c07f1f)"
       />
@@ -174,14 +162,13 @@ export function MyBooks() {
             tab === "lendo" ? "Nenhuma leitura em andamento"
               : tab === "ler-depois" ? "Nada na fila ainda"
               : tab === "finalizado" ? "Nenhum livro concluído"
-              : tab === "favoritos" ? "Sem favoritos por enquanto"
-              : "Sem sugestões no momento"
+              : "Sem favoritos por enquanto"
           }
           description="Segure um livro na biblioteca para salvar, pausar ou deixar para depois."
           action={<Link to="/library" className="mb-btn mb-btn-primary">Ir para a biblioteca <ArrowRight className="w-4 h-4" /></Link>}
         />
       ) : (
-        <BookGrid books={visible} progressOf={progressOf} display={shelfMode ? "spine" : "cover"} />
+        <BookGrid books={visible} progressOf={progressOf} savedIds={savedIds} onSavedChange={handleSavedChange} display={shelfMode ? "spine" : "cover"} />
       )}
     </div>
   );

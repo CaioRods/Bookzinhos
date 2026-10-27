@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
-  BookOpen, Pencil, Trash2, MessageSquare, PauseCircle, PlayCircle, Clock, Download, Loader2,
+  BookOpen, Pencil, Trash2, MessageSquare, PauseCircle, PlayCircle, Clock, Download, Loader2, Bookmark,
 } from "lucide-react";
 import { getCoverGradient, getFullUrl } from "../lib/types";
 import type { Book } from "../lib/types";
@@ -19,6 +19,8 @@ interface Props {
   onFeedback: () => void;
   onPause?: () => void;
   onReadLater?: () => void;
+  isSaved?: boolean;
+  onToggleSaved?: () => void;
   menuPos?: { x: number; y: number } | null;
 }
 
@@ -30,7 +32,7 @@ const MENU_HEIGHT = 300;
  * como uma folha a partir da base da tela.
  */
 export function BookContextMenu({
-  book, isPaused, onClose, onRead, onEdit, onDelete, onFeedback, onPause, onReadLater, menuPos,
+  book, isPaused, isSaved, onClose, onRead, onEdit, onDelete, onFeedback, onPause, onReadLater, onToggleSaved, menuPos,
 }: Props) {
   const coverUrl = getFullUrl(book.coverImagePath);
   const pdfUrl = getFullUrl(book.pdfPath);
@@ -67,6 +69,7 @@ export function BookContextMenu({
 
   const actions = [
     { label: "Abrir para ler", icon: BookOpen, onClick: onRead },
+    onToggleSaved ? { label: isSaved ? "Remover dos favoritos" : "Favoritar", icon: Bookmark, onClick: onToggleSaved } : null,
     { label: "Avaliar e comentar", icon: MessageSquare, onClick: onFeedback },
     onPause
       ? { label: isPaused ? "Retomar leitura" : "Pausar leitura", icon: isPaused ? PlayCircle : PauseCircle, onClick: onPause }

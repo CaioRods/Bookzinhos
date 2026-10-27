@@ -45,7 +45,8 @@ async function uploadToS3(buffer, filename, mimetype) {
     Bucket: BUCKET,
     Key: filename,
     Body: buffer,
-    ContentType: mimetype
+    ContentType: mimetype,
+    CacheControl: "public, max-age=31536000, immutable"
   });
   await s3Client.send(command);
 
@@ -59,7 +60,7 @@ async function uploadToSupabase(buffer, filename, mimetype) {
   if (!supabase) throw new Error("Cliente Supabase não está configurado");
   const { error } = await supabase.storage
     .from(BUCKET)
-    .upload(filename, buffer, { contentType: mimetype, upsert: true });
+    .upload(filename, buffer, { contentType: mimetype, cacheControl: "31536000", upsert: true });
   if (error) throw new Error("Erro no upload para o Supabase: " + error.message);
   const { data } = supabase.storage.from(BUCKET).getPublicUrl(filename);
   return data.publicUrl;
@@ -81,7 +82,7 @@ async function uploadFileToCloud(buffer, filename, mimetype) {
 // ─── MIDDLEWARE ───────────────────────────────────────────────────────────────
 app.use(cors({ origin: "*" }));
 app.use(express.json({ limit: "2mb" }));
-app.use("/uploads", express.static(path.join(__dirname, "uploads"), { maxAge: "7d" }));
+app.use("/uploads", express.static(path.join(__dirname, "uploads"), { maxAge: "1y", immutable: true }));
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 100 * 1024 * 1024 } });
 

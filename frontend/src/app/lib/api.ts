@@ -25,6 +25,8 @@ const inFlight = new Map<string, Promise<unknown>>();
 
 /** Janela padrão do cache. Curta o bastante para não servir dado velho. */
 const DEFAULT_TTL = 8000;
+const BOOKS_STORAGE_KEY = "mybooks:catalog:v1";
+const BOOKS_STORAGE_TTL = 24 * 60 * 60 * 1000;
 
 function cacheKey(path: string): string {
   return `${localStorage.getItem("books-username") || "anon"}::${path}`;
@@ -34,10 +36,14 @@ function cacheKey(path: string): string {
 export function invalidate(...fragments: string[]): void {
   if (fragments.length === 0) {
     cache.clear();
+    localStorage.removeItem(BOOKS_STORAGE_KEY);
     return;
   }
   for (const key of [...cache.keys()]) {
     if (fragments.some((f) => key.includes(f))) cache.delete(key);
+  }
+  if (fragments.some((fragment) => fragment.includes("/books"))) {
+    localStorage.removeItem(BOOKS_STORAGE_KEY);
   }
 }
 
@@ -121,7 +127,27 @@ export function fetchHome(force = false): Promise<HomeData> {
 // ─── LIVROS ───────────────────────────────────────────────────────────────────
 
 export function fetchBooks(force = false): Promise<Book[]> {
-  return cachedGet<Book[]>("/books", force ? 0 : DEFAULT_TTL);
+  if (!force) {
+    try {
+      const stored = JSON.parse(localStorage.getItem(BOOKS_STORAGE_KEY) || "null") as
+        | { at: number; books: Book[] }
+        | null;
+      if (stored?.books && Date.now() - stored.at < BOOKS_STORAGE_TTL) {
+        cache.set(cacheKey("/books"), { value: stored.books, at: Date.now() });
+        return Promise.resolve(stored.books);
+      }
+    } catch {
+      localStorage.removeItem(BOOKS_STORAGE_KEY);
+    }
+  }
+  return cachedGet<Book[]>("/books", force ? 0 : DEFAULT_TTL).then((books) => {
+    try {
+      localStorage.setItem(BOOKS_STORAGE_KEY, JSON.stringify({ at: Date.now(), books }));
+    } catch {
+      /* Sem espaço: o cache em memória continua funcionando. */
+    }
+    return books;
+  });
 }
 
 export function fetchBook(id: string, force = false): Promise<Book | null> {

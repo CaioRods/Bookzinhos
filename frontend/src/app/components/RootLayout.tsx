@@ -5,7 +5,7 @@ import { GlobalSearch } from "./GlobalSearch";
 import { Brand } from "./Brand";
 import { Outlet, useLocation, useNavigation, Link, NavLink } from "react-router";
 import {
-  Home, Library, Heart, PenLine, User, Users, Shield, Plus, ChevronRight,
+  Home, Library, BookOpen, PenLine, User, Users, Shield, Plus, ChevronRight,
   SlidersHorizontal, LogIn,
 } from "lucide-react";
 import { useEffect, useState, useMemo, type ComponentType } from "react";
@@ -99,7 +99,7 @@ export function RootLayout() {
       { path: "/", icon: Home, label: "Descobrir", end: true },
       { path: "/library", icon: Library, label: "Biblioteca" },
       { path: "/social", icon: Users, label: "Comunidade", badge: unreadCount },
-      { path: "/my-books", icon: Heart, label: "Favoritos" },
+      { path: "/my-books", icon: BookOpen, label: "Meus livros" },
       { path: "/notes", icon: PenLine, label: "Diário de leitura" },
     ];
     if (admin) items.push({ path: "/admin", icon: Shield, label: "Admin" });

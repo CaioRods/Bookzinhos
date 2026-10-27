@@ -10,10 +10,12 @@ interface Props {
   ranked?: boolean;
   onDeleted?: (id: string) => void;
   onEdited?: (book: Book) => void;
+  savedIds?: string[];
+  onSavedChange?: (bookId: string, saved: boolean) => void;
 }
 
 /** Measures the actual collection, so covers stay aligned inside any page or sidebar. */
-export function BookGrid({ books, progressOf, display = "cover", ranked, onDeleted, onEdited }: Props) {
+export function BookGrid({ books, progressOf, display = "cover", ranked, onDeleted, onEdited, savedIds = [], onSavedChange }: Props) {
   const gridRef = useRef<HTMLDivElement>(null);
   const [coverWidth, setCoverWidth] = useState(128);
   const [gap, setGap] = useState(24);
@@ -46,7 +48,7 @@ export function BookGrid({ books, progressOf, display = "cover", ranked, onDelet
       padding: isShelf ? "0 0 16px" : undefined,
       backgroundImage: isShelf ? `repeating-linear-gradient(to bottom, transparent 0px, transparent ${height + 4}px, color-mix(in srgb, var(--primary) 17%, var(--surface-3)) ${height + 4}px, color-mix(in srgb, var(--primary) 17%, var(--surface-3)) ${height + 10}px, transparent ${height + 10}px, transparent ${height + 42}px)` : undefined,
     }}>
-      {books.map((book, i) => <BookCard key={book.id} book={book} width={coverWidth} display={display} index={i} rank={ranked ? i + 1 : undefined} progress={progressOf?.get(book.id)} onDeleted={onDeleted} onEdited={onEdited} />)}
+      {books.map((book, i) => <BookCard key={book.id} book={book} width={coverWidth} display={display} index={i} rank={ranked ? i + 1 : undefined} progress={progressOf?.get(book.id)} saved={savedIds.includes(book.id)} onSavedChange={onSavedChange} onDeleted={onDeleted} onEdited={onEdited} />)}
     </div>
   </div>;
 }

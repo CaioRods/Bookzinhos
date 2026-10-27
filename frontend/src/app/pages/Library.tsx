@@ -161,6 +161,14 @@ export function Library() {
       prev ? { ...prev, books: prev.books.map((b) => (b.id === updated.id ? { ...b, ...updated } : b)) } : prev
     );
 
+  const handleSavedChange = (bookId: string, saved: boolean) =>
+    setData((prev) => prev ? {
+      ...prev,
+      savedIds: saved
+        ? [bookId, ...prev.savedIds.filter((id) => id !== bookId)]
+        : prev.savedIds.filter((id) => id !== bookId),
+    } : prev);
+
   return (
     <div className="mb-screen mb-screen--wide mb-library">
       <PageHeader
@@ -281,6 +289,8 @@ export function Library() {
               book={book}
               variant="list"
               progress={statusOf.get(book.id)}
+              saved={savedIds.includes(book.id)}
+              onSavedChange={handleSavedChange}
               onDeleted={handleRemoved}
               onEdited={handleEdited}
             />
@@ -290,6 +300,8 @@ export function Library() {
         <BookGrid
           books={visible}
           progressOf={statusOf}
+          savedIds={savedIds}
+          onSavedChange={handleSavedChange}
           display={view === "shelf" ? "spine" : "cover"}
           onDeleted={handleRemoved}
           onEdited={handleEdited}

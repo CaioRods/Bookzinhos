@@ -81,6 +81,7 @@ export function BookDetails() {
     try {
       const res = await toggleSaved(id, isSaved);
       setIsSaved(res.saved);
+      toast(res.saved ? "Livro adicionado aos favoritos." : "Livro removido dos favoritos.");
     } catch {
       setIsSaved(isSaved);
       toast("Não foi possível atualizar os favoritos.", "error");

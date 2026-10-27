@@ -4,7 +4,7 @@ import { useNavigate } from "react-router";
 import { getCoverGradient, getFullUrl } from "../lib/types";
 import { BookContextMenu } from "./BookContextMenu";
 import { EditBookModal } from "./EditBookModal";
-import { deleteBook, saveProgress } from "../lib/api";
+import { deleteBook, saveProgress, toggleSaved } from "../lib/api";
 import { useOpenBook } from "../lib/readerChoice";
 import { ConfirmDialog, toast } from "./Ui";
 import { Book3D, type BookDisplay } from "./Book3D";
@@ -23,11 +23,13 @@ interface Props {
   rank?: number;
   onDeleted?: (id: string) => void;
   onEdited?: (updated: Book) => void;
+  saved?: boolean;
+  onSavedChange?: (bookId: string, saved: boolean) => void;
 }
 
 function BookCardImpl({
   book, progress: initialProgress, variant = "grid", width = 128,
-  display = "cover", index = 0, rank, onDeleted, onEdited,
+  display = "cover", index = 0, rank, onDeleted, onEdited, saved = false, onSavedChange,
 }: Props) {
   const navigate = useNavigate();
   const openBook = useOpenBook();
@@ -152,6 +154,19 @@ function BookCardImpl({
     toast("Adicionado a “Ler depois”.");
   };
 
+  const handleToggleSaved = async () => {
+    handleCloseMenu();
+    onSavedChange?.(book.id, !saved);
+    try {
+      const result = await toggleSaved(book.id, saved);
+      onSavedChange?.(book.id, result.saved);
+      toast(result.saved ? "Livro adicionado aos favoritos." : "Livro removido dos favoritos.");
+    } catch (error) {
+      onSavedChange?.(book.id, saved);
+      toast(error instanceof Error ? error.message : "Não foi possível atualizar os favoritos.", "error");
+    }
+  };
+
   const pressHandlers = {
     role: "button" as const,
     tabIndex: 0,
@@ -181,6 +196,7 @@ function BookCardImpl({
         <BookContextMenu
           book={book}
           isPaused={localProgress?.status === "pausado"}
+          isSaved={saved}
           onClose={handleCloseMenu}
           onRead={() => { handleCloseMenu(); openBook(book); }}
           onEdit={() => { handleCloseMenu(); setShowEdit(true); }}
@@ -188,6 +204,7 @@ function BookCardImpl({
           onFeedback={() => { handleCloseMenu(); navigate(`/book/${book.id}#avaliar`); }}
           onPause={localProgress ? handlePause : undefined}
           onReadLater={handleReadLater}
+          onToggleSaved={handleToggleSaved}
           menuPos={menuPos}
         />
       )}
