@@ -32,7 +32,12 @@ import {
   SOCIAL_IMAGE_MAX_BYTES,
 } from "../lib/socialImage";
 import { BookPicker } from "./BookPicker";
-import { clampGalleryIndex, clampGalleryZoom } from "../lib/gallery";
+import {
+  clampGalleryIndex,
+  clampGalleryZoom,
+  doubleClickGalleryZoom,
+  gallerySwipeIndex,
+} from "../lib/gallery";
 const REACTIONS: Record<Reaction, string> = {
   heart: "❤️",
   panda: "🐼",
@@ -719,7 +724,23 @@ function ImageLightbox({
   onClose: () => void;
 }) {
   const [zoom, setZoom] = useState(1);
-  useEffect(() => setZoom(1), [index, open]);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const pointers = useRef(new Map<number, { x: number; y: number }>());
+  const gesture = useRef({
+    startX: 0,
+    startY: 0,
+    panX: 0,
+    panY: 0,
+    pinchDistance: 0,
+    pinchZoom: 1,
+    hadPinch: false,
+  });
+  const resetView = () => {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+    pointers.current.clear();
+  };
+  useEffect(resetView, [index, open]);
   useEffect(() => {
     if (!open) return;
     const keyboard = (event: KeyboardEvent) => {
@@ -743,11 +764,84 @@ function ImageLightbox({
               clampGalleryZoom(value + (event.deltaY < 0 ? 0.25 : -0.25)),
             );
           }}
+          onDoubleClick={() => {
+            const next = doubleClickGalleryZoom(zoom);
+            setZoom(next);
+            if (next === 1) setPan({ x: 0, y: 0 });
+          }}
+          onPointerDown={(event) => {
+            if ((event.target as HTMLElement).closest("button")) return;
+            event.currentTarget.setPointerCapture(event.pointerId);
+            pointers.current.set(event.pointerId, {
+              x: event.clientX,
+              y: event.clientY,
+            });
+            if (pointers.current.size === 1) {
+              gesture.current.hadPinch = false;
+              gesture.current.startX = event.clientX;
+              gesture.current.startY = event.clientY;
+              gesture.current.panX = pan.x;
+              gesture.current.panY = pan.y;
+            } else if (pointers.current.size === 2) {
+              gesture.current.hadPinch = true;
+              const [a, b] = [...pointers.current.values()];
+              gesture.current.pinchDistance = Math.hypot(a.x - b.x, a.y - b.y);
+              gesture.current.pinchZoom = zoom;
+            }
+          }}
+          onPointerMove={(event) => {
+            if (!pointers.current.has(event.pointerId)) return;
+            pointers.current.set(event.pointerId, {
+              x: event.clientX,
+              y: event.clientY,
+            });
+            if (pointers.current.size === 2) {
+              const [a, b] = [...pointers.current.values()];
+              const distance = Math.hypot(a.x - b.x, a.y - b.y);
+              setZoom(
+                clampGalleryZoom(
+                  gesture.current.pinchZoom *
+                    (distance / Math.max(1, gesture.current.pinchDistance)),
+                ),
+              );
+            } else if (zoom > 1) {
+              setPan({
+                x: gesture.current.panX + event.clientX - gesture.current.startX,
+                y: gesture.current.panY + event.clientY - gesture.current.startY,
+              });
+            }
+          }}
+          onPointerUp={(event) => {
+            const startX = gesture.current.startX;
+            pointers.current.delete(event.pointerId);
+            if (
+              pointers.current.size === 0 &&
+              zoom === 1 &&
+              !gesture.current.hadPinch
+            ) {
+              const next = gallerySwipeIndex(
+                event.clientX - startX,
+                index,
+                images.length,
+              );
+              if (next !== index) onIndexChange(next);
+            } else if (pointers.current.size === 1) {
+              const remaining = [...pointers.current.values()][0];
+              gesture.current.startX = remaining.x;
+              gesture.current.startY = remaining.y;
+              gesture.current.panX = pan.x;
+              gesture.current.panY = pan.y;
+            }
+          }}
+          onPointerCancel={(event) => pointers.current.delete(event.pointerId)}
         >
           <img
             src={getFullUrl(images[index])!}
             alt={description || `Imagem ${index + 1} da publicação`}
-            style={{ transform: `scale(${zoom})` }}
+            draggable={false}
+            style={{
+              transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${zoom})`,
+            }}
           />
           {index > 0 && (
             <button
