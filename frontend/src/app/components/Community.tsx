@@ -24,7 +24,10 @@ import { getFullUrl, type Book, type UserProfile } from "../lib/types";
 import { fetchAllUsers, sendMessage } from "../lib/api";
 import { requireAuth } from "../lib/authGate";
 import { Avatar, Modal, toast, ConfirmDialog } from "./Ui";
-import { prepareSocialImage } from "../lib/socialImage";
+import {
+  prepareSocialImage,
+  SOCIAL_IMAGE_MAX_BYTES,
+} from "../lib/socialImage";
 import { BookPicker } from "./BookPicker";
 const REACTIONS: Record<Reaction, string> = {
   heart: "❤️",
@@ -175,10 +178,10 @@ export function PostComposer({
         (f) =>
           !["image/jpeg", "image/png", "image/webp", "image/avif"].includes(
             f.type,
-          ) || f.size > 4 * 1024 * 1024,
+          ) || f.size > SOCIAL_IMAGE_MAX_BYTES,
       )
     ) {
-      setError("Use imagens JPG, PNG, WebP ou AVIF de até 4 MB.");
+      setError("Use imagens JPG, PNG, WebP ou AVIF de até 12 MB.");
       return;
     }
     setError("");

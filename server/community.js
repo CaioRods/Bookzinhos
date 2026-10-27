@@ -255,8 +255,8 @@ module.exports = function ({
         "image/avif": "avif",
       };
       for (const file of files)
-        if (!types[file.mimetype] || file.size > 4 * 1024 * 1024)
-          throw new Error("Use JPG, PNG, WebP ou AVIF de até 4 MB por imagem.");
+        if (!types[file.mimetype] || file.size > 12 * 1024 * 1024)
+          throw new Error("Use JPG, PNG, WebP ou AVIF de até 12 MB por imagem.");
       const images = [];
       for (const file of files)
         images.push(
