@@ -5,8 +5,8 @@
   .mb-wordmark { font-size: 25px; letter-spacing: -.055em; }
   .mb-brand-dot { display: none; }
   .mb-brand img { width: 44px; height: 44px; background: transparent; box-shadow: none; }
-  .mb-sidebar-art { position: absolute; inset: 40% 0 0; z-index: 0; opacity: .75; pointer-events: none; }
-  .mb-sidebar-art::after { content: ''; position: absolute; inset: 0; background: linear-gradient(var(--background) 0%, color-mix(in srgb, var(--background) 92%, transparent) 18%, transparent 60%, color-mix(in srgb, var(--background) 15%, transparent) 90%); }
+  .mb-sidebar-art { position: absolute; inset: 25% -1px -1px; z-index: 0; opacity: .75; pointer-events: none; -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 28%, #000 76%, transparent 100%); mask-image: linear-gradient(to bottom, transparent 0%, #000 28%, #000 76%, transparent 100%); }
+  .mb-sidebar-art::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent 62%, color-mix(in srgb, var(--background-tint) 76%, transparent) 100%); }
   .mb-sidebar > :not(.mb-sidebar-art) { position: relative; z-index: 1; }
   .mb-sidebar { background: linear-gradient(150deg, #f1e8e8, #f7eee4); border-color: color-mix(in srgb, var(--primary) 8%, transparent); }
   .dark .mb-sidebar { background: var(--background-tint); }

@@ -183,8 +183,8 @@ export function RootLayout() {
             ))}
           </nav>
 
+          {guest && (
           <div className="mb-sidebar-account p-3 space-y-3">
-            {guest ? (
               <button
                 onClick={() => leaveGuestMode()}
                 className="mb-guest-card w-full rounded-[16px] bg-[var(--primary-soft)] border border-[var(--primary)]/25 p-3.5 text-left hover:bg-[color-mix(in_srgb,var(--primary)_18%,transparent)] transition-colors cursor-pointer"
@@ -197,15 +197,8 @@ export function RootLayout() {
                   <LogIn className="w-4 h-4" /> Entrar ou criar conta
                 </span>
               </button>
-            ) : (
-              <>
-                <Link to="/upload" className="mb-btn mb-btn-primary w-full h-11 rounded-[14px]">
-                  <Plus className="w-4 h-4" /> Adicionar livro
-                </Link>
-
-              </>
-            )}
           </div>
+          )}
         </aside>
 
         {/* ── Ações da conta (desktop) ────────────────────────────────────── */}
