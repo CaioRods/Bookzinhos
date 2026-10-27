@@ -1,3 +1,4 @@
+import { communityApi, type Series } from "../lib/community";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, Navigate } from "react-router";
 import {
@@ -702,6 +703,9 @@ function PostForm({
   const [title, setTitle] = useState(post?.title || "");
   const [content, setContent] = useState(post?.content || "");
   const [bookId, setBookId] = useState(post?.bookId || "");
+  const [seriesId,setSeriesId]=useState(post?.seriesId || "");
+  const [series,setSeries]=useState<Series[]>([]);
+  useEffect(()=>{communityApi<Series[]>("/series").then(setSeries).catch(e=>toast(e.message,"error"))},[]);
   const [isPinned, setIsPinned] = useState(!!post?.isPinned);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(getFullUrl(post?.imageUrl));
@@ -713,8 +717,8 @@ function PostForm({
     }
     setIsSaving(true);
     try {
-      if (post) await updatePost(post.id, { title, content, bookId, isPinned }, file);
-      else await createPost({ title, content, bookId, isPinned, imageFile: file });
+      if (post) await updatePost(post.id, { title, content, bookId, seriesId, isPinned }, file);
+      else await createPost({ title, content, bookId, seriesId, isPinned, imageFile: file });
       toast(post ? "Postagem atualizada." : "Postagem publicada no mural!");
       onSaved();
     } catch (err) {
@@ -763,10 +767,11 @@ function PostForm({
           <ImagePicker preview={preview} onPick={(f) => { setFile(f); setPreview(URL.createObjectURL(f)); }} aspect="aspect-[16/7]" label="Enviar imagem da postagem" />
         </div>
 
+        <label className="mb-label">Saga relacionada<select aria-label="Saga relacionada à postagem" className="mb-input mt-2" value={seriesId} onChange={e=>{setSeriesId(e.target.value);if(e.target.value)setBookId("")}}><option value="">Nenhuma saga</option>{series.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
         <div className="grid sm:grid-cols-2 gap-3 items-end">
           <div>
             <label htmlFor="post-book" className="mb-label">Livro relacionado</label>
-            <select id="post-book" value={bookId} onChange={(e) => setBookId(e.target.value)} className="mb-input">
+            <select id="post-book" value={bookId} onChange={(e) => {setBookId(e.target.value);if(e.target.value)setSeriesId("")}} className="mb-input">
               <option value="">Nenhum</option>
               {books.map((b) => (
                 <option key={b.id} value={b.id}>{b.title}</option>

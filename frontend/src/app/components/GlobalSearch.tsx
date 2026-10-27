@@ -17,7 +17,7 @@ export function GlobalSearch() {
   }, []);
   return <form role="search" className="mb-global-search" onSubmit={event => { event.preventDefault(); navigate(`/library?q=${encodeURIComponent(term.trim())}`); }}>
     <Search size={18} aria-hidden="true" />
-    <input ref={input} value={term} onChange={event => setTerm(event.target.value)} placeholder="Livros, autores ou gêneros…" aria-label="Buscar em toda a biblioteca" />
+    <input ref={input} value={term} onChange={event => setTerm(event.target.value)} placeholder="Livros, autores ou sagas…" aria-label="Buscar em toda a biblioteca" />
     <kbd aria-hidden="true">⌘ K</kbd>
   </form>;
 }

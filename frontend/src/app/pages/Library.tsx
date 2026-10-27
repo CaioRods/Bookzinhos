@@ -126,7 +126,7 @@ export function Library() {
 
       if (genre !== "Todos" && book.genre !== genre) return false;
 
-      if (term && !book.title.toLowerCase().includes(term) && !(book.author || "").toLowerCase().includes(term) && !(book.genre || "").toLowerCase().includes(term)) {
+      if (term && !(book.seriesName || "").toLowerCase().includes(term) && !book.title.toLowerCase().includes(term) && !(book.author || "").toLowerCase().includes(term) && !(book.genre || "").toLowerCase().includes(term)) {
         return false;
       }
       return true;

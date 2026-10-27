@@ -6,7 +6,7 @@ O banner tem largura responsiva e altura de 190 px no computador e 180 px no cel
 
 O admin pode marcar **Disponível para todos** para publicar um tema do sistema ou editar um existente. Excluir uma personalização dos seis temas originais restaura seu padrão. Temas pessoais continuam privados à conta e o limite é aplicado no servidor, inclusive em gravações simultâneas.
 
-Na página de um livro, o botão **Aparência** permite ao admin definir banner, recorte, desfoque, intensidade e cor principal. Por padrão, a página usa a capa ampliada com desfoque e extrai sua cor dominante; quando a imagem não pode ser lida, usa uma cor de reserva.
+Na página de um livro, o botão **Aparência** permite ao admin definir banner, recorte, desfoque, intensidade e cor principal. A imagem fica restrita a um banner panorâmico de 250 px no computador e 180 px no celular (recomendado: 2400 × 800 px). Por padrão, o banner usa a capa e a página extrai sua cor dominante; quando a imagem não pode ser lida, usa uma cor de reserva.
 
 ## Implantação
 

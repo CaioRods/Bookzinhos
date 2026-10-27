@@ -36,6 +36,7 @@ interface NavItem {
  */
 export function RootLayout() {
   const location = useLocation();
+  useEffect(() => { if (!location.hash) { document.getElementById("main-content")?.scrollTo({ top: 0, behavior: "instant" }); window.scrollTo({ top: 0, behavior: "instant" }); } }, [location.pathname]);
   const [settings] = useSettings();
   const { themes } = useThemeCatalog();
   const selectedTheme = themes.find(theme => theme.id === settings.scene) || DEFAULT_THEMES[0];
@@ -141,7 +142,8 @@ export function RootLayout() {
     <BookTransitionProvider>
       <AuthGateModal />
       <a href="#main-content" className="mb-skip-link">Pular para o conteúdo</a>
-      <div className="mb-app-window min-h-screen bg-background">
+      <div className="mb-ambient-scene" aria-hidden="true"><Scenery scene={settings.scene} surface="sidebar" /></div>
+      <div className="mb-app-window bg-background">
         {/* ── Barra lateral (desktop) ─────────────────────────────────────── */}
         <aside className="mb-sidebar hidden lg:flex flex-col overflow-hidden">
           <div className="mb-sidebar-art" style={{ opacity: selectedTheme.sidebarOpacity }}><Scenery scene={settings.scene} surface="sidebar" /></div>
@@ -200,23 +202,7 @@ export function RootLayout() {
                 <Link to="/upload" className="mb-btn mb-btn-primary w-full h-11 rounded-[14px]">
                   <Plus className="w-4 h-4" /> Adicionar livro
                 </Link>
-                <NavLink
-                  to="/profile"
-                  className={({ isActive }) =>
-                    `flex items-center gap-3 p-2 rounded-[14px] transition-colors ${
-                      isActive ? "bg-[var(--surface-2)]" : "hover:bg-[var(--surface-2)]"
-                    }`
-                  }
-                >
-                  <span className="w-10 h-10 rounded-full bg-[var(--surface-2)] border border-[var(--line)] flex items-center justify-center text-lg select-none flex-shrink-0">
-                    {avatar}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-[13.5px] font-semibold text-foreground truncate">{username || "Visitante"}</span>
-                    <span className="block text-[12px] text-[var(--text-3)] truncate">@{(username || "visitante").toLowerCase()}</span>
-                  </span>
-                  <ChevronRight className="w-4 h-4 text-[var(--text-3)] flex-shrink-0" />
-                </NavLink>
+
               </>
             )}
           </div>

@@ -1,3 +1,4 @@
+import { SeriesField } from "./SeriesField";
 import { useEffect, useRef, useState } from "react";
 import { ImagePlus, Loader2 } from "lucide-react";
 import { editBook, editBookWithCover } from "../lib/api";
@@ -16,6 +17,7 @@ interface Props {
 
 export function EditBookModal({ book, onClose, onSaved }: Props) {
   const [form, setForm] = useState({
+    seriesId: book.seriesId || "", seriesOrder: book.seriesOrder || 1,
     title: book.title,
     author: book.author,
     description: book.description,
@@ -77,7 +79,7 @@ export function EditBookModal({ book, onClose, onSaved }: Props) {
         </>
       }
     >
-      <div className="space-y-5">
+      <div className="space-y-5 mb-book-edit-form">
         <div className="flex gap-4 items-start">
           <button
             onClick={() => fileRef.current?.click()}
@@ -174,6 +176,7 @@ export function EditBookModal({ book, onClose, onSaved }: Props) {
           </div>
         </div>
 
+        <SeriesField value={form.seriesId} order={form.seriesOrder} onChange={(seriesId,seriesOrder)=>setForm({...form,seriesId,seriesOrder})} />
         <div>
           <label htmlFor="edit-desc" className="mb-label">Sinopse</label>
           <textarea

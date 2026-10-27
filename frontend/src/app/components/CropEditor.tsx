@@ -2,7 +2,7 @@ import { useRef } from "react";
 import { ThemeImage, sourceSize } from "./ThemeImage";
 import type { ImageCrop, SceneTheme } from "../lib/appearance";
 const clamp = (value: number) => Math.max(0, Math.min(100, value));
-export function CropEditor({ theme, value, onChange, label, surface = "profile", opacity = 1 }: { theme: SceneTheme; value: ImageCrop; onChange: (value: ImageCrop) => void; label: string; surface?: "profile" | "sidebar" | "book"; opacity?: number }) {
+export function CropEditor({ theme, value, onChange, label, surface = "profile", opacity = 1 }: { theme: SceneTheme; value: ImageCrop; onChange: (value: ImageCrop) => void; label: string; surface?: "profile" | "sidebar" | "book" | "banner"; opacity?: number }) {
   const drag = useRef<{ x: number; y: number; crop: ImageCrop; travelX: number; travelY: number } | null>(null);
   return <fieldset className="mb-crop-editor"><legend>{label}</legend><p>Arraste a imagem ou ajuste posição e zoom.</p>
     <div className={`mb-crop-frame is-${surface}`} tabIndex={0} role="img" aria-label={`Prévia interativa: ${label}`} style={{ touchAction: "none" }}

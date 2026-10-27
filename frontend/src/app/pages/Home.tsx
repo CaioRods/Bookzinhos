@@ -558,12 +558,14 @@ function CommunityCard({ data, admin }: { data: HomeData | null; admin: boolean 
 }
 
 function PostCard({ post, books, onLike }: { post: HomePost; books: Book[]; onLike: () => void }) {
+  const navigate = useNavigate();
   const linkedBook = post.bookId ? books.find((b) => b.id === post.bookId) : null;
+  const seriesBooks = post.seriesId ? books.filter(b=>b.seriesId===post.seriesId).sort((a,b)=>(a.seriesOrder||0)-(b.seriesOrder||0)) : [];
   const image = getFullUrl(post.imageUrl);
 
   return (
-    <article className="mb-editorial-post mb-card overflow-hidden">
-      {image && <img src={image} alt="" loading="lazy" decoding="async" className="w-full max-h-96 object-contain bg-[var(--surface-2)]" />}
+    <article className="mb-editorial-post mb-card overflow-hidden" onClick={event=>{if(post.seriesId && !(event.target as HTMLElement).closest("a,button")) navigate(`/series/${post.seriesId}`)}}>
+      {image && <Link to={post.seriesId ? `/series/${post.seriesId}` : post.bookId ? `/book/${post.bookId}` : "#"}><img src={image} alt="" loading="lazy" decoding="async" className="w-full max-h-96 object-contain bg-[var(--surface-2)]" /></Link>}
       <div className="p-4">
         <div className="flex items-center gap-2.5">
           <Avatar emoji={post.avatar} size="xs" username={post.author} />
@@ -578,6 +580,7 @@ function PostCard({ post, books, onLike }: { post: HomePost; books: Book[]; onLi
           <p className="text-[13.5px] text-[var(--text-2)] leading-relaxed mt-1.5 whitespace-pre-wrap">{post.content}</p>
         )}
 
+        {post.seriesId && <Link to={`/series/${post.seriesId}`} className="mb-home-series-link"><div>{seriesBooks.slice(0,3).map(b=>b.coverImagePath&&<img key={b.id} src={getFullUrl(b.coverImagePath)!} alt=""/>)}</div><span><small>EXPLORE A SAGA</small><strong>{seriesBooks[0]?.seriesName || "Ver todos os volumes"}</strong><small>{seriesBooks.length} livros em ordem de leitura</small></span><ArrowRight size={18}/></Link>}
         {linkedBook && (
           <Link
             to={`/book/${linkedBook.id}`}

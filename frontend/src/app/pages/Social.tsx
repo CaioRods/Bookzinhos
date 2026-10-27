@@ -1,3 +1,4 @@
+import { CommunityTimeline } from "../components/Community";
 import { ReadingPost } from "../components/ReadingPost";
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
@@ -11,7 +12,7 @@ import type { FeedItem, Notifications, UserProfile } from "../lib/types";
 import { Avatar, EmptyState, PageHeader, SectionHeader, Skeleton, toast } from "../components/Ui";
 import { requireAuth } from "../lib/authGate";
 
-type Tab = "feed" | "leitores";
+type Tab = "feed" | "leitores" | "atividade";
 type Scope = "all" | "following";
 
 export function Social() {
@@ -89,6 +90,7 @@ export function Social() {
         <button onClick={() => setTab("feed")} className={`mb-btn mb-btn-sm ${tab === "feed" ? "mb-btn-soft" : "mb-btn-ghost"}`}>
           <Rss className="w-4 h-4" /> Feed
         </button>
+        <button onClick={() => setTab("atividade")} className={`mb-btn mb-btn-sm ${tab === "atividade" ? "mb-btn-soft" : "mb-btn-ghost"}`}>Leituras</button>
         <button onClick={() => setTab("leitores")} className={`mb-btn mb-btn-sm ${tab === "leitores" ? "mb-btn-soft" : "mb-btn-ghost"}`}>
           <Users className="w-4 h-4" /> Leitores
           <span className="mb-chip">{others.length}</span>
@@ -96,7 +98,7 @@ export function Social() {
       </div>
 
       <div className="mb-social-columns"><div className="min-w-0">
-      {tab === "feed" ? (
+      {tab === "feed" ? <><div className="mb-social-scopes"><button className={`mb-btn ${scope === "all" ? "mb-btn-soft" : "mb-btn-ghost"}`} onClick={()=>setScope("all")}>Para você</button><button className={`mb-btn ${scope === "following" ? "mb-btn-soft" : "mb-btn-ghost"}`} onClick={()=>setScope("following")}>Seguindo</button></div><CommunityTimeline scope={scope}/></> : tab === "atividade" ? (
         <section className="space-y-4">
           <div className="flex gap-1.5">
             <button onClick={() => setScope("all")} className={`mb-btn mb-btn-sm ${scope === "all" ? "mb-btn-soft" : "mb-btn-ghost"}`}>

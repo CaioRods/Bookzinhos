@@ -1,3 +1,4 @@
+import { SeriesField } from "../components/SeriesField";
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router";
 import { ArrowLeft, Upload as UploadIcon } from "lucide-react";
@@ -67,7 +68,7 @@ async function extractPdfCover(pdfFile: File): Promise<{ cover: File | null; num
 
 export function Upload() {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({ title: "", author: "", description: "", genre: "Outros", isPublic: true });
+  const [formData, setFormData] = useState({ title: "", author: "", description: "", genre: "Outros", isPublic: true, seriesId: "", seriesOrder: 1 });
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
@@ -174,6 +175,7 @@ export function Upload() {
         author: formData.author,
         description: formData.description,
         genre: formData.genre,
+        seriesId: formData.seriesId, seriesOrder: formData.seriesOrder,
         isPublic: formData.isPublic,
         coverColor: randomCoverColor(),
         pdfFile,
@@ -322,6 +324,7 @@ export function Upload() {
           </div>
         </section>
 
+        <SeriesField value={formData.seriesId} order={formData.seriesOrder} onChange={(seriesId,seriesOrder)=>setFormData({...formData,seriesId,seriesOrder})} />
         {error && (
           <p role="alert" className="text-[12.5px] font-semibold text-[var(--destructive)] bg-[var(--destructive)]/10 rounded-lg px-3 py-2.5">
             {error}

@@ -272,6 +272,7 @@ function BookCardImpl({
           <button className="mb-book-more" aria-label={`Opções de ${book.title}`} onMouseDown={e => e.stopPropagation()} onTouchStart={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); const rect = e.currentTarget.getBoundingClientRect(); setMenuPos({ x: rect.left, y: rect.bottom }); setShowMenu(true); }}><MoreVertical size={16} /></button>
           <h4 className="text-[13px] font-semibold text-foreground line-clamp-2 leading-snug">{book.title}</h4>
           <p className="mb-book-author">{book.author || "Autor desconhecido"}</p>
+          {book.seriesName && <p className="mb-book-series-label">{book.seriesName} · Vol. {book.seriesOrder}</p>}
           <div className="mb-library-book-rating" aria-label={book.rating > 0 ? `Nota ${book.rating.toFixed(1)} de 5` : "Livro ainda sem avaliações"}><Star size={12} fill={book.rating > 0 ? "currentColor" : "none"} /><span>{book.rating > 0 ? book.rating.toFixed(1) : "Sem nota"}</span></div>
           <div className="mb-book-progress"><span role="progressbar" aria-label={`Progresso em ${book.title}`} aria-valuenow={Math.min(100, Math.max(0, localProgress?.progress ?? 0))} aria-valuemin={0} aria-valuemax={100}><i style={{ width: `${Math.min(100, Math.max(0, localProgress?.progress ?? 0))}%` }} /></span><small>{Math.round(Math.min(100, Math.max(0, localProgress?.progress ?? 0)))}%</small></div>
         </div>

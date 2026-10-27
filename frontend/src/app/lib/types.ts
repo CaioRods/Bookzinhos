@@ -4,6 +4,9 @@ import type { BookAppearance } from "./appearance";
  */
 
 export interface Book {
+  seriesId?: string | null;
+  seriesName?: string | null;
+  seriesOrder?: number | null;
   appearance?: BookAppearance | null;
   id: string;
   title: string;
@@ -180,6 +183,7 @@ export interface BannerReport {
 }
 
 export interface HomePost {
+  seriesId?: string | null;
   id: number;
   author: string;
   avatar?: string;

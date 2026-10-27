@@ -113,6 +113,10 @@ async function requireAdmin(req, res, next) {
 }
 
 // ─── Health ───────────────────────────────────────────────────────────────────
+app.use((_req, res, next) => {
+  startup.then(() => next()).catch(() => res.status(503).json({ error: "O servidor ainda não conseguiu inicializar o banco de dados." }));
+});
+
 app.get("/", (_req, res) => {
   res.send(`
     <div style="font-family: sans-serif; text-align: center; padding: 50px;">
@@ -124,6 +128,15 @@ app.get("/", (_req, res) => {
 });
 app.get("/health", (_req, res) => res.json({ ok: true, ts: Date.now() }));
 const appearance = require("./appearance")({ app, db, sql, upload, uploadFileToCloud, currentUser, requireAdmin });
+const community = require("./community")({ app, db, sql, upload, uploadFileToCloud, currentUser, requireAdmin });
+async function seriesFields(body) {
+  if (!body.seriesId) return { id: null, name: null, order: null };
+  const [series] = await db.query(sql`SELECT * FROM book_series WHERE id = ${body.seriesId}`);
+  if (!series) throw new Error("Saga não encontrada.");
+  const order = Number(body.seriesOrder);
+  if (!Number.isFinite(order) || order <= 0 || order > 10000) throw new Error("Informe um volume válido para a saga.");
+  return { id: series.id, name: series.name, order };
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function rowToBook(row) {
@@ -143,6 +156,9 @@ function rowToBook(row) {
     addedAt: Number(row.added_at) || 0,
     pdfPath: row.pdf_path || null,
     coverImagePath: row.cover_image_path || null,
+    seriesId: row.series_id || null,
+    seriesName: row.series_name || null,
+    seriesOrder: row.series_order == null ? null : Number(row.series_order),
     appearance: row.appearance_json ? JSON.parse(row.appearance_json) : null,
     isUserBook: !!row.is_user_book,
   };
@@ -426,6 +442,7 @@ app.post("/books/presigned-url", async (req, res) => {
 app.post("/books", upload.fields([{ name: "pdf", maxCount: 1 }, { name: "cover", maxCount: 1 }]), async (req, res) => {
   try {
     const { title, author, description, genre, isPublic, coverColor, publisher, publishedYear } = req.body;
+    const series = req.body.seriesId !== undefined ? await seriesFields(req.body) : undefined;
     if (!title) return res.status(400).json({ error: "Título é obrigatório" });
 
     const [existing] = await db.query(sql`
@@ -456,6 +473,7 @@ app.post("/books", upload.fields([{ name: "pdf", maxCount: 1 }, { name: "cover",
       VALUES (${id},${title},${author || ""},${description || ""},${genre || "Outros"},${publisher || ""},${publishedYear || ""},0,0,${isPublic === "false" ? 0 : 1},${coverColor || "lavender-mint"},${Date.now()},${pdfUrl},${coverUrl},1)
     `);
 
+    if (series) await db.query(sql`UPDATE books SET series_id=${series.id}, series_name=${series.name}, series_order=${series.order} WHERE id=${id}`);
     const [bookRow] = await db.query(sql`SELECT * FROM books WHERE id = ${id}`);
     const book = rowToBook(bookRow);
     book.reviews = [];
@@ -470,6 +488,7 @@ app.post("/books", upload.fields([{ name: "pdf", maxCount: 1 }, { name: "cover",
 app.put("/books/:id", upload.fields([{ name: "cover", maxCount: 1 }]), async (req, res) => {
   try {
     const { title, author, description, genre, isPublic, coverColor, publisher, publishedYear } = req.body;
+    const series = req.body.seriesId !== undefined ? await seriesFields(req.body) : undefined;
     const coverFile = req.files?.cover?.[0];
 
     const [existing] = await db.query(sql`SELECT * FROM books WHERE id = ${req.params.id}`);
@@ -493,6 +512,7 @@ app.put("/books/:id", upload.fields([{ name: "cover", maxCount: 1 }]), async (re
         cover_image_path=${coverUrl}
       WHERE id=${req.params.id}
     `);
+    if (series) await db.query(sql`UPDATE books SET series_id=${series.id}, series_name=${series.name}, series_order=${series.order} WHERE id=${req.params.id}`);
     const [updated] = await db.query(sql`SELECT * FROM books WHERE id = ${req.params.id}`);
     const book = rowToBook(updated);
     book.reviews = await loadReviews({ bookId: req.params.id, me: currentUser(req) });
@@ -1372,6 +1392,7 @@ async function decoratePosts(rows, me) {
     content: r.content || "",
     imageUrl: r.image_url || null,
     bookId: r.book_id || null,
+    seriesId: r.series_id || null,
     isPinned: !!Number(r.is_pinned),
     isActive: !!Number(r.is_active),
     createdAt: Number(r.created_at),
@@ -1395,7 +1416,8 @@ app.get("/posts", async (req, res) => {
 
 app.post("/posts", requireAdmin, upload.single("image"), async (req, res) => {
   try {
-    const { title, content, bookId, isPinned } = req.body;
+    const { title, content, bookId, isPinned, seriesId } = req.body;
+    if (seriesId && !(await db.query(sql`SELECT id FROM book_series WHERE id=${seriesId}`)).length) return res.status(400).json({error:"Saga não encontrada."});
     let imageUrl = req.body.imageUrl || null;
     if (req.file) {
       imageUrl = await uploadFileToCloud(req.file.buffer, `posts/post-${Date.now()}.jpg`, req.file.mimetype);
@@ -1404,8 +1426,8 @@ app.post("/posts", requireAdmin, upload.single("image"), async (req, res) => {
 
     const now = Date.now();
     await db.query(sql`
-      INSERT INTO home_posts (author, title, content, image_url, book_id, is_pinned, is_active, created_at, updated_at)
-      VALUES (${req.adminUser}, ${title || ""}, ${content || ""}, ${imageUrl}, ${bookId || null}, ${isPinned === "true" || isPinned === true ? 1 : 0}, 1, ${now}, ${now})
+      INSERT INTO home_posts (author, title, content, image_url, book_id, series_id, is_pinned, is_active, created_at, updated_at)
+      VALUES (${req.adminUser}, ${title || ""}, ${content || ""}, ${imageUrl}, ${seriesId ? null : bookId || null}, ${seriesId || null}, ${isPinned === "true" || isPinned === true ? 1 : 0}, 1, ${now}, ${now})
     `);
     const rows = await db.query(sql`SELECT * FROM home_posts ORDER BY id DESC LIMIT 1`);
     const [post] = await decoratePosts(rows, req.adminUser);
@@ -1434,7 +1456,8 @@ app.put("/posts/:id", requireAdmin, upload.single("image"), async (req, res) => 
     if (req.file) {
       imageUrl = await uploadFileToCloud(req.file.buffer, `posts/post-${id}-${Date.now()}.jpg`, req.file.mimetype);
     }
-    const { title, content, bookId, isPinned, isActive } = req.body;
+    const { title, content, bookId, isPinned, isActive, seriesId } = req.body;
+    if (seriesId && !(await db.query(sql`SELECT id FROM book_series WHERE id=${seriesId}`)).length) return res.status(400).json({error:"Saga não encontrada."});
     const truthy = (v, fallback) => (v == null ? fallback : v === "true" || v === true ? 1 : 0);
 
     await db.query(sql`
@@ -1442,7 +1465,8 @@ app.put("/posts/:id", requireAdmin, upload.single("image"), async (req, res) => 
         title = ${title ?? existing.title},
         content = ${content ?? existing.content},
         image_url = ${imageUrl},
-        book_id = ${bookId ?? existing.book_id},
+        book_id = ${seriesId ? null : bookId ?? existing.book_id},
+        series_id = ${seriesId === undefined ? existing.series_id : seriesId || null},
         is_pinned = ${truthy(isPinned, existing.is_pinned)},
         is_active = ${truthy(isActive, existing.is_active)},
         updated_at = ${Date.now()}
@@ -2018,6 +2042,7 @@ app.get("/admin/overview", requireAdmin, async (_req, res) => {
 async function start() {
   await initDB();
   await appearance.ready();
+  await community.ready();
   if (!process.env.VERCEL) {
     const { initWatcher } = require("./watcher");
     initWatcher(db, sql, PORT, uploadFileToCloud);
@@ -2032,7 +2057,8 @@ async function start() {
   }
 }
 
-start().catch((err) => {
+const startup = start();
+startup.catch((err) => {
   console.error("Erro ao iniciar servidor:", err);
   if (!process.env.VERCEL) {
     process.exit(1);

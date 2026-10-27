@@ -142,6 +142,8 @@ export async function uploadBook(data: {
   genre: string;
   isPublic: boolean;
   coverColor: string;
+  seriesId?: string;
+  seriesOrder?: number;
   pdfFile: File;
   coverFile?: File;
 }): Promise<Book> {
@@ -197,6 +199,7 @@ export async function uploadBook(data: {
         genre: data.genre,
         isPublic: String(data.isPublic),
         coverColor: data.coverColor,
+        seriesId: data.seriesId || "", seriesOrder: data.seriesOrder || 1,
         pdfUrl: pdfS3Data.downloadUrl,
         coverUrl,
       });
@@ -208,6 +211,8 @@ export async function uploadBook(data: {
   }
 
   const form = new FormData();
+  form.append("seriesId", data.seriesId || "");
+  form.append("seriesOrder", String(data.seriesOrder || 1));
   form.append("title", data.title);
   form.append("author", data.author);
   form.append("description", data.description);
@@ -229,9 +234,9 @@ export async function editBook(id: string, data: Record<string, unknown>): Promi
 }
 
 /** Atualiza um livro enviando um novo arquivo de capa. */
-export async function editBookWithCover(id: string, data: Record<string, string>, coverFile: File): Promise<Book> {
+export async function editBookWithCover(id: string, data: Record<string, string | number>, coverFile: File): Promise<Book> {
   const form = new FormData();
-  Object.entries(data).forEach(([k, v]) => form.append(k, v));
+  Object.entries(data).forEach(([k, v]) => form.append(k, String(v)));
   form.append("cover", coverFile);
   const book = await upload<Book>("PUT", `/books/${id}`, form);
   invalidate("/books", "/home");
@@ -483,11 +488,12 @@ export function fetchPosts(all = false, force = false): Promise<HomePost[]> {
 }
 
 export async function createPost(data: {
-  title?: string; content?: string; bookId?: string; isPinned?: boolean; imageFile?: File | null;
+  title?: string; content?: string; bookId?: string; seriesId?: string; isPinned?: boolean; imageFile?: File | null;
 }): Promise<HomePost> {
   const form = new FormData();
   if (data.title) form.append("title", data.title);
   if (data.content) form.append("content", data.content);
+  if (data.seriesId) form.append("seriesId", data.seriesId);
   if (data.bookId) form.append("bookId", data.bookId);
   form.append("isPinned", String(!!data.isPinned));
   if (data.imageFile) form.append("image", data.imageFile);

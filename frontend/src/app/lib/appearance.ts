@@ -9,7 +9,7 @@ export interface SceneTheme {
 }
 export interface BookAppearance { width: number; height: number; imageUrl: string; mainColor: string | null; blur: number; opacity: number; crop: ImageCrop }
 export const CENTER_CROP: ImageCrop = { x: 50, y: 50, zoom: 1 };
-export const DEFAULT_BOOK_APPEARANCE: BookAppearance = { width: 800, height: 1200, imageUrl: "", mainColor: null, blur: 28, opacity: .22, crop: { ...CENTER_CROP } };
+export const DEFAULT_BOOK_APPEARANCE: BookAppearance = { width: 800, height: 1200, imageUrl: "", mainColor: null, blur: 0, opacity: 1, crop: { ...CENTER_CROP } };
 export function accentVariables(color: string, dark = false): Record<string, string> {
   const rgb = color.match(/^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);
   if (!rgb) return {};
