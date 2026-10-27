@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   BookOpen, Pencil, Trash2, MessageSquare, PauseCircle, PlayCircle, Clock, Download, Loader2,
@@ -36,6 +36,22 @@ export function BookContextMenu({
   const pdfUrl = getFullUrl(book.pdfPath);
   const isDesktop = useDeviceTier() === "desktop";
   const [isDownloading, setIsDownloading] = useState(false);
+  const panel = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const previous = document.activeElement as HTMLElement | null;
+    panel.current?.querySelector<HTMLButtonElement>("button:not(:disabled)")?.focus();
+    const keyboard = (event: KeyboardEvent) => {
+      if (event.key === "Escape") { event.preventDefault(); onClose(); }
+      if (event.key === "Tab") {
+        const buttons = Array.from(panel.current?.querySelectorAll<HTMLButtonElement>("button:not(:disabled)") || []);
+        const first = buttons[0], last = buttons[buttons.length - 1];
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+      }
+    };
+    window.addEventListener("keydown", keyboard);
+    return () => { window.removeEventListener("keydown", keyboard); previous?.focus(); };
+  }, [onClose]);
 
   const handleDownload = async () => {
     if (!pdfUrl || isDownloading) return;
@@ -108,6 +124,10 @@ export function BookContextMenu({
     return createPortal(
       <div className="fixed inset-0 z-[9999]" onClick={onClose} onContextMenu={(e) => { e.preventDefault(); onClose(); }}>
         <div
+          ref={panel}
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Opções de ${book.title}`}
           style={{ left: x, top: y, width: MENU_WIDTH }}
           onClick={(e) => e.stopPropagation()}
           className="absolute bg-[var(--surface)] border border-[var(--line)] rounded-xl shadow-[var(--shadow-3)] overflow-hidden animate-scale-in"
@@ -124,6 +144,10 @@ export function BookContextMenu({
     <div className="fixed inset-0 z-[9999] flex items-end justify-center" onClick={onClose}>
       <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] animate-fade-in" />
       <div
+        ref={panel}
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Opções de ${book.title}`}
         onClick={(e) => e.stopPropagation()}
         className="relative w-full sm:max-w-sm bg-[var(--surface)] border-t sm:border border-[var(--line)] rounded-t-2xl sm:rounded-2xl sm:mb-6 shadow-[var(--shadow-3)] overflow-hidden animate-slide-up pb-[env(safe-area-inset-bottom)]"
       >

@@ -1,7 +1,9 @@
+import { Scenery, ScenePicker } from "../components/Scenery";
+import { useSettings } from "../lib/settings";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
 import {
-  BookOpen, Check, LogOut, Pencil, Smartphone, ExternalLink, Star, Users, Loader2, SlidersHorizontal,
+  Camera, Clock3, Heart, UserPlus, BookOpen, Check, LogOut, Pencil, Smartphone, ExternalLink, Star, Users, Loader2, SlidersHorizontal,
 } from "lucide-react";
 import { fetchBooks, fetchStats, fetchUserProfile, updateProfile } from "../lib/api";
 import { clearSession, getUsername, notifySessionChanged, saveSession } from "../lib/session";
@@ -15,6 +17,7 @@ const MAX_SHELF = 12;
 
 export function Profile() {
   const username = getUsername();
+  const [settings] = useSettings();
 
   const [profile, setProfile] = useState<UserProfileType | null>(null);
   const [books, setBooks] = useState<Book[]>([]);
@@ -123,47 +126,32 @@ export function Profile() {
   }
 
   const statCards = [
-    { label: "Lidos", value: stats?.finished ?? 0 },
-    { label: "Lendo", value: stats?.reading ?? 0 },
-    { label: "Resenhas", value: stats?.reviewCount ?? 0 },
-    { label: "Seguidores", value: stats?.followers ?? 0 },
+    { label: "Livros na biblioteca", value: books.length, icon: BookOpen },
+    { label: "Lendo no momento", value: stats?.reading ?? 0, icon: Clock3 },
+    { label: "Livros concluídos", value: stats?.finished ?? 0, icon: Check },
+    { label: "Favoritos", value: profile.savedIds?.length ?? profile.stats?.saved ?? 0, icon: Heart },
+    { label: "Seguidores", value: profile.followers ?? stats?.followers ?? 0, icon: Users },
+    { label: "Seguindo", value: profile.following ?? stats?.following ?? 0, icon: UserPlus },
   ];
 
   return (
     <div className="mb-screen mb-screen--narrow mb-profile space-y-6">
-      {/* ── Cartão do perfil ───────────────────────────────────────────────── */}
-      <header className="mb-profile-hero mb-card p-5 sm:p-6"><p className="mb-eyebrow mb-6">SEU RETRATO EM HISTÓRIAS</p>
-        <div className="flex items-start gap-4">
-          <Avatar emoji={profile.avatar} size="xl" />
-          <div className="flex-1 min-w-0 pt-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-xl font-bold text-foreground truncate">{profile.username}</h1>
-              {profile.isAdmin && <span className="mb-chip mb-chip-primary">🐶 Admin</span>}
-              {!!profile.pandinhas && <span className="mb-chip">🐼 {profile.pandinhas}</span>}
-            </div>
-            <p className="text-[13.5px] text-[var(--text-2)] leading-relaxed mt-1.5">
-              {profile.bio || "Escreva algo sobre o seu gosto de leitura."}
-            </p>
-            <div className="flex gap-2 mt-3">
-              <button onClick={() => setIsEditing(true)} className="mb-btn mb-btn-outline mb-btn-sm">
-                <Pencil className="w-3.5 h-3.5" /> Editar perfil
-              </button>
-              <Link to={`/user/${encodeURIComponent(profile.username)}`} className="mb-btn mb-btn-ghost mb-btn-sm">
-                <ExternalLink className="w-3.5 h-3.5" /> Ver como público
-              </Link>
-            </div>
-          </div>
-        </div>
-
-        <div className="mb-profile-stats grid grid-cols-4 gap-2 mt-5">
-          {statCards.map((s) => (
-            <div key={s.label} className="text-center py-2.5 rounded-xl bg-[var(--surface-2)]">
-              <div className="text-[18px] font-bold text-foreground leading-none">{s.value}</div>
-              <div className="text-[11px] text-[var(--text-3)] mt-1">{s.label}</div>
-            </div>
-          ))}
+      <p className="mb-eyebrow mb-profile-kicker">MEU PERFIL</p>
+      <header className="mb-reference-profile">
+        <Avatar emoji={profile.avatar} size="hero" />
+        <div className="min-w-0">
+          <div className="mb-profile-name-row"><h1>{profile.username}</h1><button onClick={() => setIsEditing(true)} className="mb-btn mb-btn-soft"><Pencil size={16} /> Editar perfil</button></div>
+          <p className="mb-profile-handle">@{profile.username.toLowerCase()}</p>
+          <p className="mb-profile-bio">{profile.bio || "Lendo um capítulo de cada vez."}</p>
         </div>
       </header>
+      <div className="mb-profile-landscape">
+        <Scenery scene={settings.scene} />
+        <blockquote>“Boas histórias<br />nos levam mais longe.”<span /></blockquote>
+        <button className="mb-btn" onClick={() => document.getElementById("profile-scenery")?.scrollIntoView({ behavior: settings.reduceMotion ? "instant" : "smooth", block: "center" })}><Camera size={17} /> Alterar cenário</button>
+      </div>
+      <div className="mb-profile-metrics">{statCards.map(({ label, value, icon: Icon }) => <div key={label}><Icon size={25} /><span><strong>{value}</strong><small>{label}</small></span></div>)}</div>
+      <ScenePicker />
 
       {/* ── Estante em destaque ────────────────────────────────────────────── */}
       <section>

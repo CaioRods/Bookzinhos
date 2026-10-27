@@ -4,8 +4,8 @@
   "description": "Leia, avalie, comente e descubra o que a comunidade está lendo.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f8f7f4",
-  "theme_color": "#a94f32",
+  "background_color": "#faf7f2",
+  "theme_color": "#64344f",
   "lang": "pt-BR",
   "icons": [
     {

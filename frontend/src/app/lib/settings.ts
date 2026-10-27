@@ -1,3 +1,4 @@
+import { validScene, DEFAULT_SCENE, type SceneId } from "./scenery";
 import { useCallback, useEffect, useState } from "react";
 
 /**
@@ -14,6 +15,7 @@ export type NotificationKind = "mensagem" | "curtida" | "resposta" | "seguidor" 
 
 export interface Settings {
   theme: ThemeChoice;
+  scene: SceneId;
   /** Chave-mestra: desligada, nada é avisado nem listado. */
   notificationsOn: boolean;
   /** Mostrar aviso do sistema (fora da aba) além do sino. */
@@ -38,6 +40,7 @@ const KEY = "mybooks-settings";
 
 const DEFAULTS: Settings = {
   theme: "sistema",
+  scene: DEFAULT_SCENE,
   notificationsOn: true,
   desktopNotifications: false,
   kinds: { mensagem: true, curtida: true, resposta: true, seguidor: true, mural: true },
@@ -49,7 +52,7 @@ const DEFAULTS: Settings = {
 export function loadSettings(): Settings {
   try {
     const saved = JSON.parse(localStorage.getItem(KEY) || "{}");
-    return { ...DEFAULTS, ...saved, kinds: { ...DEFAULTS.kinds, ...(saved.kinds || {}) } };
+    return { ...DEFAULTS, ...saved, scene: validScene(saved.scene), kinds: { ...DEFAULTS.kinds, ...(saved.kinds || {}) } };
   } catch {
     return DEFAULTS;
   }
@@ -66,6 +69,7 @@ export function applySettings(settings: Settings): void {
   const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
   const dark = settings.theme === "escuro" || (settings.theme === "sistema" && prefersDark);
   root.classList.toggle("dark", dark);
+  root.dataset.scene = validScene(settings.scene);
   root.dataset.reduceMotion = settings.reduceMotion ? "true" : "false";
 }
 

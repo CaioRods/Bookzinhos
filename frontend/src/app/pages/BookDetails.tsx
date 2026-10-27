@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useParams, useNavigate } from "react-router";
+import { useCallback, useEffect, useState } from "react";
+import { Link, useParams, useNavigate } from "react-router";
 import {
-  ArrowLeft, BookOpen, BookOpenCheck, Play, Share2, CheckCircle, Users, FileText,
-  Bookmark, ChevronDown, Star,
+  ArrowLeft, BookOpen, Play, Share2, CheckCircle, Users, FileText,
+  Bookmark, ChevronDown, ChevronRight, Calendar, Star,
 } from "lucide-react";
 import {
-  fetchAllUsers, fetchBook, fetchProgress, fetchSavedIds, saveProgress, sendMessage, toggleSaved,
+  fetchAllUsers, fetchBooks, fetchBook, fetchProgress, fetchSavedIds, saveProgress, sendMessage, toggleSaved,
 } from "../lib/api";
 import { getCoverGradient, getFullUrl } from "../lib/types";
 import type { Book, ReadingProgress, Review, UserProfile } from "../lib/types";
@@ -13,7 +13,7 @@ import { getUsername } from "../lib/session";
 import { requireAuth } from "../lib/authGate";
 import { useOpenBook } from "../lib/readerChoice";
 import { ReviewSection } from "../components/ReviewSection";
-import { useSpineColor } from "../components/Book3D";
+import { Book3D } from "../components/Book3D";
 import { Avatar, Modal, Skeleton, Stars, toast } from "../components/Ui";
 
 export function BookDetails() {
@@ -30,30 +30,7 @@ export function BookDetails() {
   const [tab, setTab] = useState<"sobre" | "avaliacoes">("sobre");
   const [expanded, setExpanded] = useState(false);
   const [users, setUsers] = useState<UserProfile[]>([]);
-
-  // A página inteira se tinge com a cor dominante da capa: sobrescrevemos os
-  // tokens da marca aqui, e cabeçalho, botões, abas e barras seguem juntos.
-  const coverColor = useSpineColor(book);
-  const bookTheme = useMemo(() => {
-    // A cor da lombada pode ser clara demais; o texto por cima é branco, então
-    // prendemos a luminosidade num teto que garante contraste legível.
-    const darken = (hsl: string, maxLightness: number) => {
-      const parts = hsl.match(/hsl\((\d+(?:\.\d+)?) (\d+(?:\.\d+)?)% (\d+(?:\.\d+)?)%\)/);
-      if (!parts) return hsl;
-      const [h, sat, light] = [Number(parts[1]), Number(parts[2]), Number(parts[3])];
-      return `hsl(${h} ${Math.min(sat, 72)}% ${Math.min(light, maxLightness)}%)`;
-    };
-
-    const base = darken(coverColor.base, 38);
-    return {
-      "--primary": base,
-      "--primary-hover": darken(coverColor.shade, 28),
-      "--primary-deep": darken(coverColor.shade, 22),
-      "--primary-foreground": "#ffffff",
-      "--primary-soft": `color-mix(in srgb, ${base} 14%, transparent)`,
-      "--ring": `color-mix(in srgb, ${base} 26%, transparent)`,
-    } as React.CSSProperties;
-  }, [coverColor]);
+  const [related, setRelated] = useState<Book[]>([]);
 
   useEffect(() => {
     if (!id) return;
@@ -65,9 +42,11 @@ export function BookDetails() {
       fetchSavedIds().catch(() => [] as string[]),
       fetchProgress(id).catch(() => null),
       fetchAllUsers().catch(() => [] as UserProfile[]),
-    ]).then(([b, savedIds, p, allUsers]) => {
+      fetchBooks().catch(() => [] as Book[]),
+    ]).then(([b, savedIds, p, allUsers, catalog]) => {
       if (cancelled) return;
       setBook(b);
+      setRelated(catalog.filter(entry => entry.id !== id && (entry.author === b?.author || (entry.genre !== "Outros" && entry.genre === b?.genre))).sort((a, entry) => Number(entry.author === b?.author) - Number(a.author === b?.author) || entry.rating - a.rating).slice(0, 5));
       setIsSaved((savedIds || []).includes(id));
       setProgress(p);
       setUsers((allUsers || []).filter((u) => u.username.toLowerCase() !== myUsername?.toLowerCase()));
@@ -101,7 +80,7 @@ export function BookDetails() {
     if (!id || !book) return;
     if (!requireAuth("marcar leituras")) return;
     const isCurrentlyFinished = progress?.status === "finalizado";
-    const total = book.pages?.length || progress?.totalPages || 1;
+    const total = book.pageCount || book.pages?.length || progress?.totalPages || 1;
 
     const newProgress: ReadingProgress = {
       bookId: id,
@@ -163,240 +142,29 @@ export function BookDetails() {
   const cover = getFullUrl(book.coverImagePath);
 
   return (
-    <div style={bookTheme} className="mb-book-details">
-      {/* ── Palco: a própria arte da capa vira o cenário ──────────────────── */}
-      <div className="mb-book-stage relative overflow-hidden lg:rounded-[24px]">
-        {cover ? (
-          <>
-            <img
-              src={cover}
-              alt=""
-              aria-hidden
-              className="absolute inset-0 w-full h-full object-cover scale-125 blur-2xl"
-            />
-            {/* Duas camadas: uma escurece para o texto branco funcionar, a
-                outra puxa a cena para a cor dominante do livro. */}
-            <div className="absolute inset-0 bg-black/55" />
-            <div
-              className="absolute inset-0 opacity-70"
-              style={{ background: `linear-gradient(120deg, ${coverColor.shade} 0%, transparent 55%, ${coverColor.shade} 100%)` }}
-            />
-          </>
-        ) : (
-          <div className="absolute inset-0 mb-hero-green" />
-        )}
-
-        <div className="relative px-5 sm:px-8 lg:px-10 pt-5 pb-16 lg:pb-20 text-white">
-          <div className="flex items-start justify-between gap-3">
-            <button
-              onClick={() => navigate(-1)}
-              aria-label="Voltar"
-              className="w-11 h-11 rounded-full bg-white/15 hover:bg-white/25 backdrop-blur-md flex items-center justify-center transition-colors cursor-pointer"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <button
-              onClick={() => setShowShare(true)}
-              className="inline-flex items-center gap-2 h-11 px-5 rounded-full bg-white/15 hover:bg-white/25 backdrop-blur-md text-[13.5px] font-semibold transition-colors cursor-pointer"
-            >
-              <Share2 className="w-4 h-4" /> Indicar
-            </button>
+    <div className="mb-book-details mb-reference-details">
+      <nav className="mb-book-breadcrumb" aria-label="Caminho de navegação"><button aria-label="Voltar" onClick={() => navigate(-1)}><ArrowLeft size={20} /></button><Link to="/library">Biblioteca</Link><ChevronRight size={15} /><span>{book.title}</span></nav>
+      <div className="mb-detail-columns"><div className="min-w-0">
+        <section className="mb-reference-book-hero">
+          <div className="mb-reference-book-cover">{cover ? <img src={cover} alt={`Capa de ${book.title}`} /> : <Book3D book={book} width={240} still />}</div>
+          <div className="mb-reference-book-copy">
+            <p className="mb-eyebrow">{book.genre}</p><h1>{book.title}</h1><p className="mb-detail-author">{book.author || "Autor desconhecido"}</p>
+            <div className="mb-detail-rating"><Stars value={book.rating} /><strong>{book.rating > 0 ? book.rating.toFixed(1) : "Sem nota"}</strong><span>({book.reviewCount} {book.reviewCount === 1 ? "avaliação" : "avaliações"})</span></div>
+            <div className="mb-detail-facts">{!!book.pageCount && <span><FileText size={16} />{book.pageCount} páginas</span>}{book.publishedYear && <span><Calendar size={16} />{book.publishedYear}</span>}<span><Users size={16} />{book.readers || 0} leitores</span></div>
+            <p className={`mb-detail-description ${expanded ? "is-expanded" : ""}`}>{book.description || "Uma nova história para descobrir. A sinopse deste livro ainda não foi adicionada."}</p>
+            {book.description.length > 260 && <button className="mb-detail-expand" aria-expanded={expanded} onClick={() => setExpanded(v => !v)}>{expanded ? "Ler menos" : "Ler mais"}<ChevronDown size={15} /></button>}
+            <div className="mb-detail-actions">{hasContent ? <button className="mb-btn mb-btn-primary" onClick={() => openBook(book)}><Play size={17} />{progress && progress.progress > 0 && !isFinished ? "Continuar lendo" : "Começar leitura"}</button> : <span className="mb-detail-unavailable">Conteúdo ainda não disponível</span>}<button className="mb-btn mb-btn-outline mb-btn-icon" onClick={handleToggleSave} aria-pressed={isSaved} aria-label={isSaved ? "Remover dos favoritos" : "Guardar nos favoritos"}><Bookmark size={19} className={isSaved ? "fill-current" : ""} /></button><button className="mb-btn mb-btn-outline mb-btn-icon" aria-label="Indicar este livro" onClick={() => setShowShare(true)}><Share2 size={18} /></button></div>
+            {progress && <div className="mb-detail-progress"><span>Seu progresso</span><div className="mb-inline-progress"><span role="progressbar" aria-label="Seu progresso de leitura" aria-valuenow={Math.min(100, Math.max(0, progress.progress))} aria-valuemin={0} aria-valuemax={100}><i style={{ width: `${Math.min(100, Math.max(0, progress.progress))}%` }} /></span><strong>{Math.round(progress.progress)}%</strong></div><small>Página {progress.currentPage + 1} de {progress.totalPages}</small></div>}
           </div>
-
-          <div className="flex flex-col sm:flex-row gap-6 sm:gap-9 mt-4 sm:mt-2">
-            <div className="flex-shrink-0 mx-auto sm:mx-0">
-              <div className="w-[150px] sm:w-[210px] lg:w-[240px] aspect-[2/3] rounded-xl overflow-hidden shadow-[0_28px_60px_-18px_rgba(0,0,0,.85)] ring-1 ring-white/10">
-                {cover ? (
-                  <img src={cover} alt={`Capa de ${book.title}`} className="w-full h-full object-cover" />
-                ) : (
-                  <div className={`w-full h-full bg-gradient-to-br ${getCoverGradient(book)} flex items-center justify-center`}>
-                    <BookOpen className="w-12 h-12 text-white/60" />
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="flex-1 min-w-0 sm:pt-4">
-              <h1 className="mb-book-title text-[28px] sm:text-[38px] font-bold leading-[1.08] tracking-tight">{book.title}</h1>
-              <p className="text-[16px] sm:text-[18px] font-semibold mt-1.5" style={{ color: coverColor.tint }}>
-                {book.author || "Autor desconhecido"}
-              </p>
-
-              <div className="flex items-center gap-2.5 mt-4">
-                <Stars value={book.rating} onDark />
-                <span className="text-[14px] font-semibold">
-                  {book.rating > 0 ? book.rating.toFixed(1) : "—"}
-                  <span className="text-white/65 font-normal">
-                    {" "}({book.reviewCount} {book.reviewCount === 1 ? "avaliação" : "avaliações"})
-                  </span>
-                </span>
-              </div>
-
-              <div className="flex flex-wrap gap-1.5 mt-4">
-                <span className="h-8 px-3.5 rounded-full bg-white/18 backdrop-blur-sm text-[12px] font-semibold flex items-center">
-                  {book.genre}
-                </span>
-                {!!book.pageCount && (
-                  <span className="h-8 px-3.5 rounded-full bg-white/18 backdrop-blur-sm text-[12px] font-semibold flex items-center gap-1.5">
-                    <FileText className="w-3.5 h-3.5" /> {book.pageCount} págs.
-                  </span>
-                )}
-                {!!book.readers && (
-                  <span className="h-8 px-3.5 rounded-full bg-white/18 backdrop-blur-sm text-[12px] font-semibold flex items-center gap-1.5">
-                    <Users className="w-3.5 h-3.5" /> {book.readers}
-                  </span>
-                )}
-              </div>
-
-              {book.description && (
-                <>
-                  <p className={`text-[14.5px] text-white/85 leading-[1.7] mt-5 max-w-xl ${expanded ? "" : "line-clamp-4"}`}>
-                    {book.description}
-                  </p>
-                  {book.description.length > 180 && (
-                    <button
-                      onClick={() => setExpanded((v) => !v)}
-                      className="inline-flex items-center gap-1 mt-2 text-[13.5px] font-semibold cursor-pointer hover:opacity-80 transition-opacity"
-                      style={{ color: coverColor.tint }}
-                    >
-                      {expanded ? "Ver menos" : "Ver mais"}
-                      <ChevronDown className={`w-4 h-4 transition-transform ${expanded ? "rotate-180" : ""}`} />
-                    </button>
-                  )}
-                </>
-              )}
-
-              <div className="flex gap-2.5 mt-6 max-w-xl">
-                {hasContent ? (
-                  <button
-                    onClick={() => openBook(book)}
-                    className="flex-1 h-[52px] rounded-[14px] font-semibold text-[15px] text-white inline-flex items-center justify-center gap-2 transition-transform active:scale-[0.98] cursor-pointer shadow-[0_10px_28px_-10px_rgba(0,0,0,.8)]"
-                    style={{ background: coverColor.base }}
-                  >
-                    <Play className="w-4 h-4 fill-current" />
-                    {progress && progress.progress > 0 ? "Continuar leitura" : "Quero ler"}
-                  </button>
-                ) : (
-                  <button disabled className="flex-1 h-[52px] rounded-[14px] bg-white/15 font-semibold text-[15px] inline-flex items-center justify-center gap-2 cursor-not-allowed">
-                    <BookOpen className="w-4 h-4" /> Sem conteúdo
-                  </button>
-                )}
-
-                <button
-                  onClick={handleToggleRead}
-                  aria-label={isFinished ? "Desmarcar como lido" : "Marcar como lido"}
-                  className={`w-[52px] h-[52px] rounded-[14px] flex items-center justify-center transition-colors cursor-pointer ${
-                    isFinished ? "bg-white text-[var(--foreground)]" : "bg-white/15 hover:bg-white/25 backdrop-blur-md"
-                  }`}
-                >
-                  <CheckCircle className="w-5 h-5" />
-                </button>
-
-                <button
-                  onClick={handleToggleSave}
-                  aria-label={isSaved ? "Remover dos favoritos" : "Salvar nos favoritos"}
-                  aria-pressed={isSaved}
-                  className={`w-[52px] h-[52px] rounded-[14px] flex items-center justify-center transition-colors cursor-pointer ${
-                    isSaved ? "bg-white text-[var(--foreground)]" : "bg-white/15 hover:bg-white/25 backdrop-blur-md"
-                  }`}
-                >
-                  <Bookmark className={`w-5 h-5 ${isSaved ? "fill-current" : ""}`} />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Painel branco, sobreposto ao palco ────────────────────────────── */}
-      <div className="relative -mt-10 rounded-t-[24px] lg:rounded-[24px] bg-[var(--surface)] border border-[var(--line)] shadow-[var(--shadow-2)] px-5 sm:px-8 lg:px-10 py-6">
-        <div className="flex gap-7 border-b border-[var(--line)]">
-          {([
-            { key: "sobre", label: "Sobre" },
-            { key: "avaliacoes", label: "Avaliações" },
-          ] as const).map((t) => (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              className={`relative pb-3.5 text-[15px] transition-colors cursor-pointer ${
-                tab === t.key ? "text-[var(--primary)] font-semibold" : "text-[var(--text-3)] font-medium hover:text-foreground"
-              }`}
-            >
-              {t.label}
-              {tab === t.key && <span className="absolute inset-x-0 -bottom-px h-[2.5px] rounded-full bg-[var(--primary)]" />}
-            </button>
-          ))}
-        </div>
-
-        {tab === "sobre" ? (
-          <div className="grid lg:grid-cols-[minmax(0,1fr)_340px] gap-8 pt-6">
-            <div className="min-w-0">
-              <p className="text-[14.5px] text-[var(--text-2)] leading-[1.85] whitespace-pre-wrap">
-                {book.description || "Nenhuma sinopse cadastrada para este livro."}
-              </p>
-
-              <div className="flex flex-wrap gap-2 mt-6">
-                <span className="h-9 px-4 rounded-full bg-[var(--primary-soft)] text-[var(--primary)] text-[13px] font-medium flex items-center">
-                  {book.genre}
-                </span>
-              </div>
-
-              {progress && progress.progress > 0 && progress.status !== "finalizado" && (
-                <div className="mt-7">
-                  <div className="flex justify-between items-center text-[13px] font-semibold">
-                    <span className="text-[var(--text-2)]">Seu progresso</span>
-                    <span className="text-[var(--primary)]">{Math.round(progress.progress)}%</span>
-                  </div>
-                  <div className="w-full bg-[var(--surface-2)] rounded-full h-2 overflow-hidden mt-2">
-                    <div className="bg-[var(--primary)] h-full rounded-full transition-all" style={{ width: `${progress.progress}%` }} />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <aside className="space-y-4">
-              <div className="grid grid-cols-3 gap-3">
-                {[
-                  { icon: <BookOpenCheck className="w-[18px] h-[18px]" />, value: book.rating > 0 ? book.rating.toFixed(1) : "—", label: "Nota média" },
-                  { icon: <Star className="w-[18px] h-[18px] fill-current" />, value: String(book.reviewCount), label: "Avaliações" },
-                  { icon: <Users className="w-[18px] h-[18px]" />, value: String(book.readers ?? 0), label: "Leitores" },
-                ].map((stat) => (
-                  <div key={stat.label} className="rounded-[16px] bg-[var(--surface-2)] p-3.5 text-center">
-                    <span className="inline-flex text-[var(--primary)] justify-center">{stat.icon}</span>
-                    <div className="text-[19px] font-bold text-foreground leading-none mt-2">{stat.value}</div>
-                    <div className="text-[11.5px] text-[var(--text-3)] mt-1.5">{stat.label}</div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="rounded-[16px] bg-[var(--surface-2)] p-4 grid grid-cols-2 gap-y-4 gap-x-3">
-                {[
-                  { label: "Autor", value: book.author || "—" },
-                  { label: "Editora", value: book.publisher || "—" },
-                  { label: "Páginas", value: book.pageCount ? String(book.pageCount) : "—" },
-                  { label: "Publicado em", value: book.publishedYear || "—" },
-                ].map((row) => (
-                  <div key={row.label} className="min-w-0">
-                    <div className="text-[12px] text-[var(--text-3)]">{row.label}</div>
-                    <div className="text-[13.5px] font-semibold text-foreground truncate mt-0.5">{row.value}</div>
-                  </div>
-                ))}
-              </div>
-
-              {isFinished && (
-                <div className="rounded-[16px] bg-[var(--primary-soft)] p-4 flex items-center gap-3">
-                  <CheckCircle className="w-5 h-5 text-[var(--primary)]" />
-                  <span className="text-[13.5px] font-semibold text-foreground">Você concluiu este livro 🎉</span>
-                </div>
-              )}
-            </aside>
-          </div>
-        ) : (
-          <div className="pt-6">
-            <ReviewSection bookId={book.id} reviews={book.reviews || []} onChange={handleReviewsChange} />
-          </div>
-        )}
-      </div>
+        </section>
+        <section className="mb-book-about">
+          <div className="mb-book-tabs" role="tablist" aria-label="Informações do livro">{([{ key: "sobre", label: "Sobre" }, { key: "avaliacoes", label: "Avaliações" }] as const).map(t => <button key={t.key} role="tab" aria-selected={tab === t.key} aria-controls={`book-panel-${t.key}`} id={`book-tab-${t.key}`} onClick={() => setTab(t.key)}>{t.label}</button>)}</div>
+          {tab === "sobre" ? <div className="mb-book-synopsis" role="tabpanel" id="book-panel-sobre" aria-labelledby="book-tab-sobre"><div><h2>Sinopse</h2><p>{book.description || "Nenhuma sinopse cadastrada para este livro."}</p><button className="mb-btn mb-btn-outline mt-6" onClick={handleToggleRead}><CheckCircle size={17} />{isFinished ? "Marcar como não lido" : "Marcar como concluído"}</button></div><dl>{[{ label: "Autor", value: book.author }, { label: "Editora", value: book.publisher }, { label: "Publicação", value: book.publishedYear }, { label: "Páginas", value: book.pageCount }, { label: "Gênero", value: book.genre }].filter(row => row.value).map(row => <div key={row.label}><dt>{row.label}</dt><dd>{row.value}</dd></div>)}</dl></div> : <div role="tabpanel" id="book-panel-avaliacoes" aria-labelledby="book-tab-avaliacoes"><ReviewSection bookId={book.id} reviews={book.reviews || []} onChange={handleReviewsChange} /></div>}
+        </section>
+      </div><aside className="mb-book-related-rail">
+        <section className="mb-card"><header><h2>Sua leitura</h2><Link to="/library?filter=lendo">Ver tudo</Link></header><button className="mb-current-reading" onClick={() => hasContent && openBook(book)} disabled={!hasContent}>{cover && <img src={cover} alt="" />}<span><strong>{book.title}</strong><small>{book.author}</small><span className="mb-inline-progress"><span><i style={{ width: `${Math.min(100, Math.max(0, progress?.progress || 0))}%` }} /></span><small>{Math.round(progress?.progress || 0)}%</small></span><small>{progress ? `Página ${progress.currentPage + 1} de ${progress.totalPages}` : "Comece seu próximo capítulo"}</small></span><ChevronRight size={17} /></button></section>
+        {related.length > 0 && <section className="mb-card"><header><h2>Livros relacionados</h2><Link to={`/library?q=${encodeURIComponent(book.author || book.genre)}`}>Ver todos</Link></header>{related.map(entry => <Link className="mb-related-book" key={entry.id} to={`/book/${entry.id}`}><span>{entry.coverImagePath ? <img src={getFullUrl(entry.coverImagePath)!} alt="" loading="lazy" /> : <BookOpen size={22} />}</span><div><strong>{entry.title}</strong><small>{entry.author}</small>{entry.rating > 0 && <small className="mb-related-rating"><Star size={13} fill="currentColor" />{entry.rating.toFixed(1)}</small>}</div><ChevronRight size={17} /></Link>)}</section>}
+      </aside></div>
 
       {/* ── Compartilhar ───────────────────────────────────────────────────── */}
       <Modal

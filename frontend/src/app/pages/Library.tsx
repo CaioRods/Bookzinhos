@@ -39,10 +39,11 @@ export function Library() {
   const [params, setParams] = useSearchParams();
   const searchRef = useRef<HTMLInputElement>(null);
 
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(params.get("q") || "");
   const [filter, setFilter] = useState<Filter>((params.get("filter") as Filter) || "todos");
   const [genre, setGenre] = useState("Todos");
   const [sort, setSort] = useState<Sort>("recentes");
+  const [showFilters, setShowFilters] = useState(false);
   const [view, setView] = useState<View>(
     () => (localStorage.getItem("library-view") as View) || "grid"
   );
@@ -86,6 +87,8 @@ export function Library() {
     }
   }, [params, setParams]);
 
+  useEffect(() => { setSearch(params.get("q") || ""); }, [params.get("q")]);
+
   const changeFilter = (next: Filter) => {
     setFilter(next);
     if (next === "todos") params.delete("filter");
@@ -123,7 +126,7 @@ export function Library() {
 
       if (genre !== "Todos" && book.genre !== genre) return false;
 
-      if (term && !book.title.toLowerCase().includes(term) && !(book.author || "").toLowerCase().includes(term)) {
+      if (term && !book.title.toLowerCase().includes(term) && !(book.author || "").toLowerCase().includes(term) && !(book.genre || "").toLowerCase().includes(term)) {
         return false;
       }
       return true;
@@ -159,11 +162,11 @@ export function Library() {
     );
 
   return (
-    <div className="mb-screen mb-screen--wide mb-library space-y-5">
+    <div className="mb-screen mb-screen--wide mb-library">
       <PageHeader
         title="Sua"
         highlight="biblioteca."
-        subtitle={isLoading ? "Carregando o acervo…" : `${books.length} histórias. Sua próxima descoberta está aqui.`}
+        subtitle={isLoading ? "Carregando o acervo…" : `${books.length} livros. Sua próxima descoberta está aqui.`}
         icon={<ShelfIcon className="w-5 h-5" />}
         gradient="linear-gradient(140deg,#4b7a57,#2f4f39)"
         action={
@@ -175,7 +178,7 @@ export function Library() {
 
       {/* ── Busca e visualização ───────────────────────────────────────────── */}
       <div className="mb-library-search flex gap-2 mb-in" style={{ "--i": 1 } as React.CSSProperties}>
-        <div className="relative flex-1">
+        <div className="mb-library-query relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-3)] pointer-events-none" />
           <input
             ref={searchRef}
@@ -201,6 +204,17 @@ export function Library() {
             </button>
           ))}
         </div>
+        <select
+          value={sort}
+          onChange={(e) => setSort(e.target.value as Sort)}
+          aria-label="Ordenar por"
+          className="mb-input w-auto py-1.5 text-[12.5px]"
+        >
+          {SORTS.map((s) => (
+            <option key={s.key} value={s.key}>{s.label}</option>
+          ))}
+        </select>
+        <button className="mb-btn mb-btn-outline mb-btn-icon" aria-label="Filtros da biblioteca" aria-expanded={showFilters} aria-controls="library-extra-filters" onClick={() => setShowFilters(value => !value)}><SlidersHorizontal size={17} /></button>
       </div>
 
       {/* ── Filtros ────────────────────────────────────────────────────────── */}
@@ -222,7 +236,7 @@ export function Library() {
         ))}
       </div>
 
-      <div className="mb-library-tools flex flex-wrap gap-2 items-center mb-in" style={{ "--i": 3 } as React.CSSProperties}>
+      {showFilters && <div id="library-extra-filters" className="mb-library-tools flex flex-wrap gap-2 items-center mb-in" style={{ "--i": 3 } as React.CSSProperties}>
         <SlidersHorizontal className="w-4 h-4 text-[var(--text-3)]" />
         <select
           value={genre}
@@ -234,20 +248,11 @@ export function Library() {
             <option key={g} value={g}>{g === "Todos" ? "Todos os gêneros" : g}</option>
           ))}
         </select>
-        <select
-          value={sort}
-          onChange={(e) => setSort(e.target.value as Sort)}
-          aria-label="Ordenar por"
-          className="mb-input w-auto py-1.5 text-[12.5px]"
-        >
-          {SORTS.map((s) => (
-            <option key={s.key} value={s.key}>{s.label}</option>
-          ))}
-        </select>
+
         <span className="text-[12.5px] text-[var(--text-3)] ml-auto">
           {view === "shelf" ? "Guardados na estante · " : ""}{visible.length} {visible.length === 1 ? "livro" : "livros"}
         </span>
-      </div>
+      </div>}
 
       <div className="mb-collection-heading"><h2>{view === "shelf" ? "Sua estante, de perto" : "Explore a coleção"}</h2><span>{view === "shelf" ? "Toque em uma lombada para abrir" : "Histórias que merecem um lugar na sua estante"}</span></div>
 

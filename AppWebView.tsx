@@ -69,7 +69,7 @@ function AppContent() {
       />
       {isLoading && (
         <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="#a94f32" />
+          <ActivityIndicator size="large" color="#64344f" />
           <Text style={styles.loadingText}>Abrindo o myBooks... 🐾</Text>
         </View>
       )}
@@ -86,19 +86,19 @@ export default function AppWebView() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#f8f7f4" },
+  root: { flex: 1, backgroundColor: "#faf7f2" },
   webview: { flex: 1 },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#f8f7f4",
+    backgroundColor: "#faf7f2",
     gap: 15,
   },
   loadingText: { color: "#282623", fontWeight: "800", fontSize: 16 },
   centered: {
     flex: 1,
-    backgroundColor: "#f8f7f4",
+    backgroundColor: "#faf7f2",
     padding: 30,
     alignItems: "center",
     justifyContent: "center",

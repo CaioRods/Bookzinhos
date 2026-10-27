@@ -27,9 +27,9 @@ export function BookGrid({ books, progressOf, display = "cover", ranked, onDelet
       if (!available) return;
       const mobile = window.innerWidth < 640;
       const spacing = mobile ? 16 : 28;
-      const minimum = window.innerWidth < 400 ? 82 : mobile ? 108 : 156;
+      const minimum = window.innerWidth < 400 ? 82 : mobile ? 108 : 200;
       const columns = Math.max(1, Math.floor((available + spacing) / (minimum + spacing)));
-      setCoverWidth(Math.min(184, Math.floor((available - spacing * (columns - 1)) / columns)));
+      setCoverWidth(Math.min(236, Math.floor((available - spacing * (columns - 1)) / columns)));
       setGap(spacing);
     };
     measure();

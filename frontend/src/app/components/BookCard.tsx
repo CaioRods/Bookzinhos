@@ -1,5 +1,5 @@
-import { useRef, useState, useCallback, memo } from "react";
-import { BookOpen, Star } from "lucide-react";
+import { useRef, useState, useEffect, useCallback, memo } from "react";
+import { BookOpen, Star, MoreVertical } from "lucide-react";
 import { useNavigate } from "react-router";
 import { getCoverGradient, getFullUrl } from "../lib/types";
 import { BookContextMenu } from "./BookContextMenu";
@@ -39,11 +39,13 @@ function BookCardImpl({
   const [showEdit, setShowEdit] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [localProgress, setLocalProgress] = useState(initialProgress);
+  useEffect(() => { setLocalProgress(initialProgress); }, [initialProgress]);
   const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const longPressedRef = useRef(false);
   const touchStartPos = useRef({ x: 0, y: 0 });
 
   const startPress = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    if ((e.target as HTMLElement).closest("button")) return;
     if ("button" in e && e.button !== 0) return;
     longPressedRef.current = false;
 
@@ -91,6 +93,7 @@ function BookCardImpl({
 
   const endPress = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     clearTimeout(timerRef.current);
+    if ((e.target as HTMLElement).closest("button")) return;
 
     if (!longPressedRef.current) {
       if ("button" in e && e.button !== 0) return;
@@ -154,6 +157,7 @@ function BookCardImpl({
     tabIndex: 0,
     "aria-label": `Ver ${book.title}${book.author ? `, de ${book.author}` : ""}`,
     onKeyDown: (e: React.KeyboardEvent) => {
+      if (e.target !== e.currentTarget) return;
       if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openDetails(); }
     },
     onMouseDown: startPress,
@@ -262,26 +266,13 @@ function BookCardImpl({
 
         {/* A legenda some no modo estante: o nome já está na lombada. */}
         <div
-          className="mb-book-caption overflow-hidden"
+          className="mb-book-caption"
           style={{ display: isSpine ? "none" : undefined, width, marginTop: 12 }}
         >
+          <button className="mb-book-more" aria-label={`Opções de ${book.title}`} onMouseDown={e => e.stopPropagation()} onTouchStart={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); const rect = e.currentTarget.getBoundingClientRect(); setMenuPos({ x: rect.left, y: rect.bottom }); setShowMenu(true); }}><MoreVertical size={16} /></button>
           <h4 className="text-[13px] font-semibold text-foreground line-clamp-2 leading-snug">{book.title}</h4>
           <p className="mb-book-author">{book.author || "Autor desconhecido"}</p>
-          {/* Uma linha só, que trunca inteira: em cartões estreitos a nota e a
-              contagem de leitores brigavam por espaço e quebravam no meio. */}
-          <p className="flex items-center gap-1 mt-1 text-[11.5px] whitespace-nowrap overflow-hidden">
-            {book.rating > 0 ? (
-              <span className="inline-flex items-center gap-1 font-semibold text-[var(--text-2)] flex-shrink-0">
-                <Star className="w-3 h-3 fill-[var(--gold)] text-[var(--gold)]" />
-                {book.rating.toFixed(1)}
-              </span>
-            ) : (
-              <span className="text-[var(--text-3)] flex-shrink-0">Sem nota</span>
-            )}
-            {!!book.readers && book.readers > 0 && (
-              <span className="text-[var(--text-3)] truncate">· {book.readers} {book.readers === 1 ? "leitor" : "leitores"}</span>
-            )}
-          </p>
+          <div className="mb-book-progress"><span role="progressbar" aria-label={`Progresso em ${book.title}`} aria-valuenow={Math.min(100, Math.max(0, localProgress?.progress ?? 0))} aria-valuemin={0} aria-valuemax={100}><i style={{ width: `${Math.min(100, Math.max(0, localProgress?.progress ?? 0))}%` }} /></span><small>{Math.round(Math.min(100, Math.max(0, localProgress?.progress ?? 0)))}%</small></div>
         </div>
       </div>
       {overlays}

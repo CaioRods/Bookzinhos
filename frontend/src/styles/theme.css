@@ -10,15 +10,15 @@
   --font-size: 16px;
 
   /* Superfícies neutras para destacar o conteúdo. */
-  --background: #f8f7f4;
-  --background-tint: #f0eee9;
-  --surface: #ffffff;
-  --surface-2: #f2f0eb;
-  --surface-3: #e6e2da;
+  --background: #faf7f2;
+  --background-tint: #f2ebe7;
+  --surface: #fffdfb;
+  --surface-2: #f2ede8;
+  --surface-3: #e5dcd5;
 
-  --foreground: #282623;
-  --text-2: #66625c;
-  --text-3: #78736c;
+  --foreground: #211526;
+  --text-2: #6c626c;
+  --text-3: #857985;
 
   --card: var(--surface);
   --card-foreground: var(--foreground);
@@ -26,15 +26,15 @@
   --popover-foreground: var(--foreground);
 
   /* Marca — verde floresta */
-  --primary: #a94f32;
-  --primary-hover: #8e4028;
-  --primary-soft: rgba(169, 79, 50, 0.09);
+  --primary: #64344f;
+  --primary-hover: #4d253c;
+  --primary-soft: rgba(100, 52, 79, 0.09);
   --primary-foreground: #ffffff;
-  --primary-deep: #733722;
+  --primary-deep: #3e2747;
 
-  --accent: #a94f32;
+  --accent: #64344f;
   --accent-foreground: #ffffff;
-  --gold: #b98032;
+  --gold: #946a7d;
   --like: #de5560;
   --success: #42745a;
 
@@ -50,7 +50,7 @@
   --input: transparent;
   --input-background: var(--surface-2);
   --switch-background: #d3d0c5;
-  --ring: rgba(169, 79, 50, 0.19);
+  --ring: rgba(100, 52, 79, .17);
 
   --font-weight-medium: 500;
   --font-weight-normal: 400;
@@ -84,8 +84,8 @@
   --ease-flip: cubic-bezier(0.62, 0.03, 0.32, 1);
 
   /* Areia do destaque da semana */
-  --sand-1: #f0e5d7;
-  --sand-2: #e7d5be;
+  --sand-1: #f2e7de;
+  --sand-2: #ead8c8;
 
   /* Pastéis das capas geradas */
   --peach: #ffd9c9;
@@ -102,28 +102,28 @@
 }
 
 .dark {
-  --background: #191817;
-  --background-tint: #1f1e1c;
-  --surface: #252422;
-  --surface-2: #302e2a;
-  --surface-3: #403c36;
+  --background: #1d1720;
+  --background-tint: #251e28;
+  --surface: #2c2430;
+  --surface-2: #352c39;
+  --surface-3: #493d4b;
 
-  --foreground: #f6f2e9;
-  --text-2: #c5bfb4;
-  --text-3: #aaa295;
+  --foreground: #faf2ef;
+  --text-2: #d0becd;
+  --text-3: #ad9aab;
 
   --card: var(--surface);
   --card-foreground: var(--foreground);
   --popover: var(--surface);
   --popover-foreground: var(--foreground);
 
-  --primary: #e4a282;
-  --primary-hover: #edb496;
-  --primary-soft: rgba(228, 162, 130, 0.12);
-  --primary-foreground: #2d1c14;
-  --primary-deep: #efc3aa;
+  --primary: #d6adbf;
+  --primary-hover: #e3bfce;
+  --primary-soft: rgba(214, 173, 191, .12);
+  --primary-foreground: #2d1830;
+  --primary-deep: #ead1dc;
 
-  --accent: #e4a282;
+  --accent: #d6adbf;
   --gold: #e5b45f;
   --like: #ef7b84;
   --success: #7fb08c;
@@ -137,7 +137,7 @@
   --line: rgba(255, 255, 255, 0.08);
   --input-background: var(--surface-2);
   --switch-background: #3d4334;
-  --ring: rgba(228, 162, 130, 0.24);
+  --ring: rgba(214, 173, 191, .2);
 
   --skeleton: #39352f;
   --skeleton-sheen: rgba(255, 255, 255, 0.085);

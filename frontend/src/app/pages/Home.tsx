@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import {
-  Search, ArrowRight, Star, Megaphone, Heart, MessageCircle, Edit3, Send, Pin,
-  Plus, BookOpen, Sparkles, TrendingUp, PenSquare, Bookmark,
+  ChevronLeft, ChevronRight, Search, ArrowRight, Star, Megaphone, Heart, MessageCircle, Edit3, Send, Pin,
+  Plus, BookOpen, Sparkles, TrendingUp, PenSquare,
 } from "lucide-react";
-import { fetchFeed, fetchHome, fetchSavedIds, togglePostLike, toggleSaved, updateGlobalStatus } from "../lib/api";
+import { fetchFeed, fetchHome, togglePostLike, updateGlobalStatus } from "../lib/api";
 import { useLiveData } from "../lib/useLiveData";
 import { getCoverGradient, getFullUrl, timeAgo } from "../lib/types";
 import type { Book, FeedItem, HomeData, HomePost, ReadingProgress } from "../lib/types";
@@ -35,6 +35,7 @@ export function Home() {
   const searchRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     const focusSearch = (event: KeyboardEvent) => {
+      if (window.innerWidth >= 1024) return;
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
         searchRef.current?.focus();
@@ -67,12 +68,18 @@ export function Home() {
     );
   }, [search, books]);
 
+  const trilogy = useMemo(() => {
+    const normalize = (title: string) => title.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+    const entries = ["o principe cruel", "o rei perverso", "a rainha do nada"].map(title => books.find(book => normalize(book.title) === title));
+    return entries.every(Boolean) ? entries as Book[] : [];
+  }, [books]);
+
   /** Até três livros de destaque: os mais bem avaliados, senão os mais lidos. */
   const featured = useMemo(() => {
-    const pool = [...(data?.topRated ?? []), ...(data?.mostRead ?? []), ...books];
+    const pool = [...trilogy.slice(0, 1), ...(data?.topRated ?? []), ...(data?.mostRead ?? []), ...books];
     const seen = new Set<string>();
     return pool.filter((b) => (seen.has(b.id) ? false : seen.add(b.id))).slice(0, 3);
-  }, [data, books]);
+  }, [data, books, trilogy]);
 
   const hero = featured.length > 0 ? featured[heroIndex % featured.length] : null;
 
@@ -95,7 +102,7 @@ export function Home() {
         .sort((a, b) => b.lastReadAt - a.lastReadAt)
         .map((p) => ({ progress: p, book: books.find((b) => b.id === p.bookId) }))
         .filter((x): x is { progress: ReadingProgress; book: Book } => !!x.book)
-        .slice(0, 3),
+        .slice(0, 5),
     [progress, books]
   );
 
@@ -144,9 +151,9 @@ export function Home() {
 
   return (
     <div className="mb-screen mb-screen--wide mb-home">
-      <div className="2xl:grid 2xl:grid-cols-[minmax(0,1fr)_288px] 2xl:gap-10 2xl:items-start">
+      <div className="mb-discover-columns">
         {/* ── Coluna principal ─────────────────────────────────────────────── */}
-        <div className="min-w-0 space-y-10 sm:space-y-12">
+        <div className="mb-discover-content min-w-0">
           {/* Saudação + busca */}
           <header className="mb-home-header">
             <div>
@@ -158,7 +165,7 @@ export function Home() {
                 Uma pausa para descobrir sua próxima história.
               </p>
             </div>
-            <div className="relative w-full max-w-[320px]">
+            <div className="mb-home-local-search relative w-full max-w-[320px]">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[var(--text-3)] pointer-events-none" />
               <input
                 ref={searchRef}
@@ -193,6 +200,7 @@ export function Home() {
               ) : hero ? (
                 <HeroFeature
                   book={hero}
+                  collection={trilogy.some(entry => entry.id === hero.id) ? trilogy : books.filter(b => b.author && b.author === hero.author).slice(0, 3)}
                   readers={heroReaders}
                   count={featured.length}
                   index={heroIndex}
@@ -209,7 +217,7 @@ export function Home() {
                     {[0, 1, 2].map((i) => <Skeleton key={i} className="h-[280px] rounded-[18px]" />)}
                   </div>
                 ) : (
-                  <div className={`mb-stagger grid gap-4 ${reading.length ? "grid-cols-2 md:grid-cols-4" : "grid-cols-1"}`}>
+                  <div className={`mb-continue-rail mb-stagger ${reading.length ? "has-books" : ""}`}>
                     {reading.map(({ book, progress: p }) => (
                       <ReadingCard key={book.id} book={book} progress={p} onOpen={() => openBook(book)} />
                     ))}
@@ -271,7 +279,7 @@ export function Home() {
               )}
 
               {/* Atividade e comunidade, no fim da coluna em telas menores */}
-              <div className="2xl:hidden grid md:grid-cols-2 gap-5">
+              <div className="mb-mobile-community grid md:grid-cols-2 gap-5">
                 <ActivityCard feed={feed} />
                 <CommunityCard data={data} admin={admin} />
               </div>
@@ -297,7 +305,7 @@ export function Home() {
         </div>
 
         {/* ── Trilho lateral ───────────────────────────────────────────────── */}
-        <aside className="hidden 2xl:flex flex-col gap-5 sticky top-8 pt-1">
+        <aside className="mb-discover-rail flex-col gap-4">
           <ActivityCard feed={feed} />
           <CommunityCard data={data} admin={admin} />
         </aside>
@@ -389,70 +397,18 @@ function Chip({
   );
 }
 
-function HeroFeature({
-  book, readers, count, index, onSelect, onOpen,
-}: {
-  book: Book;
-  readers: { username: string; avatar: string }[];
-  count: number;
-  index: number;
-  onSelect: (i: number) => void;
-  onOpen: () => void;
+function HeroFeature({ book, collection, count, index, onSelect, onOpen }: {
+  book: Book; collection: Book[]; readers: { username: string; avatar: string }[]; count: number; index: number; onSelect: (i: number) => void; onOpen: () => void;
 }) {
-  const active = count > 0 ? index % count : 0;
-  const [saved, setSaved] = useState(false);
-
-  useEffect(() => {
-    let alive = true;
-    setSaved(false);
-    fetchSavedIds()
-      .then((ids) => { if (alive) setSaved(ids.includes(book.id)); })
-      .catch(() => {});
-    return () => { alive = false; };
-  }, [book.id]);
-
-  const toggleSave = async () => {
-    if (!requireAuth("guardar nos favoritos")) return;
-    const next = !saved;
-    setSaved(next);
-    try {
-      await toggleSaved(book.id, next);
-      toast(next ? "Guardado nos favoritos." : "Removido dos favoritos.");
-    } catch {
-      setSaved(!next);
-      toast("Não deu para salvar agora.", "error");
-    }
-  };
-
-  return (
-    <section className="mb-feature" aria-label="Livros em destaque" aria-roledescription="carrossel">
-      <div className="mb-feature-copy">
-        <span className="mb-eyebrow text-[var(--primary)]">ENTRE PÁGINAS E POSSIBILIDADES</span>
-        <h2 className="mb-feature-title">{book.title}</h2>
-        <p className="text-[14px] sm:text-[16px] text-[var(--text-2)] mt-3">{book.author || "Autor desconhecido"}</p>
-        <p className="hidden sm:block text-[14px] leading-relaxed text-[var(--text-2)] mt-4 line-clamp-2 max-w-[38ch]">
-          {book.description || "Entre as páginas, uma nova descoberta. Conheça este destaque da nossa biblioteca."}
-        </p>
-        <div className="flex flex-wrap items-center gap-3 mt-5 text-[12px] text-[var(--text-2)]">
-          {book.rating > 0 && <span className="inline-flex items-center gap-1.5 font-semibold"><Star className="w-3.5 h-3.5 fill-[var(--gold)] text-[var(--gold)]" />{book.rating.toFixed(1)}</span>}
-          {readers.length > 0 && <div className="flex -space-x-2" aria-label="Leitores deste livro">{readers.map(r => <span key={r.username} title={r.username} className="w-7 h-7 rounded-full bg-[var(--surface)] border-2 border-[var(--surface)] flex items-center justify-center">{r.avatar}</span>)}</div>}
-          {!!book.readers && book.readers > 0 && <span>{book.readers} {book.readers === 1 ? "leitor" : "leitores"}</span>}
-        </div>
-        <div className="flex items-center gap-2.5 mt-6 sm:mt-7">
-          <button onClick={onOpen} className="mb-btn mb-btn-primary h-11 sm:h-12 rounded-full px-5 sm:px-6">Explorar livro <ArrowRight className="w-4 h-4" /></button>
-          <button onClick={toggleSave} aria-pressed={saved} aria-label={saved ? "Remover dos favoritos" : "Guardar nos favoritos"} className={`mb-feature-save ${saved ? "text-[var(--primary)] bg-[var(--primary-soft)]" : "text-[var(--text-2)] bg-[var(--surface)]"}`}>
-            <Bookmark className={`w-[18px] h-[18px] ${saved ? "fill-current" : ""}`} />
-          </button>
-        </div>
-      </div>
-      <button onClick={onOpen} className="mb-feature-book" aria-label={`Ver detalhes de ${book.title}`}>
-        <Book3D book={book} width={160} pose={{ ry: -16, rx: 3, rz: -3 }} still />
-      </button>
-      {count > 1 && <div className="mb-feature-pagination" aria-label="Selecionar destaque">
-        {Array.from({ length: count }, (_, i) => <button key={i} onClick={() => onSelect(i)} aria-label={`Destaque ${i + 1} de ${count}`} aria-current={i === active ? "true" : undefined}><span /></button>)}
-      </div>}
-    </section>
-  );
+  const navigate = useNavigate();
+  const displayed = collection.length > 1 ? collection : [book];
+  const multiple = displayed.length > 1;
+  const isTrilogy = displayed.length === 3 && displayed.every(entry => /príncipe cruel|rei perverso|rainha do nada/i.test(entry.title));
+  return <section className="mb-editorial-feature" aria-label="Livros em destaque" aria-roledescription="carrossel">
+    <div className="mb-editorial-copy"><p className="mb-eyebrow">{isTrilogy ? "SÉRIE EM DESTAQUE" : multiple ? "AUTOR EM DESTAQUE" : "LIVRO EM DESTAQUE"}</p><h2>{isTrilogy ? <>O povo<br />do ar.</> : multiple ? <>Mais histórias.<br />Novos mundos.</> : book.title}</h2><p>{isTrilogy ? "Uma trilogia. Um reino. Nenhuma regra." : multiple ? `Conheça as histórias de ${book.author}.` : book.author}</p><button className="mb-btn mb-btn-primary" onClick={() => multiple ? navigate(`/library?q=${encodeURIComponent(book.author)}`) : onOpen()}>{isTrilogy ? "Explorar a trilogia" : multiple ? "Explorar a coleção" : "Explorar o livro"}<ArrowRight size={17} /></button></div>
+    <div className={`mb-editorial-books ${multiple ? "is-collection" : ""}`}>{displayed.map((entry, i) => <button key={entry.id} onClick={() => navigate(`/book/${entry.id}`)} aria-label={`Ver ${entry.title}`} style={{ "--book-index": i } as React.CSSProperties}><Book3D book={entry} width={132} pose={{ ry: -12, rx: 0, rz: i === 1 ? 0 : i === 0 ? -2 : 2 }} still /></button>)}</div>
+    {count > 1 && <div className="mb-editorial-controls"><div className="mb-editorial-dots">{Array.from({ length: count }, (_, i) => <button key={i} onClick={() => onSelect(i)} aria-label={`Destaque ${i + 1} de ${count}`} aria-current={i === index % count ? "true" : undefined}><span /></button>)}</div><button aria-label="Destaque anterior" onClick={() => onSelect((index - 1 + count) % count)}><ChevronLeft size={18} /></button><button aria-label="Próximo destaque" onClick={() => onSelect((index + 1) % count)}><ChevronRight size={18} /></button></div>}
+  </section>;
 }
 
 function ReadingCard({
@@ -464,8 +420,8 @@ function ReadingCard({
 }) {
   const cover = getFullUrl(book.coverImagePath);
   return (
-    <button onClick={onOpen} className="mb-card mb-card-hover overflow-hidden text-left cursor-pointer flex flex-col">
-      <div className="aspect-[4/5] bg-[var(--surface-2)] overflow-hidden">
+    <button onClick={onOpen} className="mb-continue-book text-left cursor-pointer flex flex-col">
+      <div className="aspect-[2/3] bg-[var(--surface-2)] overflow-hidden">
         {cover ? (
           <img src={cover} alt="" loading="lazy" className="w-full h-full object-cover" />
         ) : (
@@ -477,8 +433,8 @@ function ReadingCard({
         <p className="text-[12.5px] text-[var(--text-3)] mt-1 truncate">{book.author}</p>
         <p className="flex items-center gap-1.5 text-[12px] text-[var(--text-2)] mt-2.5">
           <span className="w-1.5 h-1.5 rounded-full bg-[var(--primary)] flex-shrink-0" />
-          Página {progress.currentPage + 1} de {progress.totalPages}
-        </p>
+          {Math.round(progress.progress)}% lido
+        </p><div className="mb-inline-progress"><span><i style={{ width: `${Math.max(0, Math.min(100, progress.progress))}%` }} /></span></div>
       </div>
     </button>
   );

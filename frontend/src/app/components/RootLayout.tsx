@@ -1,7 +1,9 @@
+import { Scenery } from "./Scenery";
+import { GlobalSearch } from "./GlobalSearch";
 import { Brand } from "./Brand";
 import { Outlet, useLocation, useNavigation, Link, NavLink } from "react-router";
 import {
-  Home, Library, Heart, PenLine, User, Users, Shield, Plus, MessageSquare, ChevronRight,
+  Home, Library, Heart, PenLine, User, Users, Shield, Plus, ChevronRight,
   SlidersHorizontal, LogIn,
 } from "lucide-react";
 import { useEffect, useState, useMemo, type ComponentType } from "react";
@@ -12,7 +14,7 @@ import { BookTransitionProvider } from "./BookTransition";
 import { NotificationsMenu } from "./NotificationsMenu";
 import { AuthGateModal } from "./AuthGateModal";
 import { RouteSkeleton } from "./Skeletons";
-import { applySettings, loadSettings } from "../lib/settings";
+import { useSettings } from "../lib/settings";
 import { primeSounds, soundTap } from "../lib/sounds";
 
 interface NavItem {
@@ -32,6 +34,7 @@ interface NavItem {
  */
 export function RootLayout() {
   const location = useLocation();
+  const [settings] = useSettings();
   // Enquanto o roteador busca o módulo da próxima tela, mostramos o esqueleto
   // dela — a página já entra com a forma certa em vez de piscar em branco.
   const navigation = useNavigation();
@@ -43,7 +46,6 @@ export function RootLayout() {
   const [guest, setGuest] = useState(isGuest);
 
   useEffect(() => {
-    applySettings(loadSettings());
     primeSounds();
   }, []);
 
@@ -130,25 +132,27 @@ export function RootLayout() {
     <BookTransitionProvider>
       <AuthGateModal />
       <a href="#main-content" className="mb-skip-link">Pular para o conteúdo</a>
-      <div className="min-h-screen bg-background">
+      <div className="mb-app-window min-h-screen bg-background">
         {/* ── Barra lateral (desktop) ─────────────────────────────────────── */}
-        <aside className="mb-sidebar hidden lg:flex fixed inset-y-0 left-0 z-50 w-[232px] flex-col overflow-hidden">
+        <aside className="mb-sidebar hidden lg:flex flex-col overflow-hidden">
+          <div className="mb-sidebar-art"><Scenery scene={settings.scene} /></div>
           <Link to="/" className="flex items-center gap-3 px-6 h-[96px] flex-shrink-0">
             <Brand />
           </Link>
 
-          <p className="mb-nav-caption">BIBLIOTECA PESSOAL</p>
+
           <nav className="flex-1 px-3 space-y-1 overflow-y-auto no-scrollbar" aria-label="Navegação principal">
             {navItems.map(({ path, icon: Icon, label, badge, end }) => (
               <NavLink
                 key={path}
+                data-utility={path === "/admin" || path === "/settings" ? "true" : undefined}
                 to={path}
                 end={end}
                 onClick={soundTap}
                 className={({ isActive }) =>
                   `mb-nav-item flex items-center gap-3 px-3.5 h-11 rounded-[10px] text-[14px] transition-all ${
                     isActive
-                      ? "bg-[var(--surface)] text-[var(--primary)] font-semibold shadow-[var(--shadow-1)]"
+                      ? "text-[var(--primary)] font-semibold"
                       : "text-[var(--text-2)] font-medium hover:bg-[var(--surface-2)] hover:text-foreground"
                   }`
                 }
@@ -210,14 +214,9 @@ export function RootLayout() {
         </aside>
 
         {/* ── Ações da conta (desktop) ────────────────────────────────────── */}
-        <div className="mb-desktop-actions hidden lg:flex absolute top-6 right-8 z-40 items-center gap-1">
+        <div className="mb-desktop-actions hidden lg:flex items-center">
+          <GlobalSearch />
           <NotificationsMenu />
-          <Link to="/social" aria-label="Conversas" className="w-10 h-10 rounded-full flex items-center justify-center text-[var(--text-2)] hover:bg-[var(--surface)] transition-colors">
-            <MessageSquare className="w-[19px] h-[19px]" />
-          </Link>
-          <Link to="/settings" aria-label="Configurações" className="w-10 h-10 rounded-full flex items-center justify-center text-[var(--text-2)] hover:bg-[var(--surface)] transition-colors">
-            <SlidersHorizontal className="w-[19px] h-[19px]" />
-          </Link>
           <Link to="/profile" aria-label="Meu perfil" className="w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--line)] shadow-[var(--shadow-1)] flex items-center justify-center text-lg select-none hover:scale-105 transition-transform">
             {avatar}
           </Link>
@@ -248,7 +247,7 @@ export function RootLayout() {
         </header>
 
         {/* ── Conteúdo ────────────────────────────────────────────────────── */}
-        <main id="main-content" tabIndex={-1} className="lg:pl-[232px] lg:pr-0 lg:pt-14 pb-32 lg:pb-12">
+        <main id="main-content" tabIndex={-1} className="mb-app-main">
           <ReaderChoiceProvider>
             {/* O invólucro posicionado é a caixa de conteúdo do `main`: sem ele
                 o véu se estica por baixo da barra lateral, porque um elemento

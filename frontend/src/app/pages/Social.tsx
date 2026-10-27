@@ -1,15 +1,14 @@
-import { BookDiscoveryPost } from "../components/BookDiscoveryPost";
+import { ReadingPost } from "../components/ReadingPost";
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import {
-  MessageCircle, Users, Sparkles, Search, UserPlus, UserCheck, BookOpen, Heart, Rss,
+  MessageCircle, Users, Sparkles, Search, UserPlus, UserCheck, Rss,
 } from "lucide-react";
 import { fetchAllUsers, fetchFeed, fetchNotifications, followUser, unfollowUser } from "../lib/api";
 import { useLiveData } from "../lib/useLiveData";
 import { getUsername } from "../lib/session";
-import { getCoverGradient, getFullUrl, timeAgo } from "../lib/types";
 import type { FeedItem, Notifications, UserProfile } from "../lib/types";
-import { Avatar, EmptyState, PageHeader, SectionHeader, Skeleton, Stars, toast } from "../components/Ui";
+import { Avatar, EmptyState, PageHeader, SectionHeader, Skeleton, toast } from "../components/Ui";
 import { requireAuth } from "../lib/authGate";
 
 type Tab = "feed" | "leitores";
@@ -80,8 +79,7 @@ export function Social() {
   return (
     <div className="mb-screen mb-screen--social mb-social space-y-6">
       <PageHeader
-        title="A"
-        highlight="comunidade"
+        title="Comunidade"
         subtitle="Veja o que a rede está lendo, siga leitores e converse sobre os livros."
         icon={<Users className="w-5 h-5" />}
         gradient="linear-gradient(140deg,#4f9e8a,#2f6d5e)"
@@ -97,6 +95,7 @@ export function Social() {
         </button>
       </div>
 
+      <div className="mb-social-columns"><div className="min-w-0">
       {tab === "feed" ? (
         <section className="space-y-4">
           <div className="flex gap-1.5">
@@ -129,7 +128,7 @@ export function Social() {
             />
           ) : (
             <div className="mb-stagger space-y-3">
-              {feed.map((item) => <FeedCard key={item.id} item={item} />)}
+              {feed.map((item) => <ReadingPost key={item.id} item={item} />)}
             </div>
           )}
         </section>
@@ -224,146 +223,16 @@ export function Social() {
           </div>
         </section>
       )}
+      </div><aside className="mb-community-rail">
+        <section className="mb-card"><header><h2>Leitores em destaque</h2><button onClick={() => setTab("leitores")}>Ver todos</button></header>
+          {others.length === 0 ? <p className="mb-rail-empty">Os próximos leitores aparecem aqui.</p> : others.slice(0, 5).map(user => <div className="mb-suggested-reader" key={user.username}><Avatar emoji={user.avatar} size="sm" username={user.username} /><Link to={`/user/${encodeURIComponent(user.username)}`}><strong>{user.username}</strong><small>@{user.username.toLowerCase()}</small></Link><button onClick={() => toggleFollow(user)} className={user.isFollowedByMe ? "is-following" : ""}>{user.isFollowedByMe ? "Seguindo" : "Seguir"}</button></div>)}
+        </section>
+        <section className="mb-card"><header><h2>Discussões em alta</h2><button onClick={() => { setTab("feed"); setScope("all"); }}>Ver todas</button></header>
+          {(feed || []).filter(item => item.review && item.book && item.review.comments.length > 0).sort((a,b) => (b.review?.comments.length || 0) - (a.review?.comments.length || 0)).slice(0, 5).map(item => <Link key={item.id} to={`/book/${item.book!.id}#avaliar`} className="mb-discussion-link"><MessageCircle size={18} /><span><strong>{item.book!.title}</strong><small>{item.review?.hasSpoiler ? "Discussão com spoilers" : item.review?.comment || "Converse sobre este livro"}</small></span><small>{item.review!.comments.length}</small></Link>)}
+          {!(feed || []).some(item => item.review && item.review.comments.length > 0) && <p className="mb-rail-empty">Uma boa conversa começa com a sua próxima resenha.</p>}
+        </section>
+        <section className="mb-community-invitation"><h2>Conecte-se<br />com outros leitores</h2><p>Compartilhe suas leituras, descubra novos livros e encontre sua comunidade.</p><button onClick={() => setTab("leitores")} className="mb-btn mb-btn-outline">Encontrar leitores</button></section>
+      </aside></div>
     </div>
-  );
-}
-
-// ─── Cartão do feed ───────────────────────────────────────────────────────────
-
-function FeedCard({ item }: { item: FeedItem }) {
-  const cover = getFullUrl(item.book?.coverImagePath);
-
-  const thumb = item.book && (
-    <Link to={`/book/${item.book.id}`} className="w-12 aspect-[2/3] rounded-md overflow-hidden flex-shrink-0 shadow-[var(--shadow-1)] bg-[var(--surface-2)]">
-      {cover ? (
-        <img src={cover} alt="" loading="lazy" className="w-full h-full object-cover" />
-      ) : (
-        <div className={`w-full h-full bg-gradient-to-br ${getCoverGradient({ id: item.book.id, coverColor: item.book.coverColor })}`} />
-      )}
-    </Link>
-  );
-
-  if (item.type === "new-book") return <BookDiscoveryPost item={item} />;
-
-  if (item.type === "finished") {
-    return (
-      <article className="mb-card mb-card-hover p-4 flex items-center gap-3">
-        {thumb}
-        <div className="min-w-0 flex-1">
-          <p className="text-[13.5px] text-[var(--text-2)]">
-            <Link to={`/user/${encodeURIComponent(item.username!)}`} className="font-semibold text-foreground hover:text-[var(--primary)] transition-colors">
-              {item.username}
-            </Link>{" "}
-            terminou de ler
-          </p>
-          <Link to={`/book/${item.book!.id}`} className="block text-[14px] font-semibold text-foreground hover:text-[var(--primary)] transition-colors truncate mt-0.5">
-            {item.book!.title}
-          </Link>
-        </div>
-        <div className="flex flex-col items-end gap-1 flex-shrink-0">
-          <Avatar emoji={item.avatar} size="xs" username={item.username} />
-          <span className="text-[11.5px] text-[var(--text-3)]">{timeAgo(item.createdAt)}</span>
-        </div>
-      </article>
-    );
-  }
-
-  if (item.type === "reading") {
-    return (
-      <article className="mb-card mb-card-hover p-4 flex items-center gap-3">
-        {thumb}
-        <div className="min-w-0 flex-1">
-          <p className="text-[13.5px] text-[var(--text-2)]">
-            <Link to={`/user/${encodeURIComponent(item.username!)}`} className="font-semibold text-foreground hover:text-[var(--primary)] transition-colors">
-              {item.username}
-            </Link>{" "}
-            está lendo
-          </p>
-          <Link to={`/book/${item.book!.id}`} className="block text-[14px] font-semibold text-foreground hover:text-[var(--primary)] transition-colors truncate mt-0.5">
-            {item.book!.title}
-          </Link>
-          <div className="flex items-center gap-2 mt-2">
-            <span className="h-1.5 flex-1 rounded-full bg-[var(--surface-3)] overflow-hidden">
-              <span className="block h-full rounded-full bg-[var(--primary)]" style={{ width: `${item.progress ?? 0}%` }} />
-            </span>
-            <span className="text-[11.5px] font-semibold text-[var(--text-3)] flex-shrink-0">{item.progress ?? 0}%</span>
-          </div>
-        </div>
-        <div className="flex flex-col items-end gap-1 flex-shrink-0">
-          <Avatar emoji={item.avatar} size="xs" username={item.username} />
-          <span className="text-[11.5px] text-[var(--text-3)]">{timeAgo(item.createdAt)}</span>
-        </div>
-      </article>
-    );
-  }
-
-  // Só sobra a avaliação. Sem ela não há cartão — um item malformado do
-  // servidor não deve derrubar o feed inteiro.
-  const review = item.review;
-  if (!review) return null;
-
-  return (
-    <article className="mb-card p-4">
-      {/* Cabeçalho: avatar, nome, @handle e tempo — como no feed do modelo */}
-      <header className="flex items-center gap-3">
-        <Avatar emoji={review.avatar} size="sm" username={review.username} />
-        <div className="min-w-0 flex-1">
-          <Link
-            to={`/user/${encodeURIComponent(review.username)}`}
-            className="block text-[14px] font-semibold text-foreground hover:text-[var(--primary)] transition-colors truncate"
-          >
-            {review.username}
-          </Link>
-          <span className="block text-[12px] text-[var(--text-3)] truncate">@{review.username.toLowerCase()}</span>
-        </div>
-        <span className="text-[12px] text-[var(--text-3)] flex-shrink-0">{timeAgo(review.createdAt)}</span>
-      </header>
-
-      {review.comment && (
-        <p className="text-[14px] text-[var(--text-2)] leading-relaxed mt-3">
-          {review.hasSpoiler ? "⚠️ Contém spoiler — abra o livro para ler" : review.comment}
-        </p>
-      )}
-
-      {/* A capa do livro entra grande, como a foto de um post */}
-      {item.book && (
-        <Link to={`/book/${item.book.id}`} className="block mt-3.5 rounded-[14px] overflow-hidden bg-[var(--surface-2)]">
-          <div className="mb-review-book-stage aspect-[16/10] flex items-center justify-center overflow-hidden">
-            {cover ? (
-              <img src={cover} alt="" loading="lazy" className="mb-feed-review-cover w-full h-full object-contain" />
-            ) : (
-              <div className={`w-full h-full bg-gradient-to-br ${getCoverGradient({ id: item.book.id, coverColor: item.book.coverColor })}`} />
-            )}
-          </div>
-        </Link>
-      )}
-
-      {item.book && (
-        <p className="text-[12.5px] text-[var(--text-3)] mt-2.5">
-          <span className="font-semibold text-[var(--text-2)]">{item.book.title}</span>
-          {item.book.author && <> · {item.book.author}</>}
-        </p>
-      )}
-
-      <div className="flex items-center gap-1 mt-2.5 -ml-2">
-        <span className="inline-flex items-center gap-1.5 h-9 px-2.5 rounded-lg text-[13px] font-medium text-[var(--text-3)]">
-          <Heart className={`w-[18px] h-[18px] ${review.likedByMe ? "fill-[var(--like)] text-[var(--like)]" : ""}`} />
-          {review.likes}
-        </span>
-        <span className="inline-flex items-center gap-1.5 h-9 px-2.5 rounded-lg text-[13px] font-medium text-[var(--text-3)]">
-          <MessageCircle className="w-[18px] h-[18px]" />
-          {review.comments.length}
-        </span>
-        <span className="inline-flex items-center gap-1.5 h-9 px-2.5 rounded-lg text-[13px] text-[var(--text-3)]">
-          <Stars value={review.rating} size="sm" />
-        </span>
-        <Link
-          to={`/book/${review.bookId}#avaliar`}
-          className="ml-auto inline-flex items-center h-9 px-3 rounded-lg text-[13px] font-medium text-[var(--primary)] hover:bg-[var(--primary-soft)] transition-colors"
-        >
-          Ver discussão
-        </Link>
-      </div>
-    </article>
   );
 }

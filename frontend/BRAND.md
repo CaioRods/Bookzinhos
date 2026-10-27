@@ -1,29 +1,36 @@
 # myBooks · identidade visual
 
-O símbolo reúne três livros sobre uma linha de estante. A marca é original e não usa a maçã nem elementos proprietários da Apple.
+A identidade segue as referências visuais aprovadas: marfim, pergaminho, ameixa, terracota e paisagens atmosféricas. O símbolo original representa um livro aberto com páginas dobradas; não usa a maçã nem marcas da Apple.
 
-## Arquivos reutilizáveis
+## Marca reutilizável
 
-- `public/logo.svg`: ícone vetorial colorido, escalável, fundo cobre e símbolo marfim.
-- `public/logo-mark.svg`: símbolo monocromático em `currentColor`; pode ser incorporado em SVG para acompanhar a cor do texto.
-- `public/icon-1024.png`, `public/icon-512.png`, `public/icon-192.png`, `public/apple-touch-icon.png`, `public/favicon-64.png`: ícones do app, PWA e navegadores.
-- `src/app/components/Brand.tsx`: composição de símbolo e nome usada na interface.
+- `public/logo.svg`: ícone vetorial colorido.
+- `public/logo-mark.svg`: versão monocromática em `currentColor`, para incorporar como SVG.
+- `public/icon-1024.png`, `public/icon-512.png`, `public/icon-192.png`, `public/apple-touch-icon.png`, `public/favicon-64.png`: ícones rasterizados para web, PWA e Expo.
+- `src/app/components/Brand.tsx`: marca com assinatura horizontal.
 
-Gere os PNGs com `npm run icons --prefix frontend`. Os arquivos de `assets/` usados pelo Expo também são atualizados. O gerador mantém as mesmas formas e proporções do SVG; ao alterar a geometria, atualize ambos.
+`npm run icons --prefix frontend` lê a geometria do SVG e gera os PNGs, incluindo os arquivos de `assets/` usados pelo Expo. O gerador usa apenas módulos nativos do Node. Preserve o enquadramento de 96 × 96 e as quatro páginas em paths M/L/Q/Z. Use o símbolo a partir de 24 px e o ícone a partir de 32 px, sempre com espaço ao redor.
 
-## Paleta e tipografia
+## Paleta
 
-| Uso | Claro | Escuro |
-| --- | --- | --- |
-| Papel | `#f8f7f4` | `#191817` |
-| Superfície | `#ffffff` | `#252422` |
-| Tinta | `#282623` | `#f6f2e9` |
-| Cobre | `#a94f32` | `#e4a282` |
+| Uso | Cor |
+| --- | --- |
+| Marfim | `#faf7f2` |
+| Superfície | `#fffdfb` |
+| Pergaminho | `#f2ede8` |
+| Ameixa | `#3e2747` |
+| Ação principal | `#64344f` |
+| Terracota | `#c96a4f` |
+| Rosa névoa | `#d8c2b8` |
 
-Os tokens ficam em `src/styles/theme.css`. A interface usa a fonte nativa do sistema; títulos editoriais usam a família local Iowan/Palatino/Georgia, sem download de fontes. Use `--font-display` e `--font-sans`, sem criar novas famílias por página.
+Os tokens estão em `src/styles/theme.css`. `references.css` define a composição de telas, cenários e componentes da direção visual. O tema escuro tem seus próprios tokens. A tipografia nativa do sistema atende títulos e interface; Iowan/Palatino/Georgia são reservadas para chamadas editoriais, citações e títulos de livros.
 
-## Proporção e movimento
+## Cenários
 
-Preserve a proporção do símbolo e um respiro mínimo de um quarto da largura do ícone. O símbolo funciona a partir de 24 px; o ícone completo, a partir de 32 px. Não acrescente emojis, contornos ou novos gradientes à marca.
+As seis paisagens são ilustrações geradas para o projeto, servidas em um atlas WebP de aproximadamente 500 kB. `Scenery.tsx` recorta os painéis por viewport SVG, preservando a proporção. A imagem de ramos dourados tem aproximadamente 94 kB e é reutilizada na vitrine e nos detalhes de livros.
 
-A interface combina superfícies claras, divisórias discretas, cantos de 12–24 px e escala de espaço em múltiplos de 4. As transições duram em geral 180–400 ms, sem movimento contínuo decorativo. O modo de movimento reduzido, tanto do sistema quanto das configurações do app, deve continuar funcionando.
+A escolha de cenário é uma preferência deste aparelho, persistida nas configurações locais. Ela altera a faixa do perfil e a paisagem lateral, sem alterar a foto nem os dados públicos do leitor.
+
+## Movimento e dados
+
+As animações são breves e respeitam a configuração de movimento reduzido. Mostre progresso, contagens, avaliações e discussões vindos da API; os números e comentários dos mockups não são dados de demonstração para publicar.

@@ -349,7 +349,7 @@ function Book3DImpl({ book, width, display = "cover", index = 0, progress, rank,
           height: floating ? 22 : 10,
           background: `rgba(0,0,0,${floating ? 0.3 : active ? 0.16 : 0.28})`,
           filter: `blur(${floating ? 20 : active ? 9 : 6}px)`,
-          transition: `width 0.8s ${EASE_OUT}, filter .3s ease, background-color .3s ease`,
+          transition: "filter .3s ease, background-color .3s ease",
           transitionDelay: delay,
         }}
       />

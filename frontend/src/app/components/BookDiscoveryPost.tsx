@@ -10,7 +10,7 @@ export function BookDiscoveryPost({ item }: { item: FeedItem }) {
   const cover = getFullUrl(book.coverImagePath);
   return <article className="mb-feed-post">
     <header className="mb-feed-post-header">
-      <img src="/logo.svg" alt="" width="32" height="32" />
+      <img src="/logo.svg?v=3" alt="" width="32" height="32" />
       <div><strong>Descobertas myBooks</strong><small>Novas histórias na biblioteca</small></div>
       <time dateTime={new Date(item.createdAt).toISOString()}>{timeAgo(item.createdAt)}</time>
     </header>
