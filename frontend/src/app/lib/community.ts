@@ -1,6 +1,9 @@
 import { API_BASE_URL } from "./config";
 import { getUsername } from "./session";
 export type Reaction = "heart" | "panda" | "sad" | "moved";
+export const REACTIONS = ["heart", "panda", "sad", "moved"] as const satisfies readonly Reaction[];
+export const normalizeReaction = (value: unknown): Reaction | null =>
+  REACTIONS.includes(value as Reaction) ? (value as Reaction) : null;
 export interface SocialComment {
   id: string;
   parent_id: string | null;
