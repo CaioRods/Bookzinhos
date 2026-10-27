@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import {
   communityApi,
+  uploadCommunityImage,
   type Reaction,
   type SocialPost,
   type SocialComment,
@@ -198,12 +199,31 @@ export function PostComposer({
       const prepared = await Promise.all(
         images.map((i) => prepareSocialImage(i.file)),
       );
-      const data = new FormData();
-      data.set("content", text);
-      if (selected) data.set("bookId", selected.id);
-      if (book) data.set("gallery", "true");
-      prepared.forEach((file) => data.append("images", file));
-      await communityApi("/community/posts", "POST", data);
+      const directUrls: string[] = [];
+      let directUpload = prepared.length > 0;
+      for (const file of prepared) {
+        const url = await uploadCommunityImage(file);
+        if (!url) {
+          directUpload = false;
+          break;
+        }
+        directUrls.push(url);
+      }
+      if (directUpload) {
+        await communityApi("/community/posts", "POST", {
+          content: text,
+          bookId: selected?.id,
+          gallery: Boolean(book),
+          imageUrls: directUrls,
+        });
+      } else {
+        const data = new FormData();
+        data.set("content", text);
+        if (selected) data.set("bookId", selected.id);
+        if (book) data.set("gallery", "true");
+        prepared.forEach((file) => data.append("images", file));
+        await communityApi("/community/posts", "POST", data);
+      }
       setText("");
       setImages([]);
       images.forEach((i) => URL.revokeObjectURL(i.url));

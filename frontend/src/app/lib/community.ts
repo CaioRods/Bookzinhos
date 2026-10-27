@@ -32,6 +32,26 @@ export interface Series {
   id: string;
   name: string;
 }
+export async function uploadCommunityImage(file: File): Promise<string | null> {
+  const response = await fetch(API_BASE_URL + "/books/presigned-url", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-user-id": getUsername() || "anonymous",
+    },
+    body: JSON.stringify({ fileName: file.name, fileType: file.type }),
+  });
+  if (!response.ok) return null;
+  const target = await response.json();
+  const upload = await fetch(target.uploadUrl, {
+    method: "PUT",
+    headers: { "Content-Type": file.type },
+    body: file,
+  });
+  if (!upload.ok)
+    throw new Error(`Falha ao enviar ${file.name}. Tente novamente.`);
+  return target.downloadUrl;
+}
 export async function communityApi<T>(
   path: string,
   method = "GET",

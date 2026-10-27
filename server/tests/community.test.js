@@ -109,6 +109,23 @@ test("community permissions, gallery isolation, threads, reactions, reposts and 
   const fullGallery = (await request("/community/posts?bookId=one")).data;
   assert.equal(fullGallery.length, 2);
   assert.equal(fullGallery[0].id, gallery.data.id);
+  const directImages = Array.from(
+    { length: 8 },
+    (_, index) => `https://storage.example/community/image-${index}.png`,
+  );
+  const directGallery = await request(
+    "/community/posts",
+    "POST",
+    {
+      content: "Eight original images",
+      bookId: "two",
+      gallery: true,
+      imageUrls: directImages,
+    },
+    "Admin",
+  );
+  assert.equal(directGallery.status, 201);
+  assert.deepEqual(directGallery.data.images, directImages);
   const comment = (
     await request("/community/posts/" + post.id + "/comments", "POST", {
       content: "Comment",

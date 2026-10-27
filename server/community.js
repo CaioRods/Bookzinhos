@@ -12,7 +12,7 @@ module.exports = function ({
   const mediaUpload = multer({
     storage: multer.memoryStorage(),
     limits: {
-      fileSize: 4 * 1024 * 1024,
+      fileSize: 12 * 1024 * 1024,
       files: 8,
       fields: 8,
       fieldSize: 10000,
@@ -229,7 +229,7 @@ module.exports = function ({
       const content = String(req.body.content || "").trim();
       if (content.length > 5000)
         throw new Error("Escreva até 5.000 caracteres.");
-      const gallery = req.body.gallery === "true";
+      const gallery = req.body.gallery === true || req.body.gallery === "true";
       if (gallery) {
         const [user] = await db.query(
           sql`SELECT is_admin FROM users WHERE username=${req.communityUser} COLLATE NOCASE`,
@@ -242,9 +242,22 @@ module.exports = function ({
           throw new Error("Escolha um livro para a galeria.");
       }
       const files = req.files || [];
-      if (gallery && !files.length)
+      const directImages = Array.isArray(req.body.imageUrls)
+        ? req.body.imageUrls
+        : [];
+      if (directImages.length > 8)
+        throw new Error("Adicione até 8 imagens.");
+      for (const url of directImages) {
+        if (
+          typeof url !== "string" ||
+          url.length > 2000 ||
+          !/^https:\/\//i.test(url)
+        )
+          throw new Error("Uma das imagens enviadas é inválida.");
+      }
+      if (gallery && !files.length && !directImages.length)
         throw new Error("Adicione uma imagem à galeria.");
-      if (!content && !files.length)
+      if (!content && !files.length && !directImages.length)
         throw new Error("Escreva algo ou adicione uma imagem.");
       const bookId = req.body.bookId || null;
       await knownBook(bookId);
@@ -257,7 +270,7 @@ module.exports = function ({
       for (const file of files)
         if (!types[file.mimetype] || file.size > 12 * 1024 * 1024)
           throw new Error("Use JPG, PNG, WebP ou AVIF de até 12 MB por imagem.");
-      const images = [];
+      const images = [...directImages];
       for (const file of files)
         images.push(
           await uploadFileToCloud(
