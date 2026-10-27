@@ -1,3 +1,5 @@
+import { useThemeCatalog, DEFAULT_THEMES } from "../lib/themeCatalog";
+import { accentVariables } from "../lib/appearance";
 import { Scenery } from "./Scenery";
 import { GlobalSearch } from "./GlobalSearch";
 import { Brand } from "./Brand";
@@ -35,6 +37,13 @@ interface NavItem {
 export function RootLayout() {
   const location = useLocation();
   const [settings] = useSettings();
+  const { themes } = useThemeCatalog();
+  const selectedTheme = themes.find(theme => theme.id === settings.scene) || DEFAULT_THEMES[0];
+  useEffect(() => {
+    const apply = () => { const root = document.documentElement; Object.entries(accentVariables(selectedTheme.mainColor, root.classList.contains("dark"))).forEach(([key, value]) => root.style.setProperty(key, value)); };
+    apply(); const media = window.matchMedia("(prefers-color-scheme: dark)"); media.addEventListener("change", apply);
+    return () => { media.removeEventListener("change", apply); Object.keys(accentVariables(selectedTheme.mainColor)).forEach(key => document.documentElement.style.removeProperty(key)); };
+  }, [selectedTheme.mainColor, settings.theme]);
   // Enquanto o roteador busca o módulo da próxima tela, mostramos o esqueleto
   // dela — a página já entra com a forma certa em vez de piscar em branco.
   const navigation = useNavigation();
@@ -135,7 +144,7 @@ export function RootLayout() {
       <div className="mb-app-window min-h-screen bg-background">
         {/* ── Barra lateral (desktop) ─────────────────────────────────────── */}
         <aside className="mb-sidebar hidden lg:flex flex-col overflow-hidden">
-          <div className="mb-sidebar-art"><Scenery scene={settings.scene} /></div>
+          <div className="mb-sidebar-art" style={{ opacity: selectedTheme.sidebarOpacity }}><Scenery scene={settings.scene} surface="sidebar" /></div>
           <Link to="/" className="flex items-center gap-3 px-6 h-[96px] flex-shrink-0">
             <Brand />
           </Link>

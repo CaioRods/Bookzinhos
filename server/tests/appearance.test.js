@@ -1,0 +1,66 @@
+const { test } = require('node:test');
+const assert = require('node:assert/strict');
+const express = require('express');
+const multer = require('multer');
+const sqlite3 = require('sqlite3');
+const register = require('../appearance');
+
+test('theme ownership, concurrent limit, public overrides and book appearance persist', async t => {
+  const connection = new sqlite3.Database(':memory:');
+  const db = { query: query => new Promise((resolve, reject) => connection.all(typeof query === 'string' ? query : query.text, query.values || [], (error, rows) => error ? reject(error) : resolve(rows))) };
+  const sql = (parts, ...values) => ({ text: parts.join('?'), values });
+  await db.query('CREATE TABLE users(username TEXT PRIMARY KEY, is_admin INTEGER)');
+  await db.query("INSERT INTO users VALUES ('Reader', 0), ('Other', 0), ('Admin', 1)");
+  await db.query('CREATE TABLE books(id TEXT PRIMARY KEY, appearance_json TEXT)');
+  await db.query("INSERT INTO books VALUES ('book-1', NULL)");
+  const app = express();
+  const currentUser = req => req.get('x-user-id');
+  const requireAdmin = async (req, res, next) => {
+    const [user] = await db.query(sql`SELECT * FROM users WHERE username = ${currentUser(req)}`);
+    if (!user?.is_admin) return res.sendStatus(403);
+    next();
+  };
+  await register({ app, db, sql, upload: multer(), currentUser, requireAdmin, uploadFileToCloud: async () => '/uploads/test.png' }).ready();
+  const server = await new Promise(resolve => { const listening = app.listen(0, '127.0.0.1', () => resolve(listening)); });
+  t.after(async () => { await new Promise(resolve => server.close(resolve)); await new Promise(resolve => connection.close(resolve)); });
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const config = { name: 'Library', mainColor: '#375577', imageUrl: '/scenery/landscapes.webp', profile: { x: 10, y: 90, zoom: 2 }, sidebar: { x: 80, y: 30, zoom: 1.5 }, sidebarOpacity: .4, reference: { bookId: 'book-1', saga: 'Saga' } };
+  const save = (user, scope = 'personal', id = '', data = config) => { const body = new FormData(); body.set('config', JSON.stringify(data)); body.set('scope', scope); body.set('id', id); return fetch(base + '/appearance/themes', { method: 'POST', headers: { 'x-user-id': user }, body }); };
+  const list = user => fetch(base + '/appearance/themes', { headers: user ? { 'x-user-id': user } : {} }).then(response => response.json());
+  assert.equal((await save('Missing')).status, 401);
+  assert.equal((await save('Reader', 'system')).status, 403);
+  const responses = await Promise.all(Array.from({ length: 8 }, () => save('Reader')));
+  assert.equal(responses.filter(response => response.status === 200).length, 4);
+  assert.equal(responses.filter(response => response.status === 409).length, 4);
+  const personal = await list('Reader');
+  assert.equal(personal.length, 4);
+  assert.equal((await list('Other')).length, 0);
+  assert.equal((await list()).length, 0);
+  const edited = await (await save('Reader', 'personal', personal[0].id, { ...config, profile: { x: 1, y: 2, zoom: 3 } })).json();
+  assert.equal(edited.profile.x, 1);
+  assert.equal(edited.sidebar.x, 80);
+  assert.equal(edited.sidebarOpacity, .4);
+  assert.equal(edited.reference.bookId, 'book-1');
+  assert.equal((await fetch(base + '/appearance/themes/' + edited.id, { method: 'DELETE', headers: { 'x-user-id': 'Other' } })).status, 403);
+  assert.equal((await save('Admin', 'system', 'lilac')).status, 200);
+  assert.equal((await list())[0].id, 'lilac');
+  assert.equal((await save('Admin', 'system', 'lilac', { ...config, name: 'Updated' })).status, 200);
+  assert.equal((await list())[0].name, 'Updated');
+  assert.equal((await save('Admin', 'system', '', { ...config, reference: { bookId: 'missing' } })).status, 400);
+  const appearance = { imageUrl: '/banner.webp', mainColor: '#335577', blur: 48, opacity: .6, crop: { x: 30, y: 60, zoom: 2 } };
+  const updateBook = user => { const body = new FormData(); body.set('config', JSON.stringify(appearance)); return fetch(base + '/books/book-1/appearance', { method: 'PUT', headers: { 'x-user-id': user }, body }); };
+  assert.equal((await updateBook('Reader')).status, 403);
+  assert.equal((await updateBook('Admin')).status, 200);
+  const [book] = await db.query("SELECT appearance_json FROM books WHERE id = 'book-1'");
+  assert.equal(JSON.parse(book.appearance_json).blur, 48);
+  assert.equal(JSON.parse(book.appearance_json).crop.x, 30);
+});
+
+test('rejects invalid image URLs and colors and bounds visual controls', () => {
+  for (const imageUrl of ['javascript:alert(1)', '//external.test/a', 'data:image/png;base64,abc']) assert.throws(() => register.themeConfig({ name: 'Test', mainColor: '#335577', imageUrl }));
+  assert.throws(() => register.bookConfig({ mainColor: 'red' }));
+  const bounded = register.bookConfig({ blur: 900, opacity: -1, crop: { x: -20, y: 200, zoom: 9 } });
+  assert.equal(bounded.blur, 60);
+  assert.equal(bounded.opacity, 0);
+  assert.deepEqual(bounded.crop, { x: 0, y: 100, zoom: 4 });
+});

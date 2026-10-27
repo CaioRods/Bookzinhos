@@ -1,19 +1,23 @@
+import { BookAppearanceEditor } from "../components/BookAppearanceEditor";
+import { ThemeImage } from "../components/ThemeImage";
+import { accentVariables, colorToHex, DEFAULT_BOOK_APPEARANCE, type SceneTheme } from "../lib/appearance";
+import { useSettings } from "../lib/settings";
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams, useNavigate } from "react-router";
 import {
   ArrowLeft, BookOpen, Play, Share2, CheckCircle, Users, FileText,
-  Bookmark, ChevronDown, ChevronRight, Calendar, Star,
+  Bookmark, ChevronDown, ChevronRight, Calendar, Star, Palette,
 } from "lucide-react";
 import {
   fetchAllUsers, fetchBooks, fetchBook, fetchProgress, fetchSavedIds, saveProgress, sendMessage, toggleSaved,
 } from "../lib/api";
 import { getCoverGradient, getFullUrl } from "../lib/types";
 import type { Book, ReadingProgress, Review, UserProfile } from "../lib/types";
-import { getUsername } from "../lib/session";
+import { getUsername, isAdmin } from "../lib/session";
 import { requireAuth } from "../lib/authGate";
 import { useOpenBook } from "../lib/readerChoice";
 import { ReviewSection } from "../components/ReviewSection";
-import { Book3D } from "../components/Book3D";
+import { Book3D, useSpineColor } from "../components/Book3D";
 import { Avatar, Modal, Skeleton, Stars, toast } from "../components/Ui";
 
 export function BookDetails() {
@@ -31,6 +35,9 @@ export function BookDetails() {
   const [expanded, setExpanded] = useState(false);
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [related, setRelated] = useState<Book[]>([]);
+  const [appearanceEditor, setAppearanceEditor] = useState(false);
+  const coverColor = useSpineColor(book);
+  const [settings] = useSettings();
 
   useEffect(() => {
     if (!id) return;
@@ -140,10 +147,16 @@ export function BookDetails() {
   const isFinished = progress?.status === "finalizado";
   const hasContent = (book.pages && book.pages.length > 0) || !!book.pdfPath;
   const cover = getFullUrl(book.coverImagePath);
+  const appearance = book.appearance || DEFAULT_BOOK_APPEARANCE;
+  const autoColor = colorToHex(coverColor.base);
+  const dark = settings.theme === "escuro" || (settings.theme === "sistema" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+  const pageColors = accentVariables(appearance.mainColor || autoColor, dark);
+  const artwork: SceneTheme = { id: book.id, name: book.title, scope: "system", imageUrl: appearance.imageUrl || cover || "/scenery/golden-branches.webp", width: appearance.width || 800, height: appearance.height || 1200, mainColor: appearance.mainColor || autoColor, profile: appearance.crop, sidebar: appearance.crop, sidebarOpacity: 1 };
 
   return (
-    <div className="mb-book-details mb-reference-details">
-      <nav className="mb-book-breadcrumb" aria-label="Caminho de navegação"><button aria-label="Voltar" onClick={() => navigate(-1)}><ArrowLeft size={20} /></button><Link to="/library">Biblioteca</Link><ChevronRight size={15} /><span>{book.title}</span></nav>
+    <div className="mb-book-details mb-reference-details mb-book-personalized" style={pageColors as React.CSSProperties}>
+      <div className="mb-book-artwork" style={{ filter: `blur(${appearance.blur}px)`, opacity: appearance.opacity }}><ThemeImage theme={artwork} crop={appearance.crop} /></div>
+      <nav className="mb-book-breadcrumb" aria-label="Caminho de navegação"><button aria-label="Voltar" onClick={() => navigate(-1)}><ArrowLeft size={20} /></button><Link to="/library">Biblioteca</Link><ChevronRight size={15} /><span>{book.title}</span>{isAdmin() && <button className="mb-book-appearance-trigger" aria-label="Personalizar aparência do livro" onClick={() => setAppearanceEditor(true)}><Palette size={17} /> Aparência</button>}</nav>
       <div className="mb-detail-columns"><div className="min-w-0">
         <section className="mb-reference-book-hero">
           <div className="mb-reference-book-cover">{cover ? <img src={cover} alt={`Capa de ${book.title}`} /> : <Book3D book={book} width={240} still />}</div>
@@ -165,6 +178,8 @@ export function BookDetails() {
         <section className="mb-card"><header><h2>Sua leitura</h2><Link to="/library?filter=lendo">Ver tudo</Link></header><button className="mb-current-reading" onClick={() => hasContent && openBook(book)} disabled={!hasContent}>{cover && <img src={cover} alt="" />}<span><strong>{book.title}</strong><small>{book.author}</small><span className="mb-inline-progress"><span><i style={{ width: `${Math.min(100, Math.max(0, progress?.progress || 0))}%` }} /></span><small>{Math.round(progress?.progress || 0)}%</small></span><small>{progress ? `Página ${progress.currentPage + 1} de ${progress.totalPages}` : "Comece seu próximo capítulo"}</small></span><ChevronRight size={17} /></button></section>
         {related.length > 0 && <section className="mb-card"><header><h2>Livros relacionados</h2><Link to={`/library?q=${encodeURIComponent(book.author || book.genre)}`}>Ver todos</Link></header>{related.map(entry => <Link className="mb-related-book" key={entry.id} to={`/book/${entry.id}`}><span>{entry.coverImagePath ? <img src={getFullUrl(entry.coverImagePath)!} alt="" loading="lazy" /> : <BookOpen size={22} />}</span><div><strong>{entry.title}</strong><small>{entry.author}</small>{entry.rating > 0 && <small className="mb-related-rating"><Star size={13} fill="currentColor" />{entry.rating.toFixed(1)}</small>}</div><ChevronRight size={17} /></Link>)}</section>}
       </aside></div>
+
+      {appearanceEditor && <BookAppearanceEditor book={book} autoColor={autoColor} onClose={() => setAppearanceEditor(false)} onSaved={appearance => { setBook(current => current ? { ...current, appearance } : current); setAppearanceEditor(false); }} />}
 
       {/* ── Compartilhar ───────────────────────────────────────────────────── */}
       <Modal

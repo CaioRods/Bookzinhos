@@ -1,0 +1,87 @@
+@layer components {
+  .mb-scene-section-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 18px; margin-bottom: 18px; }
+  .mb-scene-section-heading p { font-size: 12px; color: var(--text-2); margin-top: 6px; }
+  .mb-theme-tile { min-width: 0; }
+  .mb-theme-tile > .mb-scene-option { width: 100%; display: block; }
+  .mb-theme-tile > footer { display: flex; align-items: center; gap: 5px; margin-top: 9px; }
+  .mb-theme-tile > footer > span { flex: 1; font-size: 10px; color: var(--text-3); }
+  .mb-theme-tile > footer > button { padding-inline: 7px; font-size: 10px; }
+  .mb-scene-name { display: block; padding-top: 60px; }
+  .mb-scene-name small { display: block; font-size: 10px; margin-top: 3px; opacity: .85; }
+  .mb-theme-editor { display: flex; flex-direction: column; gap: 20px; padding-top: 8px; }
+  .mb-theme-form-row { display: grid; grid-template-columns: minmax(0,1fr) 110px; gap: 18px; }
+  .mb-theme-editor label, .mb-crop-editor legend { font-size: 12px; font-weight: 550; }
+  .mb-theme-editor label > .mb-input { display: block; margin-top: 8px; font-weight: 400; }
+  .mb-theme-editor input[type="color"] { display: block; margin-top: 8px; width: 100%; height: 46px; border: 1px solid var(--line); border-radius: 10px; padding: 5px; background: var(--surface); cursor: pointer; }
+  .mb-theme-editor .mb-editor-hint { color: var(--text-3); font-size: 11px; line-height: 1.6; margin-top: -11px; }
+  .mb-editor-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+  .mb-editor-tabs [aria-pressed="true"] { border-color: var(--primary); background: var(--primary-soft); color: var(--primary); }
+  .mb-crop-editor { border: 1px solid var(--line); border-radius: 16px; padding: 16px; min-width: 0; }
+  .mb-crop-editor > p { font-size: 11px; color: var(--text-3); margin-bottom: 14px; }
+  .mb-crop-frame { position: relative; overflow: hidden; background: var(--background-tint); cursor: grab; border-radius: 12px; isolation: isolate; user-select: none; }
+  .mb-crop-frame:active { cursor: grabbing; }
+  .mb-crop-frame.is-profile { aspect-ratio: 6.5; min-height: 80px; }
+  .mb-crop-frame.is-sidebar { width: 180px; height: 340px; max-width: 100%; margin-inline: auto; }
+  .mb-crop-frame.is-book { aspect-ratio: 4/3; max-height: 300px; }
+  .mb-crop-frame > div { position: absolute; inset: 0; pointer-events: none; }
+  .mb-crop-guides { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(90deg,transparent 33%,rgba(255,255,255,.3) 33%,rgba(255,255,255,.3) calc(33% + 1px),transparent calc(33% + 1px),transparent 66%,rgba(255,255,255,.3) 66%,rgba(255,255,255,.3) calc(66% + 1px),transparent calc(66% + 1px)),linear-gradient(0deg,transparent 33%,rgba(255,255,255,.3) 33%,rgba(255,255,255,.3) calc(33% + 1px),transparent calc(33% + 1px),transparent 66%,rgba(255,255,255,.3) 66%,rgba(255,255,255,.3) calc(66% + 1px),transparent calc(66% + 1px)); }
+  .mb-crop-sliders { display: grid; gap: 12px; margin-top: 18px; }
+  .mb-crop-sliders label { display: grid; grid-template-columns: 65px minmax(0,1fr) 42px; gap: 10px; align-items: center; font-size: 11px; }
+  .mb-crop-sliders input, .mb-editor-range input { width: 100%; accent-color: var(--primary); }
+  .mb-crop-sliders output { text-align: right; color: var(--text-2); font-variant-numeric: tabular-nums; }
+  .mb-editor-range { display: block; padding: 15px; background: var(--surface-2); border-radius: 12px; }
+  .mb-editor-range output { float: right; color: var(--primary); font-variant-numeric: tabular-nums; }
+  .mb-editor-range input { display: block; margin-top: 13px; }
+  .mb-theme-checkbox { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; line-height: 1.6; }
+  .mb-theme-checkbox input { width: 17px; height: 17px; accent-color: var(--primary); }
+  .mb-theme-checkbox small { display: block; width: 100%; padding-left: 27px; color: var(--text-3); font-size: 11px; font-weight: 400; }
+  .mb-system-publish { padding: 14px; border: 1px solid var(--line); border-radius: 12px; }
+  .mb-theme-reference-fields { display: grid; gap: 14px; padding: 16px; border-radius: 14px; background: var(--surface-2); }
+  .mb-editor-error { border: 1px solid color-mix(in srgb,var(--destructive) 30%,transparent); background: color-mix(in srgb,var(--destructive) 7%,var(--surface)); color: var(--destructive); padding: 12px; font-size: 12px; line-height: 1.6; border-radius: 10px; }
+  .mb-picker-search { display: flex; align-items: center; gap: 12px; border: 1px solid var(--line); background: var(--background); border-radius: 12px; padding: 12px 14px; margin: 8px 0 18px; color: var(--text-3); }
+  .mb-picker-search input { flex: 1; min-width: 0; outline: 0; color: var(--foreground); font-size: 13px; }
+  .mb-book-picker-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 20px; max-height: min(52vh,480px); overflow-y: auto; scrollbar-width: thin; padding: 4px 6px 20px; }
+  .mb-book-picker-grid > button { min-width: 0; text-align: left; }
+  .mb-book-picker-grid > button > span { position: relative; display: block; width: 100%; aspect-ratio: 2/3; border-radius: 7px; overflow: hidden; background: var(--surface-2); outline: 2px solid transparent; outline-offset: 2px; }
+  .mb-book-picker-grid > [aria-pressed="true"] > span { outline-color: var(--primary); }
+  .mb-book-picker-grid img { width: 100%; height: 100%; object-fit: cover; }
+  .mb-book-picker-grid i { position: absolute; bottom: 8px; right: 8px; padding: 5px; color: var(--primary-foreground); background: var(--primary); border-radius: 50%; }
+  .mb-book-picker-grid strong { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 12px; line-height: 1.3; margin-top: 10px; }
+  .mb-book-picker-grid small { display: block; color: var(--text-3); font-size: 10px; margin-top: 4px; }
+  .mb-picker-placeholder { display: grid; place-items: center; padding: 10px; height: 100%; text-align: center; font-family: var(--font-display); color: var(--primary); }
+  .mb-picker-empty { text-align: center; padding: 28px 16px; color: var(--text-3); font-size: 13px; }
+  .mb-notes-expand { width: 100%; margin-bottom: 12px; }
+  .mb-notes .mb-notes-scroll { max-height: 310px; overflow-y: auto; overflow-x: hidden; flex-wrap: wrap; align-content: flex-start; mask-image: linear-gradient(#000 calc(100% - 22px),transparent); -webkit-mask-image: linear-gradient(#000 calc(100% - 22px),transparent); padding-bottom: 28px; scrollbar-width: thin; }
+  .mb-library-book-rating { display: flex; align-items: center; gap: 5px; margin-top: 7px; font-size: 11px; color: var(--primary); }
+  .mb-book-personalized { position: relative; isolation: isolate; overflow: clip; border-radius: 22px; }
+  .mb-book-artwork { position: absolute; inset: 0; z-index: -1; pointer-events: none; transform: scale(1.12); }
+  .mb-book-personalized .mb-reference-book-hero, .dark .mb-book-personalized .mb-reference-book-hero { background: transparent; }
+  .mb-book-personalized .mb-reference-book-copy { background: color-mix(in srgb,var(--background) 82%,transparent); border-radius: 18px; padding: 22px; backdrop-filter: blur(10px); }
+  .mb-book-personalized .mb-book-about { border-radius: 18px; background: color-mix(in srgb,var(--background) 88%,transparent); }
+  .mb-book-appearance-trigger { margin-left: auto; width: auto !important; padding: 0 12px; font-size: 11px; gap: 7px; display: inline-flex !important; align-items: center; }
+  .mb-book-art-preview { position: relative; overflow: hidden; min-height: 150px; isolation: isolate; padding: 35px 25px; background: var(--background); border-radius: 16px; }
+  .mb-book-art-preview > div { position: absolute; inset: 0; z-index: -1; }
+  .mb-book-art-preview strong { font-family: var(--font-display); font-size: 28px; display: block; }
+  .mb-book-art-preview small { font-size: 11px; margin-top: 12px; display: block; color: var(--text-2); }
+  .mb-theme-color-field { max-width: 220px; }
+  @media (min-width: 1024px) {
+    /* The shell owns its scrollport; the sidebar always shares the same rounded edge. */
+    html:has(.mb-app-window) { height: 100%; overflow: hidden; }
+    body:has(.mb-app-window) { height: 100dvh; min-height: 0; overflow: hidden; }
+    .mb-app-window { height: calc(100dvh - 40px); min-height: 0; overflow-y: auto; overflow-x: hidden; position: relative; scrollbar-gutter: stable; border-radius: 24px; }
+    .mb-sidebar { position: fixed; top: 20px; bottom: 20px; left: 20px; border-radius: 23px 0 0 23px; overflow: hidden; }
+    .mb-desktop-actions { position: sticky; top: 0; right: auto; float: right; margin-right: 22px; height: 70px; margin-bottom: -70px; z-index: 40; backdrop-filter: blur(12px); border-radius: 0 0 16px 16px; }
+    .mb-notes .mb-notes-scroll { max-height: 340px; }
+    #profile-scenery { scroll-margin-top: 85px; }
+  }
+  @media (max-width: 767px) {
+    .mb-book-picker-grid { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 15px; }
+    .mb-theme-form-row { grid-template-columns: minmax(0,1fr) 85px; gap: 12px; }
+    .mb-crop-frame.is-profile { aspect-ratio: 2.5; }
+    .mb-theme-tile > footer { flex-wrap: wrap; }
+    .mb-theme-tile > footer > span { flex-basis: 100%; }
+    .mb-notes .mb-notes-scroll { max-height: 200px; }
+    .mb-book-personalized .mb-reference-book-copy { padding: 17px; }
+    .mb-book-breadcrumb { flex-wrap: wrap; }
+  }
+}

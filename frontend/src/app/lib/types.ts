@@ -1,8 +1,10 @@
+import type { BookAppearance } from "./appearance";
 /**
  * Tipos compartilhados do myBooks
  */
 
 export interface Book {
+  appearance?: BookAppearance | null;
   id: string;
   title: string;
   author: string;

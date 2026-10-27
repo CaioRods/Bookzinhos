@@ -407,6 +407,7 @@ async function initDB() {
   await ensureColumn("users", "auth_provider", "TEXT NOT NULL DEFAULT ''");
   await ensureColumn("books", "publisher", "TEXT NOT NULL DEFAULT ''");
   await ensureColumn("books", "published_year", "TEXT NOT NULL DEFAULT ''");
+  await ensureColumn("books", "appearance_json", "TEXT");
   // Patrocínio: quem pagou pelo espaço e por quanto tempo ele fica no ar.
   // `starts_at`/`ends_at` em 0 significam "sem limite" — é o caso dos banners
   // da própria casa, que não têm contrato.

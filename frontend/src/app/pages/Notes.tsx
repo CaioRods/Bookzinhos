@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
+import { BookPicker } from "../components/BookPicker";
 import { Link, useSearchParams } from "react-router";
-import { Search, Trash2, Send, Loader2, Star, PenLine } from "lucide-react";
+import { Search, Trash2, Send, Loader2, Star, PenLine, Expand } from "lucide-react";
 import { addNote, deleteNote, fetchBookNotes, fetchBooks } from "../lib/api";
 import { getCoverGradient, getFullUrl, timeAgo } from "../lib/types";
 import { getUsername } from "../lib/session";
@@ -20,6 +21,7 @@ export function Notes() {
   const [books, setBooks] = useState<Book[]>([]);
   const [selectedId, setSelectedId] = useState("");
   const [bookSearch, setBookSearch] = useState("");
+  const [bookPicker, setBookPicker] = useState(false);
   const [notes, setNotes] = useState<Note[]>([]);
   const [rating, setRating] = useState(0);
   const [feedback, setFeedback] = useState("");
@@ -39,7 +41,9 @@ export function Notes() {
 
   useEffect(() => {
     if (!selectedId) return;
-    fetchBookNotes(selectedId).then((n) => setNotes(n || [])).catch(() => setNotes([]));
+    let alive = true;
+    fetchBookNotes(selectedId).then(n => { if (alive) setNotes(n || []); }).catch(() => { if (alive) setNotes([]); });
+    return () => { alive = false; };
   }, [selectedId]);
 
   const selectedBook = books.find((b) => b.id === selectedId) || null;
@@ -125,11 +129,12 @@ export function Notes() {
           />
         </div>
 
-        <div className="mb-rail">
+        <button className="mb-btn mb-btn-outline mb-notes-expand" onClick={() => setBookPicker(true)}><Expand size={15} /> Ver todos os livros</button>
+        <div className="mb-rail mb-notes-scroll">
           {filteredBooks.map((book) => (
             <button
               key={book.id}
-              onClick={() => setSelectedId(book.id)}
+              onClick={() => { if (selectedId !== book.id) { setSelectedId(book.id); setRating(0); setFeedback(""); } }}
               className="w-[72px] text-left cursor-pointer"
               aria-pressed={selectedId === book.id}
             >
@@ -160,7 +165,7 @@ export function Notes() {
 
           <div>
             <span className="mb-label">Como está a leitura agora?</span>
-            <StarPicker value={rating} onChange={setRating} disabled={isSaving} />
+            <StarPicker value={rating} onChange={setRating} disabled={isSaving || bookPicker} />
           </div>
 
           <div>
@@ -199,6 +204,8 @@ export function Notes() {
           </div>
         </section>
       )}
+
+      {bookPicker && <BookPicker books={books} selectedId={selectedId} title="Escolher livro do diário" onSelect={book => { if (book.id !== selectedId) { setSelectedId(book.id); setRating(0); setFeedback(""); } }} onClose={() => setBookPicker(false)} />}
 
       {/* ── Histórico ──────────────────────────────────────────────────────── */}
       <section>

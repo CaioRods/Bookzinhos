@@ -6,7 +6,7 @@
  */
 
 import { createPortal } from "react-dom";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import { Star, X } from "lucide-react";
 
@@ -239,6 +239,9 @@ export function BookRailSkeleton({ count = 6 }: { count?: number }) {
 
 // ─── Modal ────────────────────────────────────────────────────────────────────
 
+let openModalCount = 0;
+let modalOverflowBefore = "";
+
 export function Modal({
   open,
   onClose,
@@ -256,17 +259,33 @@ export function Modal({
   footer?: ReactNode;
   size?: "sm" | "md" | "lg";
 }) {
+  const dialog = useRef<HTMLDivElement>(null);
+  const close = useRef(onClose); close.current = onClose;
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    window.addEventListener("keydown", onKey);
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = previous;
+    const previous = document.activeElement as HTMLElement | null;
+    if (openModalCount++ === 0) { modalOverflowBefore = document.body.style.overflow; document.body.style.overflow = "hidden"; }
+    const frame = requestAnimationFrame(() => {
+      if (!dialog.current?.contains(document.activeElement)) (dialog.current?.querySelector<HTMLInputElement>('input:not([type="hidden"]):not([type="file"])') || dialog.current?.querySelector<HTMLButtonElement>('button'))?.focus({ preventScroll: true });
+    });
+    const onKey = (event: KeyboardEvent) => {
+      const dialogs = document.querySelectorAll('[role="dialog"][aria-modal="true"]');
+      if (dialogs[dialogs.length - 1] !== dialog.current) return;
+      if (event.key === "Escape") { event.preventDefault(); close.current(); }
+      if (event.key === "Tab") {
+        const targets = Array.from(dialog.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], [tabindex="0"]') || []).filter(target => target.getClientRects().length);
+        const first = targets[0], last = targets[targets.length - 1];
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+      }
     };
-  }, [open, onClose]);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      cancelAnimationFrame(frame); window.removeEventListener("keydown", onKey);
+      if (--openModalCount === 0) document.body.style.overflow = modalOverflowBefore;
+      previous?.focus({ preventScroll: true });
+    };
+  }, [open]);
 
   if (!open) return null;
 
@@ -276,6 +295,7 @@ export function Modal({
     <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center animate-fade-in" onClick={onClose}>
       <div className="absolute inset-0 bg-black/45 backdrop-blur-[3px]" />
       <div
+        ref={dialog}
         role="dialog"
         aria-modal="true"
         aria-label={title}

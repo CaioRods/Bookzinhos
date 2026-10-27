@@ -123,6 +123,7 @@ app.get("/", (_req, res) => {
   `);
 });
 app.get("/health", (_req, res) => res.json({ ok: true, ts: Date.now() }));
+const appearance = require("./appearance")({ app, db, sql, upload, uploadFileToCloud, currentUser, requireAdmin });
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function rowToBook(row) {
@@ -142,6 +143,7 @@ function rowToBook(row) {
     addedAt: Number(row.added_at) || 0,
     pdfPath: row.pdf_path || null,
     coverImagePath: row.cover_image_path || null,
+    appearance: row.appearance_json ? JSON.parse(row.appearance_json) : null,
     isUserBook: !!row.is_user_book,
   };
 }
@@ -2015,6 +2017,7 @@ app.get("/admin/overview", requireAdmin, async (_req, res) => {
 
 async function start() {
   await initDB();
+  await appearance.ready();
   if (!process.env.VERCEL) {
     const { initWatcher } = require("./watcher");
     initWatcher(db, sql, PORT, uploadFileToCloud);

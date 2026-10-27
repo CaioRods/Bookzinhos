@@ -6,8 +6,8 @@ export const SCENES = [
   { id: "spring", name: "Primavera Serena", column: 0, row: 2 },
   { id: "night", name: "Noite Estrelada", column: 1, row: 2 },
 ] as const;
-export type SceneId = typeof SCENES[number]["id"];
+export type SceneId = typeof SCENES[number]["id"] | `theme-${string}`;
 export const DEFAULT_SCENE: SceneId = "lilac";
 export function validScene(value: unknown): SceneId {
-  return SCENES.some(scene => scene.id === value) ? value as SceneId : DEFAULT_SCENE;
+  return SCENES.some(scene => scene.id === value) || (typeof value === "string" && /^theme-[a-f0-9-]{36}$/i.test(value)) ? value as SceneId : DEFAULT_SCENE;
 }
