@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import {
   Search, ArrowRight, Star, Megaphone, Heart, MessageCircle, Edit3, Send, Pin,
@@ -17,21 +17,6 @@ import { BannerCarousel } from "../components/BannerCarousel";
 import { Avatar, EmptyState, Modal, SectionHeader, Skeleton, toast } from "../components/Ui";
 import { useOpenBook } from "../lib/readerChoice";
 
-/** Tempo entre um destaque e o próximo. */
-const HERO_INTERVAL_MS = 7000;
-
-/**
- * Cada destaque monta o livro de um jeito: lado da vitrine, ângulo em três
- * dimensões, tamanho e altura mudam de slide para slide — ora se vê a lombada,
- * ora o corte das páginas — para a vitrine não repetir a mesma foto com o
- * título trocado.
- */
-const HERO_LAYOUTS = [
-  { reverse: false, pose: { ry: 26, rx: 5, rz: -3 }, width: 178, offsetY: 0 },
-  { reverse: true, pose: { ry: -22, rx: 8, rz: 4 }, width: 162, offsetY: 14 },
-  { reverse: false, pose: { ry: 34, rx: 2, rz: 6 }, width: 192, offsetY: -10 },
-];
-
 const EMOTES = ["📚", "☕", "✨", "📖", "🌿", "🤍", "🌸", "🔖", "🎧", "🐶"];
 
 export function Home() {
@@ -47,7 +32,17 @@ export function Home() {
 
   const [search, setSearch] = useState("");
   const [heroIndex, setHeroIndex] = useState(0);
-  const [heroPaused, setHeroPaused] = useState(false);
+  const searchRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    const focusSearch = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        searchRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", focusSearch);
+    return () => window.removeEventListener("keydown", focusSearch);
+  }, []);
   const [chip, setChip] = useState("para-voce");
   const [isEditingStatus, setIsEditingStatus] = useState(false);
   const [statusInput, setStatusInput] = useState("");
@@ -80,16 +75,6 @@ export function Home() {
   }, [data, books]);
 
   const hero = featured.length > 0 ? featured[heroIndex % featured.length] : null;
-
-  // O destaque passa sozinho. Para enquanto o ponteiro está em cima e quando a
-  // aba não está visível — girar em segundo plano só gastaria bateria.
-  useEffect(() => {
-    if (featured.length <= 1 || heroPaused) return;
-    const id = window.setInterval(() => {
-      if (document.visibilityState === "visible") setHeroIndex((i) => i + 1);
-    }, HERO_INTERVAL_MS);
-    return () => window.clearInterval(id);
-  }, [featured.length, heroPaused]);
 
   /** Leitores reais do livro em destaque — a prova social do cartão. */
   const heroReaders = useMemo(() => {
@@ -158,34 +143,33 @@ export function Home() {
   };
 
   return (
-    <div className="max-w-[1200px] mx-auto px-4 sm:px-6 py-5 sm:py-7">
-      <div className="xl:grid xl:grid-cols-[minmax(0,1fr)_330px] xl:gap-6 xl:items-start">
+    <div className="mb-home max-w-[1440px] mx-auto px-5 sm:px-8 lg:px-12 py-7 sm:py-10">
+      <div className="2xl:grid 2xl:grid-cols-[minmax(0,1fr)_288px] 2xl:gap-10 2xl:items-start">
         {/* ── Coluna principal ─────────────────────────────────────────────── */}
-        <div className="min-w-0 space-y-8">
+        <div className="min-w-0 space-y-10 sm:space-y-12">
           {/* Saudação + busca */}
-          <header className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-            <div className="min-w-0">
-              <h1 className="text-[28px] sm:text-[32px] font-bold tracking-tight text-foreground leading-tight md:whitespace-nowrap">
-                {greeting}, {userName}! <span className="select-none">👋</span>
+          <header className="mb-home-header">
+            <div>
+              <p className="mb-eyebrow">SEU MOMENTO DE LEITURA</p>
+              <h1 className="text-[34px] sm:text-[44px] font-bold tracking-[-0.045em] text-foreground leading-[1.12] mt-2">
+                {greeting}, {userName}.
               </h1>
-              <p className="text-[14px] text-[var(--text-3)] mt-1">
-                Que tal continuar sua próxima aventura literária?
+              <p className="text-[15px] text-[var(--text-2)] mt-3 leading-relaxed">
+                Uma pausa para descobrir sua próxima história.
               </p>
             </div>
-
-            <div className="relative w-full md:w-[360px] flex-shrink-0">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[var(--text-3)] pointer-events-none" />
+            <div className="relative w-full max-w-[320px]">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[var(--text-3)] pointer-events-none" />
               <input
+                ref={searchRef}
                 type="search"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar livros, autores, pessoas..."
-                aria-label="Buscar"
-                className="w-full h-12 pl-11 pr-4 md:pr-16 rounded-[14px] bg-[var(--surface)] border border-[var(--line)] text-[14px] outline-none focus:border-[var(--primary)]/40 focus:ring-2 focus:ring-[var(--ring)] transition-colors"
+                placeholder="Livros e autores"
+                aria-label="Buscar livros e autores"
+                className="mb-home-search w-full h-12 pl-11 pr-14 rounded-2xl text-[14px] transition-colors"
               />
-              <kbd className="hidden md:block absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-semibold text-[var(--text-3)] bg-[var(--surface-2)] px-1.5 py-0.5 rounded-md pointer-events-none">
-                ⌘K
-              </kbd>
+              <kbd aria-hidden="true" className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[11px] text-[var(--text-3)] border border-[var(--line)] px-1.5 py-1 rounded-md">⌘ K</kbd>
             </div>
           </header>
 
@@ -212,8 +196,6 @@ export function Home() {
                   readers={heroReaders}
                   count={featured.length}
                   index={heroIndex}
-                  paused={heroPaused}
-                  onPause={setHeroPaused}
                   onSelect={setHeroIndex}
                   onOpen={() => navigate(`/book/${hero.id}`)}
                 />
@@ -227,16 +209,16 @@ export function Home() {
                     {[0, 1, 2].map((i) => <Skeleton key={i} className="h-[280px] rounded-[18px]" />)}
                   </div>
                 ) : (
-                  <div className="mb-stagger grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className={`mb-stagger grid gap-4 ${reading.length ? "grid-cols-2 md:grid-cols-4" : "grid-cols-1"}`}>
                     {reading.map(({ book, progress: p }) => (
                       <ReadingCard key={book.id} book={book} progress={p} onOpen={() => openBook(book)} />
                     ))}
                     <Link
                       to="/upload"
-                      className="rounded-[18px] border-2 border-dashed border-[var(--line)] flex flex-col items-center justify-center gap-2.5 text-[var(--text-3)] hover:border-[var(--primary)]/40 hover:text-[var(--primary)] transition-colors min-h-[220px]"
+                      className={`mb-reading-empty ${reading.length ? "min-h-[220px] flex-col justify-center" : "flex-row"}`}
                     >
                       <BookOpen className="w-6 h-6" />
-                      <span className="text-[13px] font-medium text-center leading-tight">Adicionar<br />livro</span>
+                      <span><span className="block text-[14px] font-semibold text-foreground">{reading.length ? "Adicionar livro" : "Sua próxima leitura começa aqui"}</span><span className="block text-[13px] text-[var(--text-2)] mt-1">{reading.length ? "Uma nova história na estante." : "Adicione um livro e encontre seu ritmo."}</span></span><Plus className="w-5 h-5 ml-auto shrink-0" />
                     </Link>
                   </div>
                 )}
@@ -245,7 +227,7 @@ export function Home() {
               {/* Recomendado para você */}
               <section>
                 <RowHeader title="Recomendado para você" to="/library" />
-                <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1 mb-4">
+                <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 mb-5">
                   <Chip active={chip === "para-voce"} onClick={() => setChip("para-voce")} icon={<Sparkles className="w-3.5 h-3.5" />}>
                     Para você
                   </Chip>
@@ -289,7 +271,7 @@ export function Home() {
               )}
 
               {/* Atividade e comunidade, no fim da coluna em telas menores */}
-              <div className="xl:hidden space-y-4">
+              <div className="2xl:hidden grid md:grid-cols-2 gap-5">
                 <ActivityCard feed={feed} />
                 <CommunityCard data={data} admin={admin} />
               </div>
@@ -315,7 +297,7 @@ export function Home() {
         </div>
 
         {/* ── Trilho lateral ───────────────────────────────────────────────── */}
-        <aside className="hidden xl:flex flex-col gap-4 sticky top-6">
+        <aside className="hidden 2xl:flex flex-col gap-5 sticky top-8 pt-1">
           <ActivityCard feed={feed} />
           <CommunityCard data={data} admin={admin} />
         </aside>
@@ -377,7 +359,7 @@ export function Home() {
 function RowHeader({ title, to }: { title: string; to: string }) {
   return (
     <div className="flex items-baseline justify-between gap-4 mb-4">
-      <h2 className="text-[19px] font-bold tracking-tight text-foreground">{title}</h2>
+      <h2 className="text-[23px] font-bold tracking-[-0.025em] text-foreground">{title}</h2>
       <Link to={to} className="mb-link text-[13px] font-medium text-[var(--primary)]">Ver tudo</Link>
     </div>
   );
@@ -394,9 +376,10 @@ function Chip({
   return (
     <button
       onClick={onClick}
-      className={`inline-flex items-center gap-1.5 h-9 px-4 rounded-full text-[13px] font-medium whitespace-nowrap transition-colors cursor-pointer border ${
+      aria-pressed={active}
+      className={`inline-flex items-center gap-1.5 h-11 px-4 rounded-full text-[13px] font-medium whitespace-nowrap transition-colors cursor-pointer border ${
         active
-          ? "bg-[var(--primary-soft)] border-[var(--primary)]/30 text-[var(--primary)] font-semibold"
+          ? "bg-[var(--foreground)] border-transparent text-[var(--background)] font-semibold"
           : "bg-[var(--surface)] border-[var(--line)] text-[var(--text-2)] hover:border-[var(--primary)]/30"
       }`}
     >
@@ -407,24 +390,21 @@ function Chip({
 }
 
 function HeroFeature({
-  book, readers, count, index, paused, onPause, onSelect, onOpen,
+  book, readers, count, index, onSelect, onOpen,
 }: {
   book: Book;
   readers: { username: string; avatar: string }[];
   count: number;
   index: number;
-  paused: boolean;
-  onPause: (paused: boolean) => void;
   onSelect: (i: number) => void;
   onOpen: () => void;
 }) {
-  const cover = getFullUrl(book.coverImagePath);
-  const layout = HERO_LAYOUTS[index % HERO_LAYOUTS.length];
   const active = count > 0 ? index % count : 0;
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     let alive = true;
+    setSaved(false);
     fetchSavedIds()
       .then((ids) => { if (alive) setSaved(ids.includes(book.id)); })
       .catch(() => {});
@@ -432,6 +412,7 @@ function HeroFeature({
   }, [book.id]);
 
   const toggleSave = async () => {
+    if (!requireAuth("guardar nos favoritos")) return;
     const next = !saved;
     setSaved(next);
     try {
@@ -444,219 +425,32 @@ function HeroFeature({
   };
 
   return (
-    <section
-      className="mb-hero relative overflow-hidden"
-      onMouseEnter={() => onPause(true)}
-      onMouseLeave={() => onPause(false)}
-      onFocusCapture={() => onPause(true)}
-      onBlurCapture={() => onPause(false)}
-    >
-      {/* A capa desfocada preenche o fundo do lado da vez e some para dentro
-          do cartão — é o que dá o ar de vitrine fotografada. */}
-      {cover && (
-        <div
-          aria-hidden
-          key={`bg-${book.id}`}
-          className={`absolute inset-y-0 w-[64%] pointer-events-none hidden sm:block ${layout.reverse ? "left-0" : "right-0"}`}
-          style={{
-            animation: "fade-in .7s ease both",
-            // Sem a máscara o desfoque termina numa linha reta no meio do cartão.
-            maskImage: `linear-gradient(to ${layout.reverse ? "left" : "right"}, transparent, #000 42%)`,
-            WebkitMaskImage: `linear-gradient(to ${layout.reverse ? "left" : "right"}, transparent, #000 42%)`,
-          }}
-        >
-          <img src={cover} alt="" className="w-full h-full object-cover opacity-30 blur-2xl scale-125" />
+    <section className="mb-feature" aria-label="Livros em destaque" aria-roledescription="carrossel">
+      <div className="mb-feature-copy">
+        <span className="mb-eyebrow text-[var(--primary)]">ESCOLHIDO PARA SUA ESTANTE</span>
+        <h2 className="mb-feature-title">{book.title}</h2>
+        <p className="text-[14px] sm:text-[16px] text-[var(--text-2)] mt-3">{book.author || "Autor desconhecido"}</p>
+        <p className="hidden sm:block text-[14px] leading-relaxed text-[var(--text-2)] mt-4 line-clamp-2 max-w-[38ch]">
+          {book.description || "Entre as páginas, uma nova descoberta. Conheça este destaque da nossa biblioteca."}
+        </p>
+        <div className="flex flex-wrap items-center gap-3 mt-5 text-[12px] text-[var(--text-2)]">
+          {book.rating > 0 && <span className="inline-flex items-center gap-1.5 font-semibold"><Star className="w-3.5 h-3.5 fill-[var(--gold)] text-[var(--gold)]" />{book.rating.toFixed(1)}</span>}
+          {readers.length > 0 && <div className="flex -space-x-2" aria-label="Leitores deste livro">{readers.map(r => <span key={r.username} title={r.username} className="w-7 h-7 rounded-full bg-[var(--surface)] border-2 border-[var(--surface)] flex items-center justify-center">{r.avatar}</span>)}</div>}
+          {!!book.readers && book.readers > 0 && <span>{book.readers} {book.readers === 1 ? "leitor" : "leitores"}</span>}
         </div>
-      )}
-
-      {/* Luz quente entrando pelo canto: a cena parece iluminada, não chapada. */}
-      <div
-        aria-hidden
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background: `radial-gradient(70% 90% at ${layout.reverse ? "22%" : "78%"} 12%, color-mix(in srgb, var(--gold) 16%, transparent), transparent 62%)`,
-        }}
-      />
-
-      {/* ── Celular: compacto e horizontal ─────────────────────────────────
-          Capa lisa e pequena ao lado do texto, altura enxuta — sem o livro 3D
-          gigante flutuando no rodapé, que deixava o cartão altíssimo. */}
-      <div key={`m-${book.id}`} className="sm:hidden relative flex gap-4 p-5 pb-9">
-        <div className="flex-1 min-w-0">
-          <span className="inline-flex items-center gap-1.5 h-7 px-3 rounded-full bg-[var(--surface)]/85 border border-[var(--line)] text-[10.5px] font-bold uppercase tracking-wider text-[var(--text-2)]">
-            <Star className="w-3 h-3 fill-[var(--gold)] text-[var(--gold)]" /> Destaque
-          </span>
-
-          <h2 className="text-[20px] font-bold tracking-tight text-foreground leading-[1.12] mt-2.5 line-clamp-2">
-            {book.title}
-          </h2>
-          <p className="text-[13.5px] font-semibold text-[var(--primary)] mt-1">
-            {book.author || "Autor desconhecido"}
-          </p>
-
-          <div className="flex items-center gap-3 mt-2.5 text-[12.5px] font-medium text-[var(--text-2)]">
-            {!!book.readers && book.readers > 0 && (
-              <span>{book.readers} {book.readers === 1 ? "já leu" : "já leram"}</span>
-            )}
-            {book.rating > 0 && (
-              <span className="inline-flex items-center gap-1">
-                <Star className="w-3.5 h-3.5 fill-[var(--gold)] text-[var(--gold)]" /> {book.rating.toFixed(1)}
-              </span>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2 mt-3.5">
-            <button onClick={onOpen} className="mb-btn mb-btn-primary flex-1 h-11 rounded-[13px]">
-              Ver detalhes
-            </button>
-            <button
-              onClick={toggleSave}
-              aria-pressed={saved}
-              aria-label={saved ? "Remover dos favoritos" : "Guardar nos favoritos"}
-              className={`w-11 h-11 rounded-[13px] border flex items-center justify-center flex-shrink-0 transition-colors ${
-                saved
-                  ? "bg-[var(--primary)] border-[var(--primary)] text-white"
-                  : "bg-[var(--surface)]/85 border-[var(--line)] text-[var(--text-2)]"
-              }`}
-            >
-              <Bookmark className={`w-[18px] h-[18px] ${saved ? "fill-current" : ""}`} />
-            </button>
-          </div>
-        </div>
-
-        <button onClick={onOpen} aria-label={`Abrir ${book.title}`} className="flex-shrink-0 w-[104px] self-center">
-          <div className="w-full aspect-[2/3] rounded-xl overflow-hidden shadow-[0_14px_30px_-12px_rgba(0,0,0,.5)] rotate-3">
-            {cover ? (
-              <img src={cover} alt={`Capa de ${book.title}`} className="w-full h-full object-cover" />
-            ) : (
-              <div className={`w-full h-full bg-gradient-to-br ${getCoverGradient(book)}`} />
-            )}
-          </div>
-        </button>
-      </div>
-
-      {/* ── Desktop: o livro em três dimensões, imponente ──────────────────── */}
-      <div
-        key={book.id}
-        className={`relative hidden sm:flex items-center gap-10 p-8 pb-14 ${layout.reverse ? "flex-row-reverse" : "flex-row"}`}
-      >
-        <div className="flex-1 min-w-0" style={{ animation: "mb-hero-swap .55s var(--ease-out) both" }}>
-          <span className="inline-flex items-center gap-1.5 h-8 px-3.5 rounded-full bg-[var(--surface)]/85 border border-[var(--line)] text-[11px] font-bold uppercase tracking-wider text-[var(--text-2)]">
-            <Star className="w-3.5 h-3.5 fill-[var(--gold)] text-[var(--gold)]" /> Destaque da semana
-          </span>
-
-          <h2 className="text-[42px] font-bold tracking-tight text-foreground leading-[1.04] mt-3.5 line-clamp-2">
-            {book.title}
-          </h2>
-          <p className="text-[18px] font-semibold text-[var(--primary)] mt-1.5">
-            {book.author || "Autor desconhecido"}
-          </p>
-
-          <p className="text-[14.5px] text-[var(--text-2)] leading-relaxed mt-3.5 line-clamp-2 max-w-md">
-            {book.description || "Um livro do acervo da comunidade esperando por você."}
-          </p>
-
-          <div className="flex items-center gap-3 mt-4 flex-wrap">
-            {readers.length > 0 && (
-              <div className="flex -space-x-2">
-                {readers.map((r) => (
-                  <span
-                    key={r.username}
-                    title={r.username}
-                    className="w-8 h-8 rounded-full bg-[var(--surface)] border-2 border-[var(--sand-1)] flex items-center justify-center text-[15px] select-none"
-                  >
-                    {r.avatar}
-                  </span>
-                ))}
-              </div>
-            )}
-            {!!book.readers && book.readers > 0 && (
-              <span className="text-[13px] font-medium text-[var(--text-2)]">
-                {book.readers} {book.readers === 1 ? "já leu" : "já leram"}
-              </span>
-            )}
-            {book.rating > 0 && (
-              <span className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[var(--text-2)]">
-                <Star className="w-4 h-4 fill-[var(--gold)] text-[var(--gold)]" />
-                {book.rating.toFixed(1)}
-              </span>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2.5 mt-6">
-            <button onClick={onOpen} className="mb-btn mb-btn-primary mb-btn-lg rounded-[14px]">
-              Ver detalhes
-            </button>
-            <button
-              onClick={toggleSave}
-              aria-pressed={saved}
-              aria-label={saved ? "Remover dos favoritos" : "Guardar nos favoritos"}
-              title={saved ? "Remover dos favoritos" : "Guardar nos favoritos"}
-              className={`w-12 h-12 rounded-[14px] border flex items-center justify-center transition-colors cursor-pointer ${
-                saved
-                  ? "bg-[var(--primary)] border-[var(--primary)] text-white"
-                  : "bg-[var(--surface)]/85 border-[var(--line)] text-[var(--text-2)] hover:border-[var(--primary)]/40 hover:text-[var(--primary)]"
-              }`}
-            >
-              <Bookmark className={`w-[19px] h-[19px] ${saved ? "fill-current" : ""}`} />
-            </button>
-          </div>
-        </div>
-
-        <div
-          className="flex-shrink-0 relative self-center px-11"
-          style={{ animation: "mb-hero-cover-in .6s var(--ease-out) both" }}
-        >
-          <div
-            key={`pose-${book.id}`}
-            style={{
-              "--float-base": `${layout.offsetY}px`,
-              animation: "mb-hero-float 6s ease-in-out infinite",
-            } as React.CSSProperties}
-          >
-            <Book3D book={book} width={layout.width} pose={layout.pose} floating still />
-          </div>
-
-          {book.rating > 0 && (
-            <span
-              className={`flex absolute bottom-0 ${layout.reverse ? "right-0" : "left-0"} w-[84px] h-[84px] rounded-full bg-[var(--surface)]/92 border border-[var(--line)] shadow-[var(--shadow-2)] flex-col items-center justify-center text-center leading-tight backdrop-blur-sm`}
-              style={{ transform: `translateX(${layout.reverse ? "50%" : "-50%"})` }}
-            >
-              <Star className="w-4 h-4 fill-[var(--gold)] text-[var(--gold)]" />
-              <span className="text-[17px] font-bold text-foreground mt-0.5">{book.rating.toFixed(1)}</span>
-              <span className="text-[9px] font-bold uppercase tracking-wider text-[var(--text-3)]">da turma</span>
-            </span>
-          )}
+        <div className="flex items-center gap-2.5 mt-6 sm:mt-7">
+          <button onClick={onOpen} className="mb-btn mb-btn-primary h-11 sm:h-12 rounded-full px-5 sm:px-6">Explorar livro <ArrowRight className="w-4 h-4" /></button>
+          <button onClick={toggleSave} aria-pressed={saved} aria-label={saved ? "Remover dos favoritos" : "Guardar nos favoritos"} className={`mb-feature-save ${saved ? "text-[var(--primary)] bg-[var(--primary-soft)]" : "text-[var(--text-2)] bg-[var(--surface)]"}`}>
+            <Bookmark className={`w-[18px] h-[18px] ${saved ? "fill-current" : ""}`} />
+          </button>
         </div>
       </div>
-
-      {count > 1 && (
-        <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex items-center gap-1.5">
-          {Array.from({ length: count }).map((_, i) => (
-            <button
-              key={i}
-              onClick={() => onSelect(i)}
-              aria-label={`Destaque ${i + 1}`}
-              aria-current={i === active}
-              className={`h-1.5 rounded-full overflow-hidden transition-all cursor-pointer ${
-                i === active ? "w-7 bg-[var(--foreground)]/15" : "w-1.5 bg-[var(--foreground)]/20 hover:bg-[var(--foreground)]/40"
-              }`}
-            >
-              {/* A bolinha ativa se preenche no ritmo do autoplay. */}
-              {i === active && (
-                <span
-                  key={`fill-${index}-${paused}`}
-                  className="block h-full w-full origin-left bg-[var(--primary)]"
-                  style={{
-                    animation: `mb-dot-fill ${HERO_INTERVAL_MS}ms linear both`,
-                    animationPlayState: paused ? "paused" : "running",
-                  }}
-                />
-              )}
-            </button>
-          ))}
-        </div>
-      )}
+      <button onClick={onOpen} className="mb-feature-book" aria-label={`Ver detalhes de ${book.title}`}>
+        <Book3D book={book} width={160} pose={{ ry: -16, rx: 3, rz: -3 }} still />
+      </button>
+      {count > 1 && <div className="mb-feature-pagination" aria-label="Selecionar destaque">
+        {Array.from({ length: count }, (_, i) => <button key={i} onClick={() => onSelect(i)} aria-label={`Destaque ${i + 1} de ${count}`} aria-current={i === active ? "true" : undefined}><span /></button>)}
+      </div>}
     </section>
   );
 }

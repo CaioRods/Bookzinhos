@@ -25,9 +25,9 @@ interface NavItem {
 /**
  * Casca do aplicativo.
  *
- * Desktop: barra lateral branca flutuante à esquerda, conteúdo ao lado e as
+ * Desktop: barra lateral integrada à esquerda, conteúdo ao lado e as
  * ações da conta no canto superior direito.
- * Celular: barra inferior com o botão de adicionar livro em destaque no centro.
+ * Celular: navegação flutuante com acesso a adicionar livro no centro.
  */
 export function RootLayout() {
   const location = useLocation();
@@ -128,15 +128,16 @@ export function RootLayout() {
   return (
     <BookTransitionProvider>
       <AuthGateModal />
+      <a href="#main-content" className="mb-skip-link">Pular para o conteúdo</a>
       <div className="min-h-screen bg-background">
         {/* ── Barra lateral (desktop) ─────────────────────────────────────── */}
-        <aside className="hidden lg:flex fixed left-5 top-5 bottom-5 z-50 w-[236px] flex-col rounded-[22px] bg-[var(--surface)] border border-[var(--line)] shadow-[var(--shadow-2)] overflow-hidden">
-          <Link to="/" className="flex items-center gap-2.5 px-5 h-[72px] flex-shrink-0">
+        <aside className="mb-sidebar hidden lg:flex fixed inset-y-0 left-0 z-50 w-[232px] flex-col overflow-hidden">
+          <Link to="/" className="flex items-center gap-3 px-6 h-[96px] flex-shrink-0">
             <img src="/logo.svg" alt="" className="w-9 h-9 rounded-[10px]" />
             <span className="text-[19px] font-bold tracking-tight text-foreground">myBooks</span>
           </Link>
 
-          <nav className="flex-1 px-3 space-y-1 overflow-y-auto no-scrollbar">
+          <nav className="flex-1 px-3 space-y-1 overflow-y-auto no-scrollbar" aria-label="Navegação principal">
             {navItems.map(({ path, icon: Icon, label, badge, end }) => (
               <NavLink
                 key={path}
@@ -144,9 +145,9 @@ export function RootLayout() {
                 end={end}
                 onClick={soundTap}
                 className={({ isActive }) =>
-                  `mb-nav-item flex items-center gap-3 px-3.5 h-11 rounded-[14px] text-[14px] transition-all ${
+                  `mb-nav-item flex items-center gap-3 px-3.5 h-11 rounded-[10px] text-[14px] transition-all ${
                     isActive
-                      ? "bg-[var(--primary-soft)] text-[var(--primary)] font-semibold"
+                      ? "bg-[var(--surface)] text-[var(--primary)] font-semibold shadow-[var(--shadow-1)]"
                       : "text-[var(--text-2)] font-medium hover:bg-[var(--surface-2)] hover:text-foreground"
                   }`
                 }
@@ -208,7 +209,7 @@ export function RootLayout() {
         </aside>
 
         {/* ── Ações da conta (desktop) ────────────────────────────────────── */}
-        <div className="hidden lg:flex fixed top-6 right-7 z-40 items-center gap-2">
+        <div className="mb-desktop-actions hidden lg:flex absolute top-6 right-8 z-40 items-center gap-1">
           <NotificationsMenu />
           <Link to="/social" aria-label="Conversas" className="w-10 h-10 rounded-full flex items-center justify-center text-[var(--text-2)] hover:bg-[var(--surface)] transition-colors">
             <MessageSquare className="w-[19px] h-[19px]" />
@@ -222,7 +223,7 @@ export function RootLayout() {
         </div>
 
         {/* ── Cabeçalho (celular) ─────────────────────────────────────────── */}
-        <header className="lg:hidden sticky top-0 z-40 h-14 px-4 flex items-center justify-between bg-[var(--background)]/92 backdrop-blur-xl border-b border-[var(--line)]">
+        <header className="mb-mobile-header lg:hidden sticky top-0 z-40 h-16 px-5 flex items-center justify-between border-b border-[var(--line)]">
           <Link to="/" className="flex items-center gap-2">
             <img src="/logo.svg" alt="" className="w-8 h-8 rounded-lg" />
             <span className="text-[16px] font-bold tracking-tight text-foreground">myBooks</span>
@@ -247,7 +248,7 @@ export function RootLayout() {
         </header>
 
         {/* ── Conteúdo ────────────────────────────────────────────────────── */}
-        <main className="lg:pl-[264px] lg:pr-5 lg:pt-14 pb-28 lg:pb-8">
+        <main id="main-content" tabIndex={-1} className="lg:pl-[232px] lg:pr-0 lg:pt-14 pb-32 lg:pb-12">
           <ReaderChoiceProvider>
             {/* O invólucro posicionado é a caixa de conteúdo do `main`: sem ele
                 o véu se estica por baixo da barra lateral, porque um elemento
@@ -276,8 +277,8 @@ export function RootLayout() {
         </main>
 
         {/* ── Barra inferior com botão central (celular) ──────────────────── */}
-        <nav className="lg:hidden fixed bottom-0 inset-x-0 z-50 bg-[var(--surface)] border-t border-[var(--line)] pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_20px_-12px_rgba(0,0,0,.2)]">
-          <div className="flex items-center h-[66px] px-1">
+        <nav aria-label="Navegação principal" className="mb-mobile-dock lg:hidden fixed z-50">
+          <div className="flex items-center h-[68px] px-1">
             <MobileTab to="/" end icon={Home} label="Início" />
             <MobileTab to="/library" icon={Library} label="Biblioteca" />
 
@@ -285,7 +286,7 @@ export function RootLayout() {
               <Link
                 to="/upload"
                 aria-label="Adicionar livro"
-                className="w-[54px] h-[54px] -mt-6 rounded-full bg-[var(--primary)] text-white flex items-center justify-center shadow-[0_8px_20px_-6px_var(--primary)] active:scale-95 transition-transform ring-4 ring-[var(--surface)]"
+                className="w-11 h-11 rounded-full bg-[var(--primary)] text-[var(--primary-foreground)] flex items-center justify-center active:scale-95 transition-transform"
               >
                 <Plus className="w-6 h-6" />
               </Link>
