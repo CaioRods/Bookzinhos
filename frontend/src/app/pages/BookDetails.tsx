@@ -176,6 +176,7 @@ export function BookDetails() {
             {progress && <div className="mb-detail-progress"><span>Seu progresso</span><div className="mb-inline-progress"><span role="progressbar" aria-label="Seu progresso de leitura" aria-valuenow={Math.min(100, Math.max(0, progress.progress))} aria-valuemin={0} aria-valuemax={100}><i style={{ width: `${Math.min(100, Math.max(0, progress.progress))}%` }} /></span><strong>{Math.round(progress.progress)}%</strong></div><small>Página {progress.currentPage + 1} de {progress.totalPages}</small></div>}
           </div>
         </section>
+        <BookGallery key={book.id} book={book}/>
         <section className="mb-book-about">
           <div className="mb-book-tabs" role="tablist" aria-label="Informações do livro">{([{ key: "sobre", label: "Sobre" }, { key: "avaliacoes", label: "Avaliações" }] as const).map(t => <button key={t.key} role="tab" aria-selected={tab === t.key} aria-controls={`book-panel-${t.key}`} id={`book-tab-${t.key}`} onClick={() => setTab(t.key)}>{t.label}</button>)}</div>
           {tab === "sobre" ? <div className="mb-book-synopsis" role="tabpanel" id="book-panel-sobre" aria-labelledby="book-tab-sobre"><div><h2>Sinopse</h2><p>{book.description || "Nenhuma sinopse cadastrada para este livro."}</p><button className="mb-btn mb-btn-outline mt-6" onClick={handleToggleRead}><CheckCircle size={17} />{isFinished ? "Marcar como não lido" : "Marcar como concluído"}</button></div><dl>{[{ label: "Autor", value: book.author }, { label: "Editora", value: book.publisher }, { label: "Publicação", value: book.publishedYear }, { label: "Páginas", value: book.pageCount }, { label: "Gênero", value: book.genre }].filter(row => row.value).map(row => <div key={row.label}><dt>{row.label}</dt><dd>{row.value}</dd></div>)}</dl></div> : <div role="tabpanel" id="book-panel-avaliacoes" aria-labelledby="book-tab-avaliacoes"><ReviewSection bookId={book.id} reviews={book.reviews || []} onChange={handleReviewsChange} /></div>}
@@ -186,7 +187,6 @@ export function BookDetails() {
       </aside></div>
 
       <SeriesShelf book={book} onOrderSaved={seriesOrder=>setBook({...book,seriesOrder})}/>
-      <BookGallery key={book.id} book={book}/>
       {editingBook && <EditBookModal book={book} onClose={()=>setEditingBook(false)} onSaved={updated=>{setBook({...book,...updated});setEditingBook(false)}}/>}
       {appearanceEditor && <BookAppearanceEditor book={book} autoColor={autoColor} onClose={() => setAppearanceEditor(false)} onSaved={appearance => { setBook(current => current ? { ...current, appearance } : current); setAppearanceEditor(false); }} />}
 

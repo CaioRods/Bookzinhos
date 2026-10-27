@@ -12,8 +12,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Trash2,
-  ZoomIn,
-  ZoomOut,
 } from "lucide-react";
 import {
   communityApi,
@@ -32,12 +30,7 @@ import {
   SOCIAL_IMAGE_MAX_BYTES,
 } from "../lib/socialImage";
 import { BookPicker } from "./BookPicker";
-import {
-  clampGalleryIndex,
-  clampGalleryZoom,
-  doubleClickGalleryZoom,
-  gallerySwipeIndex,
-} from "../lib/gallery";
+import { clampGalleryZoom, doubleClickGalleryZoom } from "../lib/gallery";
 const REACTIONS: Record<Reaction, string> = {
   heart: "❤️",
   panda: "🐼",
@@ -443,16 +436,13 @@ export function CommunityPost({
   post,
   onChange,
   detail = false,
-  initialImage = 0,
 }: {
   post: SocialPost;
   onChange: () => void;
   detail?: boolean;
-  initialImage?: number;
 }) {
   const navigate = useNavigate();
-  const [image, setImage] = useState(initialImage),
-    [lightbox, setLightbox] = useState<number | null>(null),
+  const [lightbox, setLightbox] = useState<number | null>(null),
     [share, setShare] = useState(false),
     [reply, setReply] = useState<SocialComment | null>(null),
     [comment, setComment] = useState(""),
@@ -563,43 +553,25 @@ export function CommunityPost({
       )}
       {post.images.length > 0 && (
         <div className="mb-post-gallery">
-          <button
-            type="button"
-            className="mb-post-image-trigger"
-            aria-label="Expandir imagem da publicação"
-            onClick={() => setLightbox(image)}
-          >
-            <img
-              src={getFullUrl(post.images[image] || post.images[0])!}
-              alt={`Imagem ${image + 1} da publicação de ${post.username}`}
-              loading="lazy"
-            />
-          </button>
-          {post.images.length > 1 && (
-            <>
-              <button
-                className="is-prev"
-                aria-label="Imagem anterior"
-                onClick={() =>
-                  setImage(
-                    (image - 1 + post.images.length) % post.images.length,
-                  )
-                }
-              >
-                <ChevronLeft />
-              </button>
-              <button
-                className="is-next"
-                aria-label="Próxima imagem"
-                onClick={() => setImage((image + 1) % post.images.length)}
-              >
-                <ChevronRight />
-              </button>
-              <span>
-                {image + 1} / {post.images.length}
-              </span>
-            </>
-          )}
+          {post.images.map((url, imageIndex) => (
+            <button
+              key={url + imageIndex}
+              type="button"
+              className="mb-post-image-trigger"
+              aria-label={detail ? "Expandir imagem da publicação" : "Abrir publicação"}
+              onClick={() => {
+                if (detail) setLightbox(imageIndex);
+                else navigate("/social/post/" + post.id, { state: { image: imageIndex } });
+              }}
+            >
+              <img
+                src={getFullUrl(url)!}
+                alt={`Imagem ${imageIndex + 1} da publicação de ${post.username}`}
+                loading="lazy"
+              />
+            </button>
+          ))}
+          {post.images.length > 1 && <span>{post.images.length} imagens</span>}
         </div>
       )}
       <ImageLightbox
@@ -607,7 +579,6 @@ export function CommunityPost({
         index={lightbox ?? 0}
         open={lightbox !== null}
         description={post.content}
-        onIndexChange={setLightbox}
         onClose={() => setLightbox(null)}
       />
       <div className="mb-post-toolbar">
@@ -713,14 +684,12 @@ function ImageLightbox({
   index,
   open,
   description,
-  onIndexChange,
   onClose,
 }: {
   images: string[];
   index: number;
   open: boolean;
   description?: string;
-  onIndexChange: (index: number) => void;
   onClose: () => void;
 }) {
   const [zoom, setZoom] = useState(1);
@@ -733,7 +702,6 @@ function ImageLightbox({
     panY: 0,
     pinchDistance: 0,
     pinchZoom: 1,
-    hadPinch: false,
   });
   const resetView = () => {
     setZoom(1);
@@ -741,17 +709,6 @@ function ImageLightbox({
     pointers.current.clear();
   };
   useEffect(resetView, [index, open]);
-  useEffect(() => {
-    if (!open) return;
-    const keyboard = (event: KeyboardEvent) => {
-      if (event.key === "ArrowLeft" && index > 0)
-        onIndexChange(index - 1);
-      if (event.key === "ArrowRight" && index < images.length - 1)
-        onIndexChange(index + 1);
-    };
-    window.addEventListener("keydown", keyboard);
-    return () => window.removeEventListener("keydown", keyboard);
-  }, [images.length, index, onIndexChange, open]);
   if (!open || !images.length) return null;
   return (
     <Modal open size="xl" title="Imagem da publicação" onClose={onClose}>
@@ -777,13 +734,11 @@ function ImageLightbox({
               y: event.clientY,
             });
             if (pointers.current.size === 1) {
-              gesture.current.hadPinch = false;
               gesture.current.startX = event.clientX;
               gesture.current.startY = event.clientY;
               gesture.current.panX = pan.x;
               gesture.current.panY = pan.y;
             } else if (pointers.current.size === 2) {
-              gesture.current.hadPinch = true;
               const [a, b] = [...pointers.current.values()];
               gesture.current.pinchDistance = Math.hypot(a.x - b.x, a.y - b.y);
               gesture.current.pinchZoom = zoom;
@@ -812,20 +767,8 @@ function ImageLightbox({
             }
           }}
           onPointerUp={(event) => {
-            const startX = gesture.current.startX;
             pointers.current.delete(event.pointerId);
-            if (
-              pointers.current.size === 0 &&
-              zoom === 1 &&
-              !gesture.current.hadPinch
-            ) {
-              const next = gallerySwipeIndex(
-                event.clientX - startX,
-                index,
-                images.length,
-              );
-              if (next !== index) onIndexChange(next);
-            } else if (pointers.current.size === 1) {
+            if (pointers.current.size === 1) {
               const remaining = [...pointers.current.values()][0];
               gesture.current.startX = remaining.x;
               gesture.current.startY = remaining.y;
@@ -843,30 +786,7 @@ function ImageLightbox({
               transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${zoom})`,
             }}
           />
-          {index > 0 && (
-            <button
-              className="is-prev"
-              aria-label="Imagem anterior"
-              onClick={() => onIndexChange(clampGalleryIndex(index - 1, images.length))}
-            ><ChevronLeft /></button>
-          )}
-          {index < images.length - 1 && (
-            <button
-              className="is-next"
-              aria-label="Próxima imagem"
-              onClick={() => onIndexChange(clampGalleryIndex(index + 1, images.length))}
-            ><ChevronRight /></button>
-          )}
         </div>
-        <footer>
-          <span>{index + 1} / {images.length}</span>
-          {description && <p>{description}</p>}
-          <div>
-            <button aria-label="Diminuir zoom" disabled={zoom <= 1} onClick={() => setZoom(value => clampGalleryZoom(value - .25))}><ZoomOut /></button>
-            <strong>{Math.round(zoom * 100)}%</strong>
-            <button aria-label="Aumentar zoom" disabled={zoom >= 4} onClick={() => setZoom(value => clampGalleryZoom(value + .25))}><ZoomIn /></button>
-          </div>
-        </footer>
       </div>
     </Modal>
   );
@@ -1080,7 +1000,6 @@ export function BookGallery({ book }: { book: Book }) {
           index={active.index}
           open
           description={active.post.content}
-          onIndexChange={(index) => setActive(current => current ? { ...current, index } : null)}
           onClose={() => setActive(null)}
         />
       )}

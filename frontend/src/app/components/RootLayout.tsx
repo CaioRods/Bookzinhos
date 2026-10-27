@@ -57,6 +57,18 @@ export function RootLayout() {
 
   useEffect(() => {
     primeSounds();
+    const warmRoutes = () => {
+      void Promise.allSettled([
+        import("../pages/Library"),
+        import("../pages/MyBooks"),
+        import("../pages/Social"),
+        import("../pages/BookDetails"),
+        import("../pages/Profile"),
+        import("../pages/Settings"),
+      ]);
+    };
+    const idle = window.setTimeout(warmRoutes, 500);
+    return () => window.clearTimeout(idle);
   }, []);
 
   useEffect(() => {
@@ -130,9 +142,6 @@ export function RootLayout() {
               <RouteSkeleton pathname={pending} />
             </div>
           )}
-          <div key={`veil-${location.pathname}`} className="mb-veil mb-veil-life" aria-hidden>
-            <RouteSkeleton pathname={location.pathname} />
-          </div>
         </ReaderChoiceProvider>
       </div>
     );
@@ -256,9 +265,6 @@ export function RootLayout() {
                 <RouteSkeleton pathname={pending} />
               </div>
             )}
-            <div key={`veil-${location.pathname}`} className="mb-veil mb-veil-life" aria-hidden>
-              <RouteSkeleton pathname={location.pathname} />
-            </div>
             </div>
           </ReaderChoiceProvider>
         </main>

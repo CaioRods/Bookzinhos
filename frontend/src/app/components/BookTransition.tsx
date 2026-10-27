@@ -35,6 +35,7 @@ export function useFlyingBookId(): string | null {
 
 const FLY_MS = 480;
 const FADE_MS = 180;
+const NAVIGATE_MS = 60;
 
 /**
  * Animação de abertura de um livro.
@@ -61,7 +62,7 @@ export function BookTransitionProvider({ children }: { children: ReactNode }) {
     const toPage = window.setTimeout(() => {
       navigate(`/book/${flight.book.id}`);
       setFading(true);
-    }, FLY_MS);
+    }, NAVIGATE_MS);
     const cleanup = window.setTimeout(() => setFlight(null), FLY_MS + FADE_MS);
 
     return () => {

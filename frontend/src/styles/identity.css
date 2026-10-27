@@ -164,9 +164,9 @@
   .mb-welcome h1 { font-size: clamp(36px,5vw,54px); }
   .mb-loading-line { width: 80px; height: 3px; border-radius: 99px; overflow: hidden; background: var(--primary-soft); }
   .mb-loading-line::after { content: ''; display: block; width: 40%; height: 100%; background: var(--primary); animation: mb-loading-sweep 1.4s ease-in-out infinite; }
-  .mb-page { animation: mb-content-reveal .38s var(--ease-out) both; }
-  .mb-veil-life { animation-duration: .4s; }
-  .mb-stagger > *, .mb-in { animation-name: mb-content-reveal; animation-duration: .45s; animation-delay: min(calc(var(--i,0) * 35ms), 180ms); }
+  .mb-page { animation: mb-content-reveal .18s var(--ease-out) both; }
+  .mb-veil-life { animation-duration: .18s; }
+  .mb-stagger > *, .mb-in { animation-name: mb-content-reveal; animation-duration: .22s; animation-delay: min(calc(var(--i,0) * 12ms), 60ms); }
   @media (min-width: 1280px) { .mb-screen { padding: 48px 52px 64px; } .mb-screen--narrow { padding-inline: 44px; } }
   @media (max-width: 767px) {
     .mb-screen { padding: 28px 20px 40px; }
