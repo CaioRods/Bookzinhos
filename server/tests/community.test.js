@@ -96,7 +96,9 @@ test("community permissions, gallery isolation, threads, reactions, reposts and 
     .data;
   assert.equal(post.images.length, 2);
   assert.equal(post.book.title, "First");
-  assert.deepEqual((await request("/community/posts?bookId=one")).data, []);
+  const readerGallery = (await request("/community/posts?bookId=one")).data;
+  assert.equal(readerGallery.length, 1);
+  assert.equal(readerGallery[0].id, post.id);
   const gallery = await request(
     "/community/posts",
     "POST",
@@ -104,7 +106,9 @@ test("community permissions, gallery isolation, threads, reactions, reposts and 
     "Admin",
   );
   assert.equal(gallery.status, 201);
-  assert.equal((await request("/community/posts?bookId=one")).data.length, 1);
+  const fullGallery = (await request("/community/posts?bookId=one")).data;
+  assert.equal(fullGallery.length, 2);
+  assert.equal(fullGallery[0].id, gallery.data.id);
   const comment = (
     await request("/community/posts/" + post.id + "/comments", "POST", {
       content: "Comment",

@@ -27,9 +27,6 @@
     white-space: nowrap;
     text-overflow: ellipsis;
   }
-  .mb-sidebar-account {
-    display: none;
-  }
   .mb-book-personalized {
     background: var(--background);
     overflow: hidden;

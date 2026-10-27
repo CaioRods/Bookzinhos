@@ -177,7 +177,7 @@ module.exports = function ({
       let rows;
       if (req.query.bookId)
         rows = await db.query(
-          sql`SELECT * FROM community_posts WHERE book_id = ${String(req.query.bookId)} AND is_gallery = 1 AND created_at < ${before} ORDER BY created_at DESC LIMIT 100`,
+          sql`SELECT * FROM community_posts WHERE book_id = ${String(req.query.bookId)} AND images <> '[]' AND created_at < ${before} ORDER BY is_gallery DESC, created_at DESC LIMIT 100`,
         );
       else if (req.query.scope === "following")
         rows = !me
