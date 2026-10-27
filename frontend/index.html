@@ -9,19 +9,17 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover"
     />
-    <meta name="theme-color" content="#f6f4ef" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#14150f" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f8f7f4" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#191817" media="(prefers-color-scheme: dark)" />
     <meta name="description" content="myBooks — a rede social de leitura: leia, avalie, comente e descubra o que a comunidade está lendo." />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="myBooks" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2" />
     <link rel="manifest" href="/manifest.json" />
-    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
-    <link rel="alternate icon" type="image/png" href="/favicon-64.png" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="icon" type="image/svg+xml" href="/logo.svg?v=2" />
+    <link rel="alternate icon" type="image/png" href="/favicon-64.png?v=2" />
     <title>myBooks</title>
     <script>
       // Reforço ao viewport: no iPhone instalado como app o Safari ignora
@@ -50,12 +48,12 @@
         margin: 0;
         min-height: 100%;
         overscroll-behavior-y: none;
-        background-color: var(--background, #f6f4ef);
+        background-color: var(--background, #f8f7f4);
         /* Sem toque-duplo para dar zoom: mantém a página em 100%. */
         touch-action: manipulation;
       }
       @media (prefers-color-scheme: dark) {
-        html, body { background-color: var(--background, #14150f); }
+        html, body { background-color: var(--background, #191817); }
       }
 
       /* ── Esqueleto de arranque ────────────────────────────────────────────

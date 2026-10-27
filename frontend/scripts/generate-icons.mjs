@@ -8,7 +8,7 @@
  */
 
 import { deflateSync } from "node:zlib";
-import { writeFileSync, mkdirSync } from "node:fs";
+import { writeFileSync, mkdirSync, copyFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -66,95 +66,26 @@ function roundRect(x, y, w, h, r, rotation = 0, cx = 0, cy = 0) {
 
 function drawLogo(size) {
   const W = size * SS;
-  const buf = new Float32Array(W * W * 4);
-  const u = W / 512; // escala a partir do desenho de referência 512×512
-
-  const bgStops = [
-    [0, hex("#5D8E68")],
-    [0.55, hex("#4B7A57")],
-    [1, hex("#2F4F39")],
-  ];
-
-  const paint = (test, color, alpha = 1) => {
-    for (let py = 0; py < W; py++) {
-      for (let px = 0; px < W; px++) {
-        if (!test(px, py)) continue;
-        const [r, g, b] = typeof color === "function" ? color(px, py) : color;
-        const i = (py * W + px) * 4;
-        const a = alpha;
-        buf[i] = buf[i] * (1 - a) + r * a;
-        buf[i + 1] = buf[i + 1] * (1 - a) + g * a;
-        buf[i + 2] = buf[i + 2] * (1 - a) + b * a;
-        buf[i + 3] = buf[i + 3] * (1 - a) + 255 * a;
-      }
-    }
-  };
-
-  // Fundo com gradiente na diagonal
-  paint(
-    roundRect(0, 0, W, W, 118 * u),
-    (px, py) => ramp(bgStops, (px / W + py / W) / 2)
-  );
-
-  // Brilho no topo, como o `mb-sheen` do SVG
-  paint(
-    (px, py) => py < 210 * u && px >= 0 && px < W,
-    () => [255, 255, 255],
-    0.0
-  );
-  for (let py = 0; py < 210 * u; py++) {
-    const a = 0.3 * (1 - py / (210 * u));
-    for (let px = 0; px < W; px++) {
-      const i = (py * W + px) * 4;
-      if (buf[i + 3] === 0) continue;
-      buf[i] = buf[i] * (1 - a) + 255 * a;
-      buf[i + 1] = buf[i + 1] * (1 - a) + 255 * a;
-      buf[i + 2] = buf[i + 2] * (1 - a) + 255 * a;
-    }
-  }
-
-  // Lombadas
-  const spine = (x, y, w, h, top, bottom, bandColor, bandY, rot = 0, cx = 0, cy = 0) => {
-    paint(
-      roundRect(x * u, y * u, w * u, h * u, 20 * u, rot, cx * u, cy * u),
-      (px, py) => {
-        const t = (py / u - y) / h;
-        return mix(hex(top), hex(bottom), Math.min(Math.max(t, 0), 1));
-      }
-    );
-    paint(
-      roundRect(x * u, bandY * u, w * u, 13 * u, 6.5 * u, rot, cx * u, cy * u),
-      hex(bandColor),
-      0.5
-    );
-  };
-
-  spine(126, 178, 62, 216, "#FBF6EA", "#EADFC8", "#2F4F39", 214);
-  spine(200, 146, 66, 248, "#F0BC63", "#D9922F", "#7A4E12", 186);
-  spine(298, 166, 64, 228, "#DC7A5E", "#B9503A", "#6E2A18", 204, (14 * Math.PI) / 180, 330, 394);
-
-  // Prateleira
-  paint(roundRect(104 * u, 396 * u, 304 * u, 20 * u, 10 * u), hex("#FBF6EA"), 0.95);
-  paint(roundRect(104 * u, 416 * u, 304 * u, 8 * u, 4 * u), hex("#12210F"), 0.22);
-
-  // Downsample para o tamanho final
+  const u = W / 512;
   const out = Buffer.alloc(size * size * 4);
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      let r = 0, g = 0, b = 0, a = 0;
-      for (let sy = 0; sy < SS; sy++) {
-        for (let sx = 0; sx < SS; sx++) {
-          const i = ((y * SS + sy) * W + (x * SS + sx)) * 4;
-          r += buf[i]; g += buf[i + 1]; b += buf[i + 2]; a += buf[i + 3];
-        }
-      }
-      const n = SS * SS;
-      const o = (y * size + x) * 4;
-      out[o] = Math.round(r / n);
-      out[o + 1] = Math.round(g / n);
-      out[o + 2] = Math.round(b / n);
-      out[o + 3] = Math.round(a / n);
+  const background = roundRect(0, 0, W, W, 116 * u);
+  // These are the same optical bounds as public/logo.svg.
+  const books = [
+    roundRect(132*u,162*u,48*u,204*u,13*u),
+    roundRect(202*u,126*u,48*u,240*u,13*u),
+    roundRect(326*u,154*u,48*u,212*u,13*u,-14*Math.PI/180,350*u,366*u),
+    roundRect(120*u,388*u,272*u,12*u,6*u),
+  ];
+  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+    let r=0,g=0,b=0,a=0;
+    for (let sy=0; sy<SS; sy++) for (let sx=0; sx<SS; sx++) {
+      const px=x*SS+sx+.5, py=y*SS+sy+.5;
+      if (!background(px,py)) continue;
+      const color = books.some(shape => shape(px,py)) ? hex('#fffaf2') : mix(hex('#c87552'),hex('#a54b2f'),Math.min(1,(px*.7+py)/(W*1.7)));
+      r+=color[0];g+=color[1];b+=color[2];a+=255;
     }
+    const i=(y*size+x)*4, n=SS*SS;
+    out[i]=Math.round(r/n);out[i+1]=Math.round(g/n);out[i+2]=Math.round(b/n);out[i+3]=Math.round(a/n);
   }
   return out;
 }
@@ -216,6 +147,7 @@ function encodePng(size, rgba) {
 mkdirSync(OUT_DIR, { recursive: true });
 
 for (const [name, size] of [
+  ["icon-1024.png", 1024],
   ["icon-512.png", 512],
   ["icon-192.png", 192],
   ["apple-touch-icon.png", 180],
@@ -224,4 +156,11 @@ for (const [name, size] of [
   const png = encodePng(size, drawLogo(size));
   writeFileSync(join(OUT_DIR, name), png);
   console.log(`✓ ${name} (${size}×${size}, ${(png.length / 1024).toFixed(1)} kB)`);
+}
+
+// Expo uses the same master mark as the web application.
+const NATIVE_ASSETS = join(OUT_DIR, "..", "..", "assets");
+mkdirSync(NATIVE_ASSETS, { recursive: true });
+for (const [source, destination] of [["icon-1024.png", "icon.png"], ["icon-1024.png", "adaptive-icon.png"], ["icon-512.png", "splash.png"], ["favicon-64.png", "favicon.png"]]) {
+  copyFileSync(join(OUT_DIR, source), join(NATIVE_ASSETS, destination));
 }

@@ -69,7 +69,7 @@ function AppContent() {
       />
       {isLoading && (
         <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="#B6A6EE" />
+          <ActivityIndicator size="large" color="#a94f32" />
           <Text style={styles.loadingText}>Abrindo o myBooks... 🐾</Text>
         </View>
       )}
@@ -86,25 +86,25 @@ export default function AppWebView() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#ffffff" },
+  root: { flex: 1, backgroundColor: "#f8f7f4" },
   webview: { flex: 1 },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#ffffff",
+    backgroundColor: "#f8f7f4",
     gap: 15,
   },
-  loadingText: { color: "#433422", fontWeight: "800", fontSize: 16 },
+  loadingText: { color: "#282623", fontWeight: "800", fontSize: 16 },
   centered: {
     flex: 1,
-    backgroundColor: "#ffffff",
+    backgroundColor: "#f8f7f4",
     padding: 30,
     alignItems: "center",
     justifyContent: "center",
     gap: 15,
   },
-  title: { fontSize: 22, fontBold: "900", color: "#433422", textAlign: "center" },
+  title: { fontSize: 22, fontBold: "900", color: "#282623", textAlign: "center" },
   body: { color: "#706558", textAlign: "center", lineHeight: 24, fontSize: 16 },
   button: {
     marginTop: 20,

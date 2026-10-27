@@ -23,7 +23,7 @@ const FILTERS: { key: Filter; label: string }[] = [
 ];
 
 const SORTS: { key: Sort; label: string }[] = [
-  { key: "recentes", label: "Adicionados recentemente" },
+  { key: "recentes", label: "Mais recentes" },
   { key: "populares", label: "Mais lidos" },
   { key: "nota", label: "Melhor avaliados" },
   { key: "titulo", label: "Título (A–Z)" },
@@ -159,11 +159,11 @@ export function Library() {
     );
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-5">
+    <div className="mb-screen mb-screen--wide mb-library space-y-5">
       <PageHeader
         title="Sua"
-        highlight="biblioteca"
-        subtitle={isLoading ? "Carregando o acervo…" : `${books.length} livros no acervo da comunidade`}
+        highlight="biblioteca."
+        subtitle={isLoading ? "Carregando o acervo…" : `${books.length} histórias. Sua próxima descoberta está aqui.`}
         icon={<ShelfIcon className="w-5 h-5" />}
         gradient="linear-gradient(140deg,#4b7a57,#2f4f39)"
         action={
@@ -174,7 +174,7 @@ export function Library() {
       />
 
       {/* ── Busca e visualização ───────────────────────────────────────────── */}
-      <div className="flex gap-2 mb-in" style={{ "--i": 1 } as React.CSSProperties}>
+      <div className="mb-library-search flex gap-2 mb-in" style={{ "--i": 1 } as React.CSSProperties}>
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-3)] pointer-events-none" />
           <input
@@ -187,7 +187,7 @@ export function Library() {
             className="mb-input pl-9"
           />
         </div>
-        <div className="mb-glass-soft flex gap-1 p-1 rounded-xl">
+        <div className="mb-view-switch flex gap-1 p-1 rounded-xl">
           {VIEWS.map(({ key, label, icon: Icon }) => (
             <button
               key={key}
@@ -206,11 +206,12 @@ export function Library() {
       {/* ── Filtros ────────────────────────────────────────────────────────── */}
       {/* Quebra em linhas em vez de rolar na horizontal: no celular, o rolo
           cortava o primeiro e o último filtro. Assim todos aparecem inteiros. */}
-      <div className="flex flex-wrap gap-1.5 mb-in" style={{ "--i": 2 } as React.CSSProperties}>
+      <div className="mb-library-tabs flex gap-1.5 mb-in" style={{ "--i": 2 } as React.CSSProperties}>
         {FILTERS.map((f) => (
           <button
             key={f.key}
             onClick={() => changeFilter(f.key)}
+            aria-pressed={filter === f.key}
             className={`mb-btn mb-btn-sm ${filter === f.key ? "mb-btn-primary" : "mb-btn-outline"}`}
           >
             {f.label}
@@ -221,7 +222,7 @@ export function Library() {
         ))}
       </div>
 
-      <div className="flex flex-wrap gap-2 items-center mb-in" style={{ "--i": 3 } as React.CSSProperties}>
+      <div className="mb-library-tools flex flex-wrap gap-2 items-center mb-in" style={{ "--i": 3 } as React.CSSProperties}>
         <SlidersHorizontal className="w-4 h-4 text-[var(--text-3)]" />
         <select
           value={genre}
@@ -247,6 +248,8 @@ export function Library() {
           {view === "shelf" ? "Guardados na estante · " : ""}{visible.length} {visible.length === 1 ? "livro" : "livros"}
         </span>
       </div>
+
+      <div className="mb-collection-heading"><h2>{view === "shelf" ? "Sua estante, de perto" : "Explore a coleção"}</h2><span>{view === "shelf" ? "Toque em uma lombada para abrir" : "Histórias que merecem um lugar na sua estante"}</span></div>
 
       {/* ── Resultados ─────────────────────────────────────────────────────── */}
       {isLoading ? (

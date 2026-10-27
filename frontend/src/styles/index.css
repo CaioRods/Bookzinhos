@@ -2,6 +2,7 @@
 @import './tailwind.css';
 @import './theme.css';
 @import './refinements.css';
+@import './identity.css';
 
 @layer base {
   * {

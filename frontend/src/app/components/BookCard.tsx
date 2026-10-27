@@ -7,7 +7,7 @@ import { EditBookModal } from "./EditBookModal";
 import { deleteBook, saveProgress } from "../lib/api";
 import { useOpenBook } from "../lib/readerChoice";
 import { ConfirmDialog, toast } from "./Ui";
-import { Book3D, EASE_OUT, type BookDisplay } from "./Book3D";
+import { Book3D, type BookDisplay } from "./Book3D";
 import { useBookFlight, useFlyingBookId } from "./BookTransition";
 import type { Book, ReadingProgress } from "../lib/types";
 
@@ -150,6 +150,12 @@ function BookCardImpl({
   };
 
   const pressHandlers = {
+    role: "button" as const,
+    tabIndex: 0,
+    "aria-label": `Ver ${book.title}${book.author ? `, de ${book.author}` : ""}`,
+    onKeyDown: (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openDetails(); }
+    },
     onMouseDown: startPress,
     onMouseUp: endPress,
     onMouseLeave: cancelPress,
@@ -242,7 +248,7 @@ function BookCardImpl({
       <div
         ref={rootRef}
         {...pressHandlers}
-        className="cursor-pointer select-none"
+        className="mb-book-tile cursor-pointer select-none"
         style={{ visibility: flyingId === book.id ? "hidden" : undefined }}
       >
         <Book3D
@@ -256,19 +262,11 @@ function BookCardImpl({
 
         {/* A legenda some no modo estante: o nome já está na lombada. */}
         <div
-          className="overflow-hidden"
-          style={{
-            // A legenda também encolhe: senão ela seguraria a largura do item
-            // e as lombadas não encostariam umas nas outras na estante.
-            width: isSpine ? 0 : width,
-            maxHeight: isSpine ? 0 : 64,
-            opacity: isSpine ? 0 : 1,
-            marginTop: isSpine ? 0 : 12,
-            transition: `width .8s ${EASE_OUT}, max-height .6s ${EASE_OUT}, opacity .35s ease, margin-top .6s ${EASE_OUT}`,
-            transitionDelay: `${index * 45}ms`,
-          }}
+          className="mb-book-caption overflow-hidden"
+          style={{ display: isSpine ? "none" : undefined, width, marginTop: 12 }}
         >
           <h4 className="text-[13px] font-semibold text-foreground line-clamp-2 leading-snug">{book.title}</h4>
+          <p className="mb-book-author">{book.author || "Autor desconhecido"}</p>
           {/* Uma linha só, que trunca inteira: em cartões estreitos a nota e a
               contagem de leitores brigavam por espaço e quebravam no meio. */}
           <p className="flex items-center gap-1 mt-1 text-[11.5px] whitespace-nowrap overflow-hidden">

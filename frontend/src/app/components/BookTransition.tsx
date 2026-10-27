@@ -33,8 +33,8 @@ export function useFlyingBookId(): string | null {
   return useContext(BookFlightContext).flyingId;
 }
 
-const FLY_MS = 700;
-const FADE_MS = 300;
+const FLY_MS = 480;
+const FADE_MS = 180;
 
 /**
  * Animação de abertura de um livro.
@@ -72,7 +72,7 @@ export function BookTransitionProvider({ children }: { children: ReactNode }) {
 
   // Quem prefere menos movimento vai direto para a página.
   const reducedMotion =
-    typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    typeof window !== "undefined" && (window.matchMedia("(prefers-reduced-motion: reduce)").matches || document.documentElement.dataset.reduceMotion === "true");
 
   const value = useMemo<FlightContext>(
     () => ({ launch: reducedMotion ? null : launch, flyingId: flight?.book.id ?? null }),

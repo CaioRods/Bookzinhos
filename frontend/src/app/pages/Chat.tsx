@@ -76,8 +76,8 @@ export function Chat() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-background">
-      <header className="flex-shrink-0 h-16 px-3 flex items-center justify-between border-b border-[var(--line)] bg-[var(--surface)]/95 backdrop-blur-xl">
+    <div className="mb-chat flex flex-col h-screen bg-background">
+      <header className="mb-chat-header flex-shrink-0 h-16 px-3 flex items-center justify-between border-b border-[var(--line)] bg-[var(--surface)]/95 backdrop-blur-xl">
         <div className="flex items-center gap-2 min-w-0">
           <button onClick={() => navigate(-1)} aria-label="Voltar" className="mb-btn mb-btn-ghost mb-btn-icon">
             <ArrowLeft className="w-5 h-5" />
@@ -99,7 +99,7 @@ export function Chat() {
         </button>
       </header>
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-5 space-y-2.5">
+      <div ref={scrollRef} className="mb-chat-messages flex-1 overflow-y-auto px-4 py-5 space-y-2.5">
         {messages.length === 0 && (
           <p className="text-center text-[13px] text-[var(--text-3)] py-10">
             Nenhuma mensagem ainda. Que tal indicar um livro?

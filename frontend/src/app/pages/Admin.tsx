@@ -36,7 +36,7 @@ export function Admin() {
   if (!isAdminUser()) return <Navigate to="/" replace />;
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+    <div className="mb-screen mb-screen--wide mb-admin">
       <div className="mb-6">
         <span className="mb-chip mb-chip-primary mb-3">🐶 Conta administradora</span>
         <PageHeader
@@ -53,6 +53,7 @@ export function Admin() {
           <button
             key={key}
             onClick={() => setTab(key)}
+            aria-pressed={tab === key}
             className={`mb-btn mb-btn-sm ${tab === key ? "mb-btn-soft" : "mb-btn-ghost"}`}
           >
             <Icon className="w-4 h-4" /> {label}
@@ -89,7 +90,7 @@ function OverviewTab({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+      <div className="mb-admin-stats grid grid-cols-2 sm:grid-cols-3 gap-3">
         {cards.map((c) => (
           <button
             key={c.label}

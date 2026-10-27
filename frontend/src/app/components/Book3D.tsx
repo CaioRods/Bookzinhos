@@ -1,5 +1,5 @@
 import { useEffect, useState, memo } from "react";
-import { getCoverGradient, getFullUrl } from "../lib/types";
+import { getFullUrl } from "../lib/types";
 import { fallbackSpineColor, getSpineColor, type SpineColor } from "../lib/coverColor";
 import type { Book, ReadingProgress } from "../lib/types";
 
@@ -17,11 +17,11 @@ export type BookDisplay = "cover" | "spine";
  */
 export function spineWidth(book: Book): number {
   const pages = book.pageCount || 0;
-  if (pages > 0) return Math.round(Math.min(Math.max(20 + pages / 22, 24), 52));
+  if (pages > 0) return Math.round(Math.min(Math.max(42 + pages / 75, 44), 54));
   // Sem contagem de páginas, uma variação estável derivada do id.
   let hash = 0;
   for (let i = 0; i < book.id.length; i++) hash = (hash * 31 + book.id.charCodeAt(i)) % 1000;
-  return 26 + (hash % 20);
+  return 44 + (hash % 8);
 }
 
 /** Busca a cor dominante da capa, com reserva imediata enquanto carrega. */
@@ -77,7 +77,7 @@ function Book3DImpl({ book, width, display = "cover", index = 0, progress, rank,
   const coverUrl = getFullUrl(book.coverImagePath);
   const [hovered, setHovered] = useState(false);
 
-  const height = Math.round(width * 1.5);
+  const height = display === "spine" && !pose ? Math.max(220, Math.round(width * 1.5)) : Math.round(width * 1.5);
   const depth = spineWidth(book);
   const isSpine = display === "spine";
 
@@ -95,6 +95,16 @@ function Book3DImpl({ book, width, display = "cover", index = 0, progress, rank,
     if (e.pointerType === "mouse") setHovered(true);
   };
 
+  // A dedicated, readable spine avoids compressed 3D text and overlapping authors.
+  if (isSpine && !pose) {
+    return <div className="mb-book-scene mb-shelf-spine" style={{ width: depth, height, background: `linear-gradient(100deg, ${color.shade}, ${color.base} 18%, ${color.base} 75%, ${color.shade})`, color: color.ink }} title={`${book.title}${book.author ? ` — ${book.author}` : ""}`}>
+      <span className="mb-spine-rule" />
+      <span className="mb-spine-title"><span>{book.title}</span></span>
+      <span className="mb-spine-number">{String(index + 1).padStart(2, "0")}</span>
+      {!!progress && progress.progress > 0 && <span className="absolute inset-x-0 bottom-0 h-[3px] bg-black/20"><span className="block h-full bg-current opacity-70" style={{ width: `${Math.min(100, Math.max(0, progress.progress))}%` }} /></span>}
+    </div>;
+  }
+
   return (
     <div
       className="mb-book-scene relative select-none"
@@ -104,8 +114,6 @@ function Book3DImpl({ book, width, display = "cover", index = 0, progress, rank,
         width: slotWidth,
         height,
         zIndex: active ? 30 : undefined,
-        transition: `width 0.8s ${EASE_OUT}`,
-        transitionDelay: delay,
       }}
     >
       <div
@@ -143,7 +151,7 @@ function Book3DImpl({ book, width, display = "cover", index = 0, progress, rank,
           ) : (
             /* Sem imagem, desenhamos uma capa: duotom da paleta, filete no
                topo e o título tipografado — melhor do que um bloco vazio. */
-            <div className={`w-full h-full bg-gradient-to-br ${getCoverGradient(book)} relative flex flex-col justify-between`}>
+            <div className="mb-generated-cover w-full h-full relative flex flex-col justify-between" style={{ background: `linear-gradient(150deg, ${color.base}, ${color.shade})` }}>
               <div className="absolute inset-0 opacity-25 mix-blend-overlay"
                    style={{ backgroundImage: "radial-gradient(120% 90% at 20% 0%, #fff, transparent 60%)" }} />
               <div className="relative px-2.5 pt-3">

@@ -1,3 +1,4 @@
+import { BookDiscoveryPost } from "../components/BookDiscoveryPost";
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import {
@@ -77,7 +78,7 @@ export function Social() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
+    <div className="mb-screen mb-screen--social mb-social space-y-6">
       <PageHeader
         title="A"
         highlight="comunidade"
@@ -242,21 +243,7 @@ function FeedCard({ item }: { item: FeedItem }) {
     </Link>
   );
 
-  if (item.type === "new-book") {
-    return (
-      <article className="mb-card mb-card-hover p-4 flex items-center gap-3">
-        {thumb}
-        <div className="min-w-0 flex-1">
-          <p className="mb-eyebrow flex items-center gap-1.5"><BookOpen className="w-3.5 h-3.5" /> Novo na estante</p>
-          <Link to={`/book/${item.book!.id}`} className="block text-[14px] font-semibold text-foreground hover:text-[var(--primary)] transition-colors truncate mt-1">
-            {item.book!.title}
-          </Link>
-          <p className="text-[12px] text-[var(--text-3)] truncate">{item.book!.author}</p>
-        </div>
-        <span className="text-[11.5px] text-[var(--text-3)] flex-shrink-0">{timeAgo(item.createdAt)}</span>
-      </article>
-    );
-  }
+  if (item.type === "new-book") return <BookDiscoveryPost item={item} />;
 
   if (item.type === "finished") {
     return (
@@ -341,9 +328,9 @@ function FeedCard({ item }: { item: FeedItem }) {
       {/* A capa do livro entra grande, como a foto de um post */}
       {item.book && (
         <Link to={`/book/${item.book.id}`} className="block mt-3.5 rounded-[14px] overflow-hidden bg-[var(--surface-2)]">
-          <div className="aspect-[16/10] flex items-center justify-center overflow-hidden">
+          <div className="mb-review-book-stage aspect-[16/10] flex items-center justify-center overflow-hidden">
             {cover ? (
-              <img src={cover} alt="" loading="lazy" className="w-full h-full object-cover" />
+              <img src={cover} alt="" loading="lazy" className="mb-feed-review-cover w-full h-full object-contain" />
             ) : (
               <div className={`w-full h-full bg-gradient-to-br ${getCoverGradient({ id: item.book.id, coverColor: item.book.coverColor })}`} />
             )}

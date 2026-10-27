@@ -143,15 +143,15 @@ export function Home() {
   };
 
   return (
-    <div className="mb-home max-w-[1440px] mx-auto px-5 sm:px-8 lg:px-12 py-7 sm:py-10">
+    <div className="mb-screen mb-screen--wide mb-home">
       <div className="2xl:grid 2xl:grid-cols-[minmax(0,1fr)_288px] 2xl:gap-10 2xl:items-start">
         {/* ── Coluna principal ─────────────────────────────────────────────── */}
         <div className="min-w-0 space-y-10 sm:space-y-12">
           {/* Saudação + busca */}
           <header className="mb-home-header">
             <div>
-              <p className="mb-eyebrow">SEU MOMENTO DE LEITURA</p>
-              <h1 className="text-[34px] sm:text-[44px] font-bold tracking-[-0.045em] text-foreground leading-[1.12] mt-2">
+              <p className="mb-eyebrow">SUA DOSE DIÁRIA DE DESCOBERTAS</p>
+              <h1 className="mb-display text-[34px] sm:text-[44px] font-bold tracking-[-0.045em] text-foreground leading-[1.12] mt-2">
                 {greeting}, {userName}.
               </h1>
               <p className="text-[15px] text-[var(--text-2)] mt-3 leading-relaxed">
@@ -427,7 +427,7 @@ function HeroFeature({
   return (
     <section className="mb-feature" aria-label="Livros em destaque" aria-roledescription="carrossel">
       <div className="mb-feature-copy">
-        <span className="mb-eyebrow text-[var(--primary)]">ESCOLHIDO PARA SUA ESTANTE</span>
+        <span className="mb-eyebrow text-[var(--primary)]">ENTRE PÁGINAS E POSSIBILIDADES</span>
         <h2 className="mb-feature-title">{book.title}</h2>
         <p className="text-[14px] sm:text-[16px] text-[var(--text-2)] mt-3">{book.author || "Autor desconhecido"}</p>
         <p className="hidden sm:block text-[14px] leading-relaxed text-[var(--text-2)] mt-4 line-clamp-2 max-w-[38ch]">
@@ -606,8 +606,8 @@ function PostCard({ post, books, onLike }: { post: HomePost; books: Book[]; onLi
   const image = getFullUrl(post.imageUrl);
 
   return (
-    <article className="mb-card overflow-hidden">
-      {image && <img src={image} alt="" loading="lazy" decoding="async" className="w-full max-h-72 object-cover" />}
+    <article className="mb-editorial-post mb-card overflow-hidden">
+      {image && <img src={image} alt="" loading="lazy" decoding="async" className="w-full max-h-96 object-contain bg-[var(--surface-2)]" />}
       <div className="p-4">
         <div className="flex items-center gap-2.5">
           <Avatar emoji={post.avatar} size="xs" username={post.author} />

@@ -88,10 +88,10 @@ export function MyBooks() {
   const heroProgress = heroBook ? progressOf.get(heroBook.id) : undefined;
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
+    <div className="mb-screen mb-screen--wide mb-mybooks space-y-6">
       <PageHeader
-        title="Minha"
-        highlight="estante"
+        title="Histórias que"
+        highlight="ficam com você."
         subtitle="Suas leituras, favoritos e o que vem a seguir."
         icon={<Heart className="w-5 h-5" />}
         gradient="linear-gradient(140deg,#e0a33c,#c07f1f)"
@@ -106,7 +106,7 @@ export function MyBooks() {
           tabIndex={0}
           onClick={() => openBook(heroBook)}
           onKeyDown={(e) => e.key === "Enter" && openBook(heroBook)}
-          className="mb-card mb-card-hover cursor-pointer p-5 flex gap-5"
+          className="mb-reading-spotlight mb-card mb-card-hover cursor-pointer p-5 flex gap-5"
         >
           <div className="w-20 aspect-[2/3] rounded-lg overflow-hidden shadow-[var(--shadow-book)] flex-shrink-0 bg-[var(--surface-2)]">
             {heroBook.coverImagePath ? (

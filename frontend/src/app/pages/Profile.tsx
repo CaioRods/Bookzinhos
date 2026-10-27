@@ -107,7 +107,7 @@ export function Profile() {
 
   if (isLoading) {
     return (
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-5">
+      <div className="mb-screen mb-screen--narrow mb-profile space-y-5">
         <Skeleton className="h-40 w-full rounded-2xl" />
         <Skeleton className="h-24 w-full rounded-xl" />
       </div>
@@ -116,7 +116,7 @@ export function Profile() {
 
   if (!profile) {
     return (
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
+      <div className="mb-screen mb-screen--narrow mb-profile">
         <EmptyState emoji="👤" title="Perfil indisponível" description="Não conseguimos carregar seus dados. Tente entrar novamente." />
       </div>
     );
@@ -130,9 +130,9 @@ export function Profile() {
   ];
 
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
+    <div className="mb-screen mb-screen--narrow mb-profile space-y-6">
       {/* ── Cartão do perfil ───────────────────────────────────────────────── */}
-      <header className="mb-card p-5 sm:p-6">
+      <header className="mb-profile-hero mb-card p-5 sm:p-6"><p className="mb-eyebrow mb-6">SEU RETRATO EM HISTÓRIAS</p>
         <div className="flex items-start gap-4">
           <Avatar emoji={profile.avatar} size="xl" />
           <div className="flex-1 min-w-0 pt-1">
@@ -155,7 +155,7 @@ export function Profile() {
           </div>
         </div>
 
-        <div className="grid grid-cols-4 gap-2 mt-5">
+        <div className="mb-profile-stats grid grid-cols-4 gap-2 mt-5">
           {statCards.map((s) => (
             <div key={s.label} className="text-center py-2.5 rounded-xl bg-[var(--surface-2)]">
               <div className="text-[18px] font-bold text-foreground leading-none">{s.value}</div>

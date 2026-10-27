@@ -10,15 +10,15 @@
   --font-size: 16px;
 
   /* Superfícies neutras para destacar o conteúdo. */
-  --background: #f5f5f7;
-  --background-tint: #eeeef0;
+  --background: #f8f7f4;
+  --background-tint: #f0eee9;
   --surface: #ffffff;
-  --surface-2: #f0f0f2;
-  --surface-3: #e5e5ea;
+  --surface-2: #f2f0eb;
+  --surface-3: #e6e2da;
 
-  --foreground: #1d1d1f;
-  --text-2: #626267;
-  --text-3: #707077;
+  --foreground: #282623;
+  --text-2: #66625c;
+  --text-3: #78736c;
 
   --card: var(--surface);
   --card-foreground: var(--foreground);
@@ -26,17 +26,17 @@
   --popover-foreground: var(--foreground);
 
   /* Marca — verde floresta */
-  --primary: #286449;
-  --primary-hover: #20553d;
-  --primary-soft: rgba(40, 100, 73, 0.09);
+  --primary: #a94f32;
+  --primary-hover: #8e4028;
+  --primary-soft: rgba(169, 79, 50, 0.09);
   --primary-foreground: #ffffff;
-  --primary-deep: #174630;
+  --primary-deep: #733722;
 
-  --accent: #286449;
+  --accent: #a94f32;
   --accent-foreground: #ffffff;
-  --gold: #e0a33c;
+  --gold: #b98032;
   --like: #de5560;
-  --success: #4b7a57;
+  --success: #42745a;
 
   --secondary: var(--surface-2);
   --secondary-foreground: var(--foreground);
@@ -50,18 +50,18 @@
   --input: transparent;
   --input-background: var(--surface-2);
   --switch-background: #d3d0c5;
-  --ring: rgba(75, 122, 87, 0.2);
+  --ring: rgba(169, 79, 50, 0.19);
 
   --font-weight-medium: 500;
   --font-weight-normal: 400;
 
   /* Raios */
-  --radius: 1.25rem;
+  --radius: 1.375rem;
   --radius-pill: 999px;
 
   /* Sombras — discretas, de papel sobre papel */
   /* Esqueleto de carregamento: bloco solido + varredura clara por cima. */
-  --skeleton: #d2cdc0;
+  --skeleton: #e3dfd7;
   --skeleton-sheen: rgba(255, 255, 255, 0.78);
 
   --shadow-1: 0 1px 2px rgba(28, 28, 26, 0.04);
@@ -84,8 +84,8 @@
   --ease-flip: cubic-bezier(0.62, 0.03, 0.32, 1);
 
   /* Areia do destaque da semana */
-  --sand-1: #f0e9dc;
-  --sand-2: #e6dcc9;
+  --sand-1: #f0e5d7;
+  --sand-2: #e7d5be;
 
   /* Pastéis das capas geradas */
   --peach: #ffd9c9;
@@ -102,28 +102,28 @@
 }
 
 .dark {
-  --background: #151517;
-  --background-tint: #1c1c1e;
-  --surface: #202023;
-  --surface-2: #2b2b2e;
-  --surface-3: #38383c;
+  --background: #191817;
+  --background-tint: #1f1e1c;
+  --surface: #252422;
+  --surface-2: #302e2a;
+  --surface-3: #403c36;
 
-  --foreground: #f5f5f7;
-  --text-2: #bdbdc4;
-  --text-3: #a1a1aa;
+  --foreground: #f6f2e9;
+  --text-2: #c5bfb4;
+  --text-3: #aaa295;
 
   --card: var(--surface);
   --card-foreground: var(--foreground);
   --popover: var(--surface);
   --popover-foreground: var(--foreground);
 
-  --primary: #7fb08c;
-  --primary-hover: #6c9d79;
-  --primary-soft: rgba(127, 176, 140, 0.16);
-  --primary-foreground: #10210f;
-  --primary-deep: #b6d6bd;
+  --primary: #e4a282;
+  --primary-hover: #edb496;
+  --primary-soft: rgba(228, 162, 130, 0.12);
+  --primary-foreground: #2d1c14;
+  --primary-deep: #efc3aa;
 
-  --accent: #7fb08c;
+  --accent: #e4a282;
   --gold: #e5b45f;
   --like: #ef7b84;
   --success: #7fb08c;
@@ -137,9 +137,9 @@
   --line: rgba(255, 255, 255, 0.08);
   --input-background: var(--surface-2);
   --switch-background: #3d4334;
-  --ring: rgba(127, 176, 140, 0.28);
+  --ring: rgba(228, 162, 130, 0.24);
 
-  --skeleton: #333a2c;
+  --skeleton: #39352f;
   --skeleton-sheen: rgba(255, 255, 255, 0.085);
 
   --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
@@ -148,8 +148,8 @@
   --shadow-float: 0 4px 14px rgba(0, 0, 0, 0.5), 0 20px 44px -12px rgba(0, 0, 0, 0.7);
   --shadow-book: 0 1px 2px rgba(0, 0, 0, 0.55), 0 10px 24px -8px rgba(0, 0, 0, 0.7);
 
-  --glass-bg: rgba(32, 32, 35, 0.78);
-  --glass-bg-strong: rgba(32, 32, 35, 0.94);
+  --glass-bg: rgba(37, 36, 34, .82);
+  --glass-bg-strong: rgba(37, 36, 34, .95);
   --glass-border: rgba(255, 255, 255, 0.09);
   --glass-sheen: rgba(255, 255, 255, 0.12);
   --glass-sheen-low: rgba(255, 255, 255, 0.04);

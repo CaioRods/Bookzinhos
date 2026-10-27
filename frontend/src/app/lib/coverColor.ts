@@ -21,7 +21,7 @@ export interface SpineColor {
 
 const memory = new Map<string, SpineColor>();
 const pending = new Map<string, Promise<SpineColor>>();
-const STORAGE_KEY = "mybooks-spine-colors-v2";
+const STORAGE_KEY = "mybooks-spine-colors-v3";
 
 /** Paleta de reserva para livros sem imagem de capa, por gradiente cadastrado. */
 const FALLBACK_HUES: Record<string, number> = {
@@ -72,7 +72,7 @@ export function fallbackSpineColor(coverColor?: string | null, seed = ""): Spine
     for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) % 360;
     hue = hash;
   }
-  return fromHsl(hue, 58, 42);
+  return fromHsl(hue, 26, 39);
 }
 
 function rgbToHsl(r: number, g: number, b: number): [number, number, number] {

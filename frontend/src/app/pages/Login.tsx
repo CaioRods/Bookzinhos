@@ -1,3 +1,4 @@
+import { Brand } from "../components/Brand";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, ArrowRight, ArrowLeft, Check, X, Eye, EyeOff, ShieldAlert } from "lucide-react";
 import {
@@ -37,33 +38,27 @@ export function Login({ onLoginSuccess, onGuest }: LoginProps) {
   }, []);
 
   return (
-    <div className="relative min-h-screen w-full overflow-hidden bg-[#efe9dd]">
-      {/* Fundo fotográfico */}
-      <div className="absolute inset-0 bg-cover bg-center hidden sm:block" style={{ backgroundImage: "url(/login-bg.png)" }} />
-      <div className="absolute inset-0 bg-cover bg-center sm:hidden" style={{ backgroundImage: "url(/login-bg-mobile.png)" }} />
-
-      {/* Filtros de imersão: tom da marca, vinheta e brilho central. */}
-      <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(20,32,18,0.58) 0%, transparent 30%, transparent 52%, rgba(11,16,8,0.66) 100%)" }} />
-      <div className="absolute inset-0" style={{ background: "radial-gradient(118% 86% at 50% 47%, transparent 18%, rgba(13,19,10,0.5) 60%, rgba(8,12,6,0.82) 100%)" }} />
-      <div className="absolute inset-0" style={{ background: "radial-gradient(44% 40% at 50% 49%, rgba(255,249,236,0.2) 0%, transparent 70%)" }} />
-
-      <div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-4 py-8">
-        {/* O desfoque acrílico vai inline: o minificador do build remove o
-            `backdrop-filter` padrão da classe e o Chrome ignora só o `-webkit-`,
-            então em produção o vidro perdia o efeito. Inline não é minificado. */}
-        <div
-          className="mb-auth-card w-full max-w-sm p-6 sm:p-7 animate-scale-in"
-          style={{ backdropFilter: "blur(30px) saturate(185%)", WebkitBackdropFilter: "blur(30px) saturate(185%)" }}
-        >
-          <AuthFlow config={config} onLoginSuccess={onLoginSuccess} onGuest={onGuest} />
-        </div>
-        <button
-          onClick={onGuest}
-          className="relative z-10 mt-4 text-[12.5px] font-semibold text-white/90 hover:text-white text-center tracking-wide drop-shadow-[0_1px_3px_rgba(0,0,0,0.45)] transition-colors"
-        >
-          Continuar sem conta →
-        </button>
-      </div>
+    <div className="mb-auth-shell">
+      <header className="mb-auth-top"><a href="/" aria-label="myBooks, início"><Brand /></a><span>SUA BIBLIOTECA, EM BOA COMPANHIA.</span></header>
+      <main className="mb-auth-layout">
+        <section className="mb-auth-story" aria-label="Bem-vindo ao myBooks">
+          <p className="mb-eyebrow">UM LUGAR PARA AS SUAS HISTÓRIAS</p>
+          <h1>Leia.<br />Descubra.<br /><em>Fique mais um capítulo.</em></h1>
+          <p className="mb-auth-description">Os livros que você ama. As histórias que ainda vai descobrir. Tudo em um lugar só seu.</p>
+          <div className="mb-auth-art" aria-hidden="true">
+            <div className="mb-art-book mb-art-book--one"><span>entre<br />páginas</span><small>uma nova perspectiva</small></div>
+            <div className="mb-art-book mb-art-book--two"><span>o tempo<br />de ler.</span><small>uma pausa para você</small></div>
+            <div className="mb-art-book mb-art-book--three"><span>mais um<br />capítulo</span><small>e tantas possibilidades</small></div>
+            <div className="mb-art-shelf" />
+          </div>
+          <p className="mb-auth-note">Uma boa história fica ainda melhor quando compartilhada.</p>
+        </section>
+        <section className="mb-auth-panel" aria-label="Acesse sua biblioteca">
+          <div className="mb-auth-card"><AuthFlow config={config} onLoginSuccess={onLoginSuccess} onGuest={onGuest} /></div>
+          <button onClick={onGuest} className="mb-auth-visit">Explorar a biblioteca sem conta <ArrowRight className="w-4 h-4" /></button>
+          <p className="mb-auth-footnote">Feito para quem encontra um mundo em cada livro.</p>
+        </section>
+      </main>
     </div>
   );
 }
@@ -251,8 +246,8 @@ function SignupWizard({ onDone, goLogin, goForgot }: { onDone: (u: string) => vo
       </div>
 
       <div>
-        <h2 className="text-[19px] font-bold text-[#1b2118]">Criar conta</h2>
-        <p className="text-[12.5px] text-[#3a442e]/70">Passo {step + 1} de {SIGNUP_STEPS.length} · {SIGNUP_STEPS[step]}</p>
+        <h2 className="text-[19px] font-bold text-[var(--foreground)]">Criar conta</h2>
+        <p className="text-[12.5px] text-[var(--text-2)]">Passo {step + 1} de {SIGNUP_STEPS.length} · {SIGNUP_STEPS[step]}</p>
       </div>
 
       {step === 0 && (
@@ -262,7 +257,7 @@ function SignupWizard({ onDone, goLogin, goForgot }: { onDone: (u: string) => vo
           </Field>
           <Field label="Apelido (@ do perfil)">
             <input value={username} onChange={(e) => setUsername(e.target.value.replace(/\s/g, ""))} placeholder="ex.: maria.leitora" className="mb-auth-input" disabled={busy} />
-            <p className="text-[11.5px] text-[#3a442e]/60 mt-1">2 a 20 caracteres — letras, números, ponto ou _.</p>
+            <p className="text-[11.5px] text-[var(--text-3)] mt-1">2 a 20 caracteres — letras, números, ponto ou _.</p>
           </Field>
           {error && <ErrorNote>{error}</ErrorNote>}
           <NextButton busy={busy} onClick={submitIdentity} disabled={!fullName.trim() || !username.trim()} />
@@ -273,7 +268,7 @@ function SignupWizard({ onDone, goLogin, goForgot }: { onDone: (u: string) => vo
         <>
           <Field label="Seu melhor e-mail">
             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="voce@gmail.com" className="mb-auth-input" disabled={busy} />
-            <p className="text-[11.5px] text-[#3a442e]/60 mt-1">Vamos enviar um código para confirmar que é você.</p>
+            <p className="text-[11.5px] text-[var(--text-3)] mt-1">Vamos enviar um código para confirmar que é você.</p>
           </Field>
           {error && <ErrorNote>{error}</ErrorNote>}
           <NextButton busy={busy} onClick={submitEmail} disabled={!email.trim()} label="Enviar código" />
@@ -284,7 +279,7 @@ function SignupWizard({ onDone, goLogin, goForgot }: { onDone: (u: string) => vo
         <>
           <Field label="Código de verificação">
             <input inputMode="numeric" maxLength={6} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))} placeholder="000000" className="mb-auth-input tracking-[0.4em] text-center text-lg" disabled={busy} />
-            <p className="text-[11.5px] text-[#3a442e]/60 mt-1">Enviado para {email}. Vale por 10 minutos.</p>
+            <p className="text-[11.5px] text-[var(--text-3)] mt-1">Enviado para {email}. Vale por 10 minutos.</p>
             {devCode && (
               <p className="text-[11.5px] font-semibold text-[var(--primary)] mt-1.5">
                 Modo teste (sem serviço de e-mail): seu código é {devCode}
@@ -308,7 +303,7 @@ function SignupWizard({ onDone, goLogin, goForgot }: { onDone: (u: string) => vo
           {canWeak && (
             <label className="flex items-start gap-2.5 rounded-xl bg-[#c9741a]/12 border border-[#c9741a]/30 p-3 cursor-pointer">
               <input type="checkbox" checked={allowWeak} onChange={(e) => setAllowWeak(e.target.checked)} className="mt-0.5 accent-[#c9741a]" />
-              <span className="text-[12.5px] text-[#5a4620] leading-snug">
+              <span className="text-[12.5px] text-[var(--text-2)] leading-snug">
                 <span className="inline-flex items-center gap-1 font-semibold"><ShieldAlert className="w-3.5 h-3.5" /> Deixar minha conta menos segura</span>
                 <br />Aceito usar só os 8 caracteres, sem número ou símbolo.
               </span>
@@ -329,7 +324,7 @@ function SignupWizard({ onDone, goLogin, goForgot }: { onDone: (u: string) => vo
                   type="button"
                   onClick={() => setAvatar(e)}
                   className={`aspect-square rounded-xl text-xl flex items-center justify-center transition-all cursor-pointer ${
-                    avatar === e ? "bg-[var(--primary)] scale-105 shadow-md" : "bg-white/55 hover:bg-white/80"
+                    avatar === e ? "bg-[var(--primary)] scale-105 shadow-md" : "bg-[var(--surface-2)] hover:bg-[var(--surface-3)]"
                   }`}
                 >
                   {e}
@@ -416,7 +411,7 @@ function ForgotFlow({ onDone, goLogin }: { onDone: (u: string) => void; goLogin:
           {canWeak && (
             <label className="flex items-start gap-2.5 rounded-xl bg-[#c9741a]/12 border border-[#c9741a]/30 p-3 cursor-pointer">
               <input type="checkbox" checked={allowWeak} onChange={(e) => setAllowWeak(e.target.checked)} className="mt-0.5 accent-[#c9741a]" />
-              <span className="text-[12.5px] text-[#5a4620] leading-snug">
+              <span className="text-[12.5px] text-[var(--text-2)] leading-snug">
                 <span className="font-semibold">Deixar minha conta menos segura</span> — usar só 8 caracteres.
               </span>
             </label>
@@ -477,18 +472,8 @@ function GoogleButton({ config, onDone, setError }: { config: ServerConfig | nul
   );
 }
 
-function Header({ title, subtitle, emoji }: { title: string; subtitle: string; emoji: string }) {
-  return (
-    <div className="flex items-center gap-3.5">
-      <span className="w-12 h-12 rounded-2xl bg-white/60 border border-white/70 flex items-center justify-center text-2xl select-none flex-shrink-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
-        {emoji}
-      </span>
-      <div className="min-w-0">
-        <h2 className="text-[19px] font-bold tracking-tight text-[#1b2118]">{title}</h2>
-        <p className="text-[12.5px] text-[#3a442e]/70 truncate">{subtitle}</p>
-      </div>
-    </div>
-  );
+function Header({ title, subtitle }: { title: string; subtitle: string; emoji: string }) {
+  return <div className="mb-auth-form-heading"><p className="mb-eyebrow text-[var(--primary)] mb-3">SUA PRÓXIMA PÁGINA</p><h2>{title}</h2><p>{subtitle}</p></div>;
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -517,6 +502,7 @@ function PasswordInput({
     <div className="relative">
       <input
         type={visible ? "text" : "password"}
+        aria-label="Senha"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         autoComplete={autoComplete}
@@ -524,7 +510,7 @@ function PasswordInput({
         className="mb-auth-input pr-11"
         disabled={disabled}
       />
-      <button type="button" onClick={toggle} aria-label={visible ? "Esconder senha" : "Mostrar senha"} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#3a442e]/60 hover:text-[#1b2118] p-1">
+      <button type="button" onClick={toggle} aria-label={visible ? "Esconder senha" : "Mostrar senha"} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--text-3)] hover:text-[var(--foreground)] p-1">
         {visible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
       </button>
     </div>
@@ -540,7 +526,7 @@ function PasswordRules({ checks }: { checks: { min8: boolean; number: boolean; s
   return (
     <ul className="space-y-1">
       {items.map((it) => (
-        <li key={it.label} className={`flex items-center gap-2 text-[12px] ${it.ok ? "text-[var(--primary)]" : "text-[#3a442e]/60"}`}>
+        <li key={it.label} className={`flex items-center gap-2 text-[12px] ${it.ok ? "text-[var(--primary)]" : "text-[var(--text-3)]"}`}>
           {it.ok ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5" />}
           {it.label}
         </li>
@@ -553,7 +539,7 @@ function Steps({ total, current }: { total: number; current: number }) {
   return (
     <div className="flex-1 flex items-center gap-1.5">
       {Array.from({ length: total }).map((_, i) => (
-        <span key={i} className={`h-1.5 flex-1 rounded-full transition-colors ${i <= current ? "bg-[var(--primary)]" : "bg-[#3a442e]/18"}`} />
+        <span key={i} className={`h-1.5 flex-1 rounded-full transition-colors ${i <= current ? "bg-[var(--primary)]" : "bg-[var(--surface-3)]"}`} />
       ))}
     </div>
   );
@@ -570,16 +556,16 @@ function NextButton({ busy, onClick, disabled, label = "Continuar" }: { busy: bo
 function Divider({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex items-center gap-3 py-0.5">
-      <span className="h-px flex-1 bg-[#3a442e]/20" />
-      <span className="text-[11.5px] text-[#3a442e]/70">{children}</span>
-      <span className="h-px flex-1 bg-[#3a442e]/20" />
+      <span className="h-px flex-1 bg-[var(--line)]" />
+      <span className="text-[11.5px] text-[var(--text-2)]">{children}</span>
+      <span className="h-px flex-1 bg-[var(--line)]" />
     </div>
   );
 }
 
 function ErrorNote({ children }: { children: React.ReactNode }) {
   return (
-    <p role="alert" className="text-[12.5px] font-semibold text-[#8a1c28] bg-[#de5560]/15 border border-[#de5560]/30 rounded-xl px-3.5 py-2.5">
+    <p role="alert" className="text-[12.5px] font-semibold text-[var(--destructive)] bg-[#de5560]/15 border border-[#de5560]/30 rounded-xl px-3.5 py-2.5">
       {children}
     </p>
   );

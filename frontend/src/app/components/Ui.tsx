@@ -146,9 +146,9 @@ export function SectionHeader({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex items-end justify-between gap-4 mb-4">
+    <div className="mb-section-heading flex items-end justify-between gap-4 mb-5">
       <div className="min-w-0">
-        <h2 className="flex items-center gap-2 text-[17px] font-bold text-foreground">
+        <h2 className="flex items-center gap-2 text-[21px] font-semibold tracking-tight text-foreground">
           {icon}
           {title}
         </h2>
@@ -171,7 +171,7 @@ export function PageHeader({
   highlight,
   subtitle,
   icon,
-  gradient = "linear-gradient(140deg,#4b7a57,#2f4f39)",
+  gradient: _gradient,
   action,
 }: {
   title: string;
@@ -182,21 +182,13 @@ export function PageHeader({
   action?: ReactNode;
 }) {
   return (
-    <header className="flex flex-wrap items-center justify-between gap-3 mb-in">
-      <div className="flex items-center gap-3.5 min-w-0">
-        {icon && (
-          <span className="mb-badge-icon !w-11 !h-11 !rounded-2xl" style={{ background: gradient }}>
-            {icon}
-          </span>
-        )}
-        <div className="min-w-0">
-          <h1 className="text-[26px] font-bold tracking-tight text-foreground leading-tight">
-            {title} {highlight && <span className="mb-gradient-text">{highlight}</span>}
-          </h1>
-          {subtitle && <p className="text-[13px] text-[var(--text-3)] mt-0.5">{subtitle}</p>}
-        </div>
+    <header className="mb-page-heading">
+      <div className="min-w-0">
+        <p className="mb-eyebrow mb-heading-kicker">{icon && <span aria-hidden="true">{icon}</span>} MYBOOKS · SEU UNIVERSO DE LEITURA</p>
+        <h1>{title} {highlight && <span>{highlight}</span>}</h1>
+        {subtitle && <p className="mb-page-subtitle">{subtitle}</p>}
       </div>
-      {action}
+      {action && <div className="mb-page-action">{action}</div>}
     </header>
   );
 }
@@ -215,8 +207,8 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="mb-card px-6 py-12 text-center mb-in">
-      <div className="text-3xl mb-3 select-none opacity-70">{emoji}</div>
+    <div className="mb-empty mb-card px-6 py-12 text-center mb-in">
+      <div className="mb-empty-symbol text-3xl mb-3 select-none">{emoji}</div>
       <p className="text-sm font-semibold text-foreground">{title}</p>
       {description && <p className="text-[13px] text-[var(--text-3)] mt-1.5 max-w-sm mx-auto leading-relaxed">{description}</p>}
       {action && <div className="mt-5">{action}</div>}
@@ -287,7 +279,7 @@ export function Modal({
         aria-modal="true"
         aria-label={title}
         onClick={(e) => e.stopPropagation()}
-        className={`relative w-full ${width} mb-glass-strong rounded-t-3xl sm:rounded-3xl animate-slide-up sm:animate-scale-in max-h-[92vh] flex flex-col`}
+        className={`mb-dialog relative w-full ${width} mb-glass-strong rounded-t-3xl sm:rounded-3xl animate-slide-up sm:animate-scale-in max-h-[92vh] flex flex-col`}
       >
         {(title || description) && (
           <div className="flex items-start justify-between gap-4 p-5 pb-3">

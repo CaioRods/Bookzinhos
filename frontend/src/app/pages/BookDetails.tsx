@@ -140,7 +140,7 @@ export function BookDetails() {
 
   if (isLoading) {
     return (
-      <div className="lg:px-2 lg:pb-6">
+      <div className="mb-book-details">
         <Skeleton className="w-full h-[420px] lg:rounded-[24px]" />
       </div>
     );
@@ -163,9 +163,9 @@ export function BookDetails() {
   const cover = getFullUrl(book.coverImagePath);
 
   return (
-    <div style={bookTheme} className="lg:px-2 lg:pb-6">
+    <div style={bookTheme} className="mb-book-details">
       {/* ── Palco: a própria arte da capa vira o cenário ──────────────────── */}
-      <div className="relative overflow-hidden lg:rounded-[24px]">
+      <div className="mb-book-stage relative overflow-hidden lg:rounded-[24px]">
         {cover ? (
           <>
             <img
@@ -217,7 +217,7 @@ export function BookDetails() {
             </div>
 
             <div className="flex-1 min-w-0 sm:pt-4">
-              <h1 className="text-[28px] sm:text-[38px] font-bold leading-[1.08] tracking-tight">{book.title}</h1>
+              <h1 className="mb-book-title text-[28px] sm:text-[38px] font-bold leading-[1.08] tracking-tight">{book.title}</h1>
               <p className="text-[16px] sm:text-[18px] font-semibold mt-1.5" style={{ color: coverColor.tint }}>
                 {book.author || "Autor desconhecido"}
               </p>

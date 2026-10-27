@@ -1,5 +1,6 @@
+import { Brand } from "./Brand";
 import { Link, isRouteErrorResponse, useRouteError } from "react-router";
-import { AlertTriangle, Home, RotateCcw } from "lucide-react";
+import { Home, RotateCcw } from "lucide-react";
 
 /**
  * Tela de erro do aplicativo.
@@ -26,12 +27,10 @@ export function ErrorScreen() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6 bg-background">
-      <div className="mb-card p-8 max-w-lg w-full text-center">
-        <span className="mb-badge-icon w-14 h-14 rounded-[18px] mx-auto" style={{ background: "var(--like)" }}>
-          <AlertTriangle className="w-7 h-7" />
-        </span>
+      <div className="mb-error-card mb-card p-8 max-w-lg w-full text-center">
+        <Brand compact />
 
-        <h1 className="text-[22px] font-bold text-foreground mt-4">{title}</h1>
+        <h1 className="mb-display text-[32px] text-foreground mt-6">{title}</h1>
         <p className="text-[14px] text-[var(--text-2)] leading-relaxed mt-2">
           A tela não conseguiu carregar. Recarregar costuma resolver — se voltar a
           acontecer, conte o que você estava fazendo.

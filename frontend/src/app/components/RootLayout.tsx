@@ -1,3 +1,4 @@
+import { Brand } from "./Brand";
 import { Outlet, useLocation, useNavigation, Link, NavLink } from "react-router";
 import {
   Home, Library, Heart, PenLine, User, Users, Shield, Plus, MessageSquare, ChevronRight,
@@ -83,9 +84,9 @@ export function RootLayout() {
 
   const navItems: NavItem[] = useMemo(() => {
     const items: NavItem[] = [
-      { path: "/", icon: Home, label: "Início", end: true },
+      { path: "/", icon: Home, label: "Descobrir", end: true },
       { path: "/library", icon: Library, label: "Biblioteca" },
-      { path: "/social", icon: Users, label: "Social", badge: unreadCount },
+      { path: "/social", icon: Users, label: "Comunidade", badge: unreadCount },
       { path: "/my-books", icon: Heart, label: "Favoritos" },
       { path: "/notes", icon: PenLine, label: "Diário de leitura" },
     ];
@@ -133,10 +134,10 @@ export function RootLayout() {
         {/* ── Barra lateral (desktop) ─────────────────────────────────────── */}
         <aside className="mb-sidebar hidden lg:flex fixed inset-y-0 left-0 z-50 w-[232px] flex-col overflow-hidden">
           <Link to="/" className="flex items-center gap-3 px-6 h-[96px] flex-shrink-0">
-            <img src="/logo.svg" alt="" className="w-9 h-9 rounded-[10px]" />
-            <span className="text-[19px] font-bold tracking-tight text-foreground">myBooks</span>
+            <Brand />
           </Link>
 
+          <p className="mb-nav-caption">BIBLIOTECA PESSOAL</p>
           <nav className="flex-1 px-3 space-y-1 overflow-y-auto no-scrollbar" aria-label="Navegação principal">
             {navItems.map(({ path, icon: Icon, label, badge, end }) => (
               <NavLink
@@ -167,11 +168,11 @@ export function RootLayout() {
             ))}
           </nav>
 
-          <div className="p-3 space-y-3">
+          <div className="mb-sidebar-account p-3 space-y-3">
             {guest ? (
               <button
                 onClick={() => leaveGuestMode()}
-                className="w-full rounded-[16px] bg-[var(--primary-soft)] border border-[var(--primary)]/25 p-3.5 text-left hover:bg-[color-mix(in_srgb,var(--primary)_18%,transparent)] transition-colors cursor-pointer"
+                className="mb-guest-card w-full rounded-[16px] bg-[var(--primary-soft)] border border-[var(--primary)]/25 p-3.5 text-left hover:bg-[color-mix(in_srgb,var(--primary)_18%,transparent)] transition-colors cursor-pointer"
               >
                 <span className="block text-[13.5px] font-bold text-[var(--primary)]">Você é visitante</span>
                 <span className="block text-[12px] text-[var(--text-2)] mt-0.5 leading-snug">
@@ -225,8 +226,7 @@ export function RootLayout() {
         {/* ── Cabeçalho (celular) ─────────────────────────────────────────── */}
         <header className="mb-mobile-header lg:hidden sticky top-0 z-40 h-16 px-5 flex items-center justify-between border-b border-[var(--line)]">
           <Link to="/" className="flex items-center gap-2">
-            <img src="/logo.svg" alt="" className="w-8 h-8 rounded-lg" />
-            <span className="text-[16px] font-bold tracking-tight text-foreground">myBooks</span>
+            <Brand />
           </Link>
           <div className="flex items-center gap-1">
             <NotificationsMenu />
@@ -279,7 +279,7 @@ export function RootLayout() {
         {/* ── Barra inferior com botão central (celular) ──────────────────── */}
         <nav aria-label="Navegação principal" className="mb-mobile-dock lg:hidden fixed z-50">
           <div className="flex items-center h-[68px] px-1">
-            <MobileTab to="/" end icon={Home} label="Início" />
+            <MobileTab to="/" end icon={Home} label="Descobrir" />
             <MobileTab to="/library" icon={Library} label="Biblioteca" />
 
             <div className="w-[74px] flex justify-center">

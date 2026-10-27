@@ -61,7 +61,7 @@ export function Settings() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
+    <div className="mb-screen mb-screen--narrow mb-settings space-y-6">
       <PageHeader
         title="Suas"
         highlight="configurações"
@@ -290,7 +290,7 @@ function Toggle({
   compact?: boolean;
 }) {
   return (
-    <div className={`flex items-center justify-between gap-4 ${compact ? "py-1.5" : "rounded-[14px] bg-[var(--surface-2)] p-4"}`}>
+    <div className={`mb-setting-row flex items-center justify-between gap-4 ${compact ? "py-1.5" : "rounded-[14px] bg-[var(--surface-2)] p-4"}`}>
       <div className="min-w-0">
         <p className="text-[13.5px] font-semibold text-foreground">{label}</p>
         {hint && <p className="text-[12.5px] text-[var(--text-3)] mt-0.5 leading-relaxed">{hint}</p>}

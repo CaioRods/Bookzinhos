@@ -20,7 +20,7 @@ type ThemeKey = "claro" | "creme" | "sepia" | "noite";
 
 const THEMES: Record<ThemeKey, { label: string; bg: string; fg: string; muted: string; filter: string; swatch: string }> = {
   claro: { label: "Claro", bg: "#f5f4f2", fg: "#1c1917", muted: "rgba(28,25,23,.55)", filter: "none", swatch: "#ffffff" },
-  creme: { label: "Creme", bg: "#f2e8d5", fg: "#3f3327", muted: "rgba(63,51,39,.6)", filter: "sepia(.16) saturate(.96)", swatch: "#f2e8d5" },
+  creme: { label: "Creme", bg: "#f4eddf", fg: "#3f3327", muted: "rgba(63,51,39,.6)", filter: "sepia(.16) saturate(.96)", swatch: "#f4eddf" },
   sepia: { label: "Sépia", bg: "#2b2119", fg: "#e9dac3", muted: "rgba(233,218,195,.6)", filter: "sepia(.34) brightness(.9) contrast(1.02)", swatch: "#2b2119" },
   noite: { label: "Noite", bg: "#0b0b0e", fg: "#d7d3d0", muted: "rgba(215,211,208,.55)", filter: "invert(1) hue-rotate(180deg) brightness(.93) contrast(1.06)", swatch: "#0b0b0e" },
 };
@@ -664,7 +664,7 @@ export function BookReader() {
   return (
     <div
       ref={rootRef}
-      className="h-full w-full relative overflow-hidden select-none"
+      className="mb-reader h-full w-full relative overflow-hidden select-none"
       style={{ background: theme.bg, color: theme.fg, transition: "background-color .4s ease, color .4s ease" }}
       onMouseMove={() => wakeUi()}
     >
@@ -715,7 +715,7 @@ export function BookReader() {
           showUi ? "translate-y-0 opacity-100" : "-translate-y-6 opacity-0 pointer-events-none"
         }`}
       >
-        <div className="mb-glass mx-auto max-w-3xl h-14 rounded-2xl flex items-center gap-1 px-2">
+        <div className="mb-reader-toolbar mb-glass mx-auto max-w-3xl h-14 rounded-2xl flex items-center gap-1 px-2">
           <button onClick={() => navigate(-1)} aria-label="Voltar" className="mb-btn mb-btn-ghost mb-btn-icon flex-shrink-0">
             <ArrowLeft className="w-5 h-5" />
           </button>

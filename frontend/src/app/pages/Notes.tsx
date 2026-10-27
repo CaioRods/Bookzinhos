@@ -82,7 +82,7 @@ export function Notes() {
 
   if (isLoading) {
     return (
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-5">
+      <div className="mb-screen mb-screen--narrow mb-notes space-y-5">
         <Skeleton className="h-10 w-48" />
         <Skeleton className="h-32 w-full rounded-2xl" />
       </div>
@@ -91,7 +91,7 @@ export function Notes() {
 
   if (books.length === 0) {
     return (
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
+      <div className="mb-screen mb-screen--narrow mb-notes">
         <EmptyState
           emoji="📓"
           title="Nenhum livro para anotar"
@@ -103,7 +103,7 @@ export function Notes() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
+    <div className="mb-screen mb-screen--narrow mb-notes space-y-6">
       <PageHeader
         title="Diário de"
         highlight="leitura"
@@ -113,7 +113,7 @@ export function Notes() {
       />
 
       {/* ── Escolha do livro ───────────────────────────────────────────────── */}
-      <section>
+      <section className="mb-notes-selector">
         <div className="relative mb-3">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-3)] pointer-events-none" />
           <input
@@ -152,7 +152,7 @@ export function Notes() {
 
       {/* ── Nova anotação ──────────────────────────────────────────────────── */}
       {selectedBook && (
-        <section className="mb-card p-5 space-y-4">
+        <section className="mb-notes-composer mb-card p-5 space-y-4">
           <SectionHeader
             title={`Anotar sobre “${selectedBook.title}”`}
             icon={<PenLine className="w-[18px] h-[18px] text-[var(--primary)]" />}

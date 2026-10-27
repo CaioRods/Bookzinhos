@@ -199,18 +199,18 @@ export function Upload() {
   const canSubmit = !!pdfFile && !!formData.title.trim() && !isUploading;
 
   return (
-    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
-      <header className="flex items-center gap-3">
+    <div className="mb-screen mb-screen--narrow mb-upload space-y-6">
+      <header className="mb-upload-heading flex items-center gap-3">
         <button onClick={() => navigate(-1)} aria-label="Voltar" className="mb-btn mb-btn-outline mb-btn-icon mb-btn-sm">
           <ArrowLeft className="w-4 h-4" />
         </button>
         <div>
-          <h1 className="text-2xl font-bold text-foreground tracking-tight">Enviar livro</h1>
+          <p className="mb-eyebrow mb-2">COMPARTILHE UMA DESCOBERTA</p><h1 className="mb-display">Mais uma boa história.</h1>
           <p className="text-[13px] text-[var(--text-3)] mt-0.5">O livro entra no acervo compartilhado da comunidade.</p>
         </div>
       </header>
 
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleSubmit} className="mb-upload-form space-y-5">
         {/* ── PDF ──────────────────────────────────────────────────────────── */}
         <section>
           <span className="mb-label">Arquivo PDF</span>
