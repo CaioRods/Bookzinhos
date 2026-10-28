@@ -5,6 +5,7 @@ import type { Book, ReadingProgress } from "../lib/types";
 
 interface Props {
   books: Book[];
+  framed?: boolean;
   progressOf?: Map<string, ReadingProgress>;
   display?: BookDisplay;
   ranked?: boolean;
@@ -15,7 +16,7 @@ interface Props {
 }
 
 /** Measures the actual collection, so covers stay aligned inside any page or sidebar. */
-export function BookGrid({ books, progressOf, display = "cover", ranked, onDeleted, onEdited, savedIds = [], onSavedChange }: Props) {
+export function BookGrid({ books, framed = false, progressOf, display = "cover", ranked, onDeleted, onEdited, savedIds = [], onSavedChange }: Props) {
   const gridRef = useRef<HTMLDivElement>(null);
   const [coverWidth, setCoverWidth] = useState(128);
   const [gap, setGap] = useState(24);
@@ -28,10 +29,11 @@ export function BookGrid({ books, progressOf, display = "cover", ranked, onDelet
       const available = element.clientWidth - parseFloat(styles.paddingLeft) - parseFloat(styles.paddingRight);
       if (!available) return;
       const mobile = window.innerWidth < 640;
-      const spacing = mobile ? 16 : 28;
-      const minimum = window.innerWidth < 400 ? 82 : mobile ? 108 : 200;
+      const spacing = framed ? (mobile ? 12 : 16) : mobile ? 16 : 28;
+      const minimum = framed ? (mobile ? (window.innerWidth < 360 ? 124 : 142) : window.innerWidth < 1600 ? 176 : 200) : window.innerWidth < 400 ? 82 : mobile ? 108 : 200;
       const columns = Math.max(1, Math.floor((available + spacing) / (minimum + spacing)));
-      setCoverWidth(Math.min(236, Math.floor((available - spacing * (columns - 1)) / columns)));
+      const tileWidth = Math.floor((available - spacing * (columns - 1)) / columns);
+      setCoverWidth(framed ? Math.max(80, tileWidth - 48) : Math.min(236, tileWidth));
       setGap(spacing);
     };
     measure();
@@ -39,16 +41,16 @@ export function BookGrid({ books, progressOf, display = "cover", ranked, onDelet
     observer.observe(element);
     window.addEventListener("resize", measure);
     return () => { observer.disconnect(); window.removeEventListener("resize", measure); };
-  }, [isShelf]);
+  }, [isShelf, framed]);
   const height = isShelf ? Math.max(220, Math.round(coverWidth * 1.5)) : Math.round(coverWidth * 1.5);
   return <div className={isShelf ? "mb-shelf-room" : ""}>
-    <div ref={gridRef} className={`mb-book-grid mb-stagger flex flex-wrap items-start ${isShelf ? "mb-book-grid--shelf" : ""}`} style={{
+    <div ref={gridRef} className={`mb-book-grid mb-stagger flex flex-wrap items-start ${isShelf ? "mb-book-grid--shelf" : ""} ${framed ? "mb-book-grid--framed" : ""}`} style={{
       columnGap: isShelf ? 5 : gap,
-      rowGap: isShelf ? 42 : 36,
+      rowGap: framed ? 18 : isShelf ? 42 : 36,
       padding: isShelf ? "0 0 16px" : undefined,
       backgroundImage: isShelf ? `repeating-linear-gradient(to bottom, transparent 0px, transparent ${height + 4}px, color-mix(in srgb, var(--primary) 17%, var(--surface-3)) ${height + 4}px, color-mix(in srgb, var(--primary) 17%, var(--surface-3)) ${height + 10}px, transparent ${height + 10}px, transparent ${height + 42}px)` : undefined,
     }}>
-      {books.map((book, i) => <BookCard key={book.id} book={book} width={coverWidth} display={display} index={i} rank={ranked ? i + 1 : undefined} progress={progressOf?.get(book.id)} saved={savedIds.includes(book.id)} onSavedChange={onSavedChange} onDeleted={onDeleted} onEdited={onEdited} />)}
+      {books.map((book, i) => <BookCard key={book.id} book={book} framed={framed} width={coverWidth} display={display} index={i} rank={ranked ? i + 1 : undefined} progress={progressOf?.get(book.id)} saved={savedIds.includes(book.id)} onSavedChange={onSavedChange} onDeleted={onDeleted} onEdited={onEdited} />)}
     </div>
   </div>;
 }

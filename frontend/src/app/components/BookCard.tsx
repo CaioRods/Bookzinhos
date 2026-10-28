@@ -1,10 +1,11 @@
 import { useRef, useState, useEffect, useCallback, memo } from "react";
-import { BookOpen, Star, MoreVertical } from "lucide-react";
+import { BookOpen, Star, MoreVertical, Bookmark } from "lucide-react";
 import { useNavigate } from "react-router";
 import { getCoverGradient, getFullUrl } from "../lib/types";
 import { BookContextMenu } from "./BookContextMenu";
 import { EditBookModal } from "./EditBookModal";
 import { deleteBook, saveProgress, toggleSaved } from "../lib/api";
+import { requireAuth } from "../lib/authGate";
 import { useOpenBook } from "../lib/readerChoice";
 import { ConfirmDialog, toast } from "./Ui";
 import { Book3D, type BookDisplay } from "./Book3D";
@@ -15,6 +16,7 @@ interface Props {
   book: Book;
   progress?: ReadingProgress;
   variant?: "grid" | "list";
+  framed?: boolean;
   /** Largura da capa em pixels (modo grade) */
   width?: number;
   display?: BookDisplay;
@@ -29,7 +31,7 @@ interface Props {
 
 function BookCardImpl({
   book, progress: initialProgress, variant = "grid", width = 128,
-  display = "cover", index = 0, rank, onDeleted, onEdited, saved = false, onSavedChange,
+  display = "cover", framed = false, index = 0, rank, onDeleted, onEdited, saved = false, onSavedChange,
 }: Props) {
   const navigate = useNavigate();
   const openBook = useOpenBook();
@@ -37,6 +39,7 @@ function BookCardImpl({
   const flyingId = useFlyingBookId();
   const rootRef = useRef<HTMLDivElement>(null);
   const [showMenu, setShowMenu] = useState(false);
+  const [savingFavorite, setSavingFavorite] = useState(false);
   const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null);
   const [showEdit, setShowEdit] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -155,6 +158,8 @@ function BookCardImpl({
   };
 
   const handleToggleSaved = async () => {
+    if (savingFavorite || !requireAuth("salvar favoritos")) return;
+    setSavingFavorite(true);
     handleCloseMenu();
     onSavedChange?.(book.id, !saved);
     try {
@@ -164,7 +169,7 @@ function BookCardImpl({
     } catch (error) {
       onSavedChange?.(book.id, saved);
       toast(error instanceof Error ? error.message : "Não foi possível atualizar os favoritos.", "error");
-    }
+    } finally { setSavingFavorite(false); }
   };
 
   const pressHandlers = {
@@ -261,17 +266,7 @@ function BookCardImpl({
   }
 
   const isSpine = display === "spine";
-
-  return (
-    <>
-      {/* Enquanto este livro está voando, a cópia da estante fica invisível —
-          mas ocupando o lugar, para a fileira não se reorganizar. */}
-      <div
-        ref={rootRef}
-        {...pressHandlers}
-        className="mb-book-tile cursor-pointer select-none"
-        style={{ visibility: flyingId === book.id ? "hidden" : undefined }}
-      >
+  const cover = (
         <Book3D
           book={book}
           width={width}
@@ -280,6 +275,23 @@ function BookCardImpl({
           rank={rank}
           progress={localProgress}
         />
+  );
+
+  return (
+    <>
+      {/* Enquanto este livro está voando, a cópia da estante fica invisível —
+          mas ocupando o lugar, para a fileira não se reorganizar. */}
+      <div
+        ref={rootRef}
+        {...pressHandlers}
+        className={`mb-book-tile cursor-pointer select-none ${framed ? "mb-library-framed-card" : ""}`}
+        style={{ visibility: flyingId === book.id ? "hidden" : undefined, ...(framed ? { width: width + 48, "--book-wash": ["#dce7ef", "#f1dfc4", "#eed8d4", "#e1dce6", "#cce4de", "#f2e5be"][index % 6] } : {}) } as React.CSSProperties}
+      >
+        {framed ? <div className="mb-library-cover-stage">
+          {cover}
+          <button className="mb-library-bookmark" aria-label={saved ? `Remover ${book.title} dos favoritos` : `Salvar ${book.title} nos favoritos`} aria-pressed={saved} disabled={savingFavorite} onMouseDown={event=>event.stopPropagation()} onTouchStart={event=>event.stopPropagation()} onClick={event=>{event.stopPropagation();void handleToggleSaved()}}><Bookmark size={17} fill={saved ? "currentColor" : "none"} /></button>
+          {!!book.pdfPath && !book.coverImagePath && <span className="mb-library-pdf-badge">PDF</span>}
+        </div> : cover}
 
         {/* A legenda some no modo estante: o nome já está na lombada. */}
         <div

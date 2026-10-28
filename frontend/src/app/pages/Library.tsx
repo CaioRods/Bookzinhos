@@ -1,3 +1,4 @@
+import { LibraryBanner } from "../components/LibraryBanner";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { Search, LayoutGrid, List as ListIcon, Upload, SlidersHorizontal, Library as ShelfIcon } from "lucide-react";
@@ -7,7 +8,7 @@ import { triggerBackgroundCoverGeneration } from "../lib/coverExtractor";
 import type { Book, ReadingProgress } from "../lib/types";
 import { BookCard } from "../components/BookCard";
 import { BookGrid } from "../components/BookGrid";
-import { EmptyState, PageHeader, Skeleton } from "../components/Ui";
+import { EmptyState, Skeleton } from "../components/Ui";
 
 type Filter = "todos" | "lendo" | "ler-depois" | "lidos" | "favoritos" | "pdfs";
 type Sort = "recentes" | "populares" | "nota" | "titulo";
@@ -170,19 +171,12 @@ export function Library() {
     } : prev);
 
   return (
-    <div className="mb-screen mb-screen--wide mb-library">
-      <PageHeader
-        title="Sua"
-        highlight="biblioteca."
-        subtitle={isLoading ? "Carregando o acervo…" : `${books.length} livros. Sua próxima descoberta está aqui.`}
-        icon={<ShelfIcon className="w-5 h-5" />}
-        gradient="linear-gradient(140deg,#4b7a57,#2f4f39)"
-        action={
-          <Link to="/upload" className="mb-btn mb-btn-primary mb-btn-sm">
-            <Upload className="w-4 h-4" /> Enviar livro
-          </Link>
-        }
-      />
+    <div className="mb-screen mb-screen--wide mb-library mb-library-reference">
+      <header className="mb-library-editorial-heading">
+        <div><p className="mb-eyebrow">UM UNIVERSO DE HISTÓRIAS</p><h1>Sua biblioteca.</h1><p>{isLoading ? "Carregando o acervo…" : `${books.length} livros. Sua próxima descoberta está aqui.`}</p></div>
+        <Link to="/upload" className="mb-btn mb-btn-primary"><Upload size={16} /> Enviar livro</Link>
+      </header>
+      <LibraryBanner books={books} />
 
       {/* ── Busca e visualização ───────────────────────────────────────────── */}
       <div className="mb-library-search flex gap-2 mb-in" style={{ "--i": 1 } as React.CSSProperties}>
@@ -193,7 +187,7 @@ export function Library() {
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar por título ou autor…"
+            placeholder="Livros, autores ou sagas…"
             aria-label="Buscar na biblioteca"
             className="mb-input pl-9"
           />
@@ -302,6 +296,7 @@ export function Library() {
           progressOf={statusOf}
           savedIds={savedIds}
           onSavedChange={handleSavedChange}
+          framed={view === "grid"}
           display={view === "shelf" ? "spine" : "cover"}
           onDeleted={handleRemoved}
           onEdited={handleEdited}
