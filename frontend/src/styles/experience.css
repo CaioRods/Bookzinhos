@@ -1,19 +1,4 @@
 @layer components {
-  .mb-ambient-scene {
-    position: fixed;
-    inset: -8%;
-    z-index: 0;
-    pointer-events: none;
-    filter: blur(55px) saturate(0.8);
-    opacity: 0.5;
-    transform: scale(1.12);
-  }
-  .mb-ambient-scene::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: color-mix(in srgb, var(--background) 38%, transparent);
-  }
   .mb-app-window {
     position: relative;
     z-index: 1;

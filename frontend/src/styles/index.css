@@ -7,6 +7,7 @@
 @import './customization.css';
 @import './experience.css';
 @import './library-reference.css';
+@import './opening.css';
 
 @layer base {
   * {

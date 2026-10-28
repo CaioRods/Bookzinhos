@@ -1,32 +1,31 @@
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Outlet } from "react-router";
 import { Login } from "../pages/Login";
-import { Welcome } from "../pages/Welcome";
-import { LoadingSpinner } from "./LoadingSpinner";
+import { BookOpening } from "./BookOpening";
+import { completeOpening, needsOpening } from "../lib/opening";
 import { getUsername, isGuest, enterGuestMode } from "../lib/session";
 
-/**
- * Porta de entrada do app.
- *
- * Três estados: com conta (mostra o app), visitante (também mostra o app, mas
- * as ações ficam bloqueadas pelo portão) e deslogado (mostra a tela de entrada).
- * Reage a mudanças de sessão para que entrar ou sair troque a tela na hora.
- */
 export function AuthWrapper() {
   const [user, setUser] = useState<string | null>(getUsername);
   const [guest, setGuest] = useState<boolean>(isGuest);
-  const [showWelcome, setShowWelcome] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [openingFor, setOpeningFor] = useState<string | null>(() => {
+    const username = getUsername();
+    return needsOpening(username) ? username : null;
+  });
+  const previousUser = useRef(user);
+  const content = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setUser(getUsername());
-    setGuest(isGuest());
-    setIsLoading(false);
-
     const sync = () => {
-      setUser(getUsername());
+      const username = getUsername();
+      if (username && username !== previousUser.current)
+        setOpeningFor(username);
+      if (!username) setOpeningFor(null);
+      previousUser.current = username;
+      setUser(username);
       setGuest(isGuest());
     };
+    sync();
     window.addEventListener("mybooks:session", sync);
     window.addEventListener("storage", sync);
     return () => {
@@ -35,26 +34,48 @@ export function AuthWrapper() {
     };
   }, []);
 
-  const handleLoginSuccess = (username: string) => {
-    setUser(username);
-    setGuest(false);
-    setShowWelcome(true);
-  };
+  useEffect(() => {
+    const element = content.current;
+    if (!element) return;
+    element.inert = !!openingFor;
+    return () => {
+      element.inert = false;
+    };
+  }, [openingFor, user, guest]);
 
-  if (isLoading) return <LoadingSpinner />;
+  const finishOpening = useCallback(() => {
+    if (openingFor) completeOpening(openingFor);
+    setOpeningFor(null);
+  }, [openingFor]);
 
-  if (user) {
-    if (showWelcome) return <Welcome userName={user} onComplete={() => setShowWelcome(false)} />;
-    return <Outlet />;
-  }
-
-  // Visitante: vê o app, mas o portão barra ler, comentar e o social.
-  if (guest) return <Outlet />;
+  if (user || guest)
+    return (
+      <>
+        <div
+          ref={content}
+          className="mb-authenticated-app"
+          aria-hidden={openingFor ? true : undefined}
+        >
+          <Outlet />
+        </div>
+        {user && openingFor && (
+          <BookOpening key={openingFor} onComplete={finishOpening} />
+        )}
+      </>
+    );
 
   return (
     <Login
-      onLoginSuccess={handleLoginSuccess}
-      onGuest={() => { enterGuestMode(); setGuest(true); }}
+      onLoginSuccess={(username) => {
+        previousUser.current = username;
+        setUser(username);
+        setGuest(false);
+        setOpeningFor(username);
+      }}
+      onGuest={() => {
+        enterGuestMode();
+        setGuest(true);
+      }}
     />
   );
 }

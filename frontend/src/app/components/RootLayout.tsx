@@ -1,5 +1,6 @@
 import { useThemeCatalog, DEFAULT_THEMES } from "../lib/themeCatalog";
 import { accentVariables } from "../lib/appearance";
+import { SceneAtmosphere } from "./SceneAtmosphere";
 import { Scenery } from "./Scenery";
 import { GlobalSearch } from "./GlobalSearch";
 import { Brand } from "./Brand";
@@ -151,7 +152,7 @@ export function RootLayout() {
     <BookTransitionProvider>
       <AuthGateModal />
       <a href="#main-content" className="mb-skip-link">Pular para o conteúdo</a>
-      <div className="mb-ambient-scene" aria-hidden="true"><Scenery scene={settings.scene} surface="sidebar" /></div>
+      <SceneAtmosphere theme={selectedTheme} />
       <div className="mb-app-window bg-background">
         {/* ── Barra lateral (desktop) ─────────────────────────────────────── */}
         <aside className="mb-sidebar hidden lg:flex flex-col overflow-hidden">
