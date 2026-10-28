@@ -5,7 +5,7 @@ import { GlobalSearch } from "./GlobalSearch";
 import { Brand } from "./Brand";
 import { Outlet, useLocation, useNavigation, Link, NavLink } from "react-router";
 import {
-  Home, Library, BookOpen, PenLine, User, Users, Shield, Plus, ChevronRight,
+  Home, Library, BookOpen, PenLine, User, Users, Shield, ChevronRight,
   SlidersHorizontal, LogIn,
 } from "lucide-react";
 import { useEffect, useState, useMemo, type ComponentType } from "react";
@@ -32,7 +32,7 @@ interface NavItem {
  *
  * Desktop: barra lateral integrada à esquerda, conteúdo ao lado e as
  * ações da conta no canto superior direito.
- * Celular: navegação flutuante com acesso a adicionar livro no centro.
+ * Celular: navegação flutuante com acesso a Meus livros no centro.
  */
 export function RootLayout() {
   const location = useLocation();
@@ -269,21 +269,13 @@ export function RootLayout() {
           </ReaderChoiceProvider>
         </main>
 
-        {/* ── Barra inferior com botão central (celular) ──────────────────── */}
+        {/* ── Barra inferior (celular) ────────────────────────────────────── */}
         <nav aria-label="Navegação principal" className="mb-mobile-dock lg:hidden fixed z-50">
           <div className="flex items-center h-[68px] px-1">
             <MobileTab to="/" end icon={Home} label="Descobrir" />
             <MobileTab to="/library" icon={Library} label="Biblioteca" />
 
-            <div className="w-[74px] flex justify-center">
-              <Link
-                to="/upload"
-                aria-label="Adicionar livro"
-                className="w-11 h-11 rounded-full bg-[var(--primary)] text-[var(--primary-foreground)] flex items-center justify-center active:scale-95 transition-transform"
-              >
-                <Plus className="w-6 h-6" />
-              </Link>
-            </div>
+            <MobileTab to="/my-books" icon={BookOpen} label="Meus livros" />
 
             <MobileTab to="/social" icon={Users} label="Social" badge={unreadCount} />
             <MobileTab to="/profile" icon={User} label="Perfil" />
