@@ -57,6 +57,28 @@ module.exports = function registerAppearance({ app, db, sql, upload, uploadFileT
       res.json(rows.map(decode));
     } catch (error) { fail(res, error); }
   });
+  app.get('/appearance/profile/:username', async (req, res) => {
+    try {
+      await ready();
+      const [user] = await db.query(sql`SELECT profile_theme_id FROM users WHERE username=${req.params.username} COLLATE NOCASE`);
+      if (!user) return res.status(404).json({ error: 'Perfil não encontrado.' });
+      const id = user.profile_theme_id || 'lilac';
+      const [row] = await db.query(sql`SELECT * FROM appearance_themes WHERE id=${id} AND (owner='' OR owner=${req.params.username} COLLATE NOCASE)`);
+      res.set('Cache-Control', 'public, max-age=60');
+      res.json(row ? decode(row) : { id });
+    } catch (error) { fail(res, error); }
+  });
+  app.put('/appearance/profile', member, async (req, res) => {
+    try {
+      await ready();
+      const id = String(req.body.themeId || 'lilac').slice(0, 80);
+      const builtin = BUILTINS.has(id);
+      const [theme] = builtin ? [] : await db.query(sql`SELECT id FROM appearance_themes WHERE id=${id} AND (owner='' OR owner=${req.themeUser.username} COLLATE NOCASE)`);
+      if (!builtin && !theme) return res.status(400).json({ error: 'Tema não disponível para este perfil.' });
+      await db.query(sql`UPDATE users SET profile_theme_id=${id} WHERE username=${req.themeUser.username} COLLATE NOCASE`);
+      res.json({ themeId: id });
+    } catch (error) { fail(res, error); }
+  });
   app.post('/appearance/themes', member, upload.single('image'), async (req, res) => {
     try {
       await ready();

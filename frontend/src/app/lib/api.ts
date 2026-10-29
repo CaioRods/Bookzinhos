@@ -10,7 +10,7 @@
 import { API_BASE_URL } from "./config";
 import type {
   AdminOverview, Banner, BannerReport, Book, BookChapter, ChatMessage, FeedItem, HomeData, HomePost,
-  Note, Notifications, ReadingProgress, Review, ReviewComment, Stats, UserProfile, CharacterAvatar,
+  Note, Notifications, ReadingProgress, Review, ReviewComment, Stats, UserProfile, CharacterAvatar, ChatConversation,
 } from "./types";
 
 // ─── Cache + deduplicação ─────────────────────────────────────────────────────
@@ -339,6 +339,8 @@ export interface SignupData {
   avatar: string;
   allowWeak: boolean;
   favoriteGenres: string[];
+  instagram?: string;
+  tiktok?: string;
 }
 
 export function register(data: SignupData): Promise<UserProfile> {
@@ -356,7 +358,7 @@ export function loginWithGoogle(credential: string): Promise<UserProfile & { isN
   return request<UserProfile & { isNew?: boolean }>("POST", "/auth/google", { credential });
 }
 
-export async function updateProfile(data: { bio: string; avatar: string; shelf: string[]; displayName?: string; handle?: string; favoriteGenres?: string[] }): Promise<UserProfile> {
+export async function updateProfile(data: { bio: string; avatar: string; shelf: string[]; displayName?: string; handle?: string; favoriteGenres?: string[]; instagram?: string; tiktok?: string }): Promise<UserProfile> {
   const res = await request<UserProfile>("PUT", "/auth/me", data);
   invalidate("/users", "/home");
   return res;
@@ -594,6 +596,10 @@ export async function deleteNote(id: string): Promise<void> {
 
 export function fetchChat(target: string): Promise<{ messages: ChatMessage[]; nickname: string | null }> {
   return request("GET", `/chat/${encodeURIComponent(target)}`);
+}
+
+export function fetchConversations(): Promise<ChatConversation[]> {
+  return request("GET", "/chat");
 }
 
 export function fetchMessages(target: string): Promise<{ messages: ChatMessage[]; nickname: string | null }> {

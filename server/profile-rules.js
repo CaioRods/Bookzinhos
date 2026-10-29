@@ -22,4 +22,12 @@ function normalizeGenres(values) {
   return out;
 }
 
-module.exports = { HANDLE_CHANGE_DAYS, normalizeHandle, canChangeHandle, normalizeGenres };
+function normalizeSocialHandle(value, network) {
+  let normalized = String(value || '').trim();
+  if (!normalized) return '';
+  normalized = normalized.replace(/^https?:\/\/(?:www\.)?(?:instagram\.com|tiktok\.com)\/@?/i, '').replace(/^@/, '').replace(/[/?#].*$/, '');
+  const pattern = network === 'tiktok' ? /^[a-zA-Z0-9._]{2,24}$/ : /^[a-zA-Z0-9._]{2,30}$/;
+  return pattern.test(normalized) ? normalized : null;
+}
+
+module.exports = { HANDLE_CHANGE_DAYS, normalizeHandle, canChangeHandle, normalizeGenres, normalizeSocialHandle };

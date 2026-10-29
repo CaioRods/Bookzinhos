@@ -9,6 +9,8 @@ async function call<T>(path: string, options: RequestInit = {}): Promise<T> {
   return data;
 }
 export const fetchThemes = () => call<SceneTheme[]>("/appearance/themes");
+export const fetchProfileTheme = (username: string) => call<SceneTheme | { id: string }>(`/appearance/profile/${encodeURIComponent(username)}`);
+export const saveProfileTheme = (themeId: string) => call<{ themeId: string }>("/appearance/profile", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ themeId }) });
 export async function saveTheme(theme: SceneTheme, scope: "personal" | "system", image?: File | null): Promise<SceneTheme> {
   const form = new FormData(); form.set("id", theme.id); form.set("scope", scope); form.set("config", JSON.stringify(theme));
   if (image) form.set("image", image);

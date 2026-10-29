@@ -13,6 +13,7 @@ import { getSavedReaderMode, setSavedReaderMode, type ReaderMode } from "../lib/
 import { Avatar, ConfirmDialog, EmptyState, Modal, SectionHeader, Skeleton, toast } from "../components/Ui";
 import { CharacterPicker } from "../components/CharacterPicker";
 import { BOOK_GENRES } from "../lib/genres";
+import { saveProfileTheme } from "../lib/appearanceApi";
 
 const AVATARS = ["🐼", "🐶", "🦊", "🐰", "🐻", "🐨", "🌸", "🎀", "✨", "🦋", "🌷", "📚", "🍡", "🐧", "🦉"];
 const MAX_SHELF = 12;
@@ -37,6 +38,8 @@ export function Profile() {
   const [draftDisplayName, setDraftDisplayName] = useState("");
   const [draftHandle, setDraftHandle] = useState("");
   const [draftGenres, setDraftGenres] = useState<string[]>([]);
+  const [draftInstagram, setDraftInstagram] = useState("");
+  const [draftTiktok, setDraftTiktok] = useState("");
   const [draftShelf, setDraftShelf] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -61,6 +64,8 @@ export function Profile() {
         setDraftDisplayName(p.displayName || p.username);
         setDraftHandle(p.handle || p.username.toLowerCase());
         setDraftGenres(p.favoriteGenres || []);
+        setDraftInstagram(p.instagram || "");
+        setDraftTiktok(p.tiktok || "");
         setDraftShelf(p.shelf || []);
         saveSession(p);
         notifySessionChanged();
@@ -69,10 +74,14 @@ export function Profile() {
     });
   }, [username]);
 
+  useEffect(() => {
+    if (username) saveProfileTheme(settings.scene).catch(() => {});
+  }, [username, settings.scene]);
+
   const byId = useMemo(() => new Map(books.map((b) => [b.id, b])), [books]);
   const shelfBooks = (profile?.shelf || []).map((id) => byId.get(id)).filter(Boolean) as Book[];
 
-  const persist = async (bio: string, avatar: string, shelf: string[], identity?: { displayName: string; handle: string; favoriteGenres: string[] }) => {
+  const persist = async (bio: string, avatar: string, shelf: string[], identity?: { displayName: string; handle: string; favoriteGenres: string[]; instagram?: string; tiktok?: string }) => {
     setIsSaving(true);
     try {
       const updated = await updateProfile({ bio, avatar, shelf, ...identity });
@@ -90,11 +99,11 @@ export function Profile() {
   };
 
   const saveProfileEdits = async () => {
-    if (await persist(draftBio.trim(), draftAvatar, profile?.shelf || [], { displayName: draftDisplayName.trim(), handle: draftHandle.trim(), favoriteGenres: draftGenres })) setIsEditing(false);
+    if (await persist(draftBio.trim(), draftAvatar, profile?.shelf || [], { displayName: draftDisplayName.trim(), handle: draftHandle.trim(), favoriteGenres: draftGenres, instagram: draftInstagram, tiktok: draftTiktok })) setIsEditing(false);
   };
 
   const saveShelf = async () => {
-    if (await persist(profile?.bio || "", profile?.avatar || "🐼", draftShelf, { displayName: profile?.displayName || profile?.username || "Leitor", handle: profile?.handle || profile?.username || "leitor", favoriteGenres: profile?.favoriteGenres || [] })) setIsEditingShelf(false);
+    if (await persist(profile?.bio || "", profile?.avatar || "🐼", draftShelf, { displayName: profile?.displayName || profile?.username || "Leitor", handle: profile?.handle || profile?.username || "leitor", favoriteGenres: profile?.favoriteGenres || [], instagram: profile?.instagram, tiktok: profile?.tiktok })) setIsEditingShelf(false);
   };
 
   const toggleShelfBook = (id: string) => {
@@ -153,6 +162,7 @@ export function Profile() {
           <div className="mb-profile-name-row"><h1>{profile.displayName || profile.username}</h1><button onClick={() => setIsEditing(true)} className="mb-btn mb-btn-soft"><Pencil size={16} /> Editar perfil</button></div>
           <p className="mb-profile-handle">@{profile.handle || profile.username.toLowerCase()}</p>
           <p className="mb-profile-bio">{profile.bio || "Lendo um capítulo de cada vez."}</p>
+          {(profile.instagram || profile.tiktok) && <div className="flex gap-2 mt-2">{profile.instagram && <a className="mb-chip" href={`https://instagram.com/${profile.instagram}`} target="_blank" rel="noreferrer">Instagram · @{profile.instagram}</a>}{profile.tiktok && <a className="mb-chip" href={`https://tiktok.com/@${profile.tiktok}`} target="_blank" rel="noreferrer">TikTok · @{profile.tiktok}</a>}</div>}
         </div>
       </header>
       <div className="mb-profile-landscape">
@@ -281,6 +291,7 @@ export function Profile() {
       >
         <div className="space-y-4">
           <div className="grid sm:grid-cols-2 gap-3"><label className="mb-label">Nome<input className="mb-input mt-1" value={draftDisplayName} maxLength={60} onChange={(event) => setDraftDisplayName(event.target.value)} /></label><label className="mb-label">@ do perfil<input className="mb-input mt-1" value={draftHandle} maxLength={20} disabled={!!profile.nextHandleChangeAt && profile.nextHandleChangeAt > Date.now()} onChange={(event) => setDraftHandle(event.target.value.replace(/[^a-zA-Z0-9_.]/g, "").toLowerCase())} />{profile.nextHandleChangeAt && profile.nextHandleChangeAt > Date.now() ? <small className="block mt-1 text-[var(--text-3)]">Nova alteração em {new Date(profile.nextHandleChangeAt).toLocaleDateString("pt-BR")}.</small> : <small className="block mt-1 text-[var(--text-3)]">Depois de salvar, só poderá trocar novamente em 30 dias.</small>}</label></div>
+          <div className="grid sm:grid-cols-2 gap-3"><label className="mb-label">Instagram<input className="mb-input mt-1" value={draftInstagram} onChange={(event) => setDraftInstagram(event.target.value)} placeholder="@seuinstagram" /></label><label className="mb-label">TikTok<input className="mb-input mt-1" value={draftTiktok} onChange={(event) => setDraftTiktok(event.target.value)} placeholder="@seutiktok" /></label></div>
           <div>
             <span className="mb-label">Avatar</span>
             <div className="flex items-center gap-3 mt-2"><Avatar emoji={draftAvatar} size="lg" /><div className="flex flex-wrap gap-2"><button type="button" onClick={() => setIsChoosingCharacter(true)} className="mb-btn mb-btn-outline mb-btn-sm"><Camera size={15} /> Personagens</button><button type="button" onClick={() => setIsChoosingEmote(true)} className="mb-btn mb-btn-outline mb-btn-sm">✨ Emotes</button></div></div>

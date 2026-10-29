@@ -157,6 +157,8 @@ function SignupWizard({ onDone, goLogin, goForgot }: { onDone: (u: string) => vo
 
   const [fullName, setFullName] = useState("");
   const [username, setUsername] = useState("");
+  const [instagram, setInstagram] = useState("");
+  const [tiktok, setTiktok] = useState("");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [devCode, setDevCode] = useState<string | null>(null);
@@ -223,7 +225,7 @@ function SignupWizard({ onDone, goLogin, goForgot }: { onDone: (u: string) => vo
     try {
       const res = await register({
         fullName: fullName.trim(), username: username.trim(), email: email.trim().toLowerCase(),
-        password, code: code.trim(), avatar, allowWeak, favoriteGenres,
+        password, code: code.trim(), avatar, allowWeak, favoriteGenres, instagram, tiktok,
       });
       saveSession(res);
       onDone(res.username);
@@ -262,6 +264,7 @@ function SignupWizard({ onDone, goLogin, goForgot }: { onDone: (u: string) => vo
             <input value={username} onChange={(e) => setUsername(e.target.value.replace(/\s/g, ""))} placeholder="ex.: maria.leitora" className="mb-auth-input" disabled={busy} />
             <p className="text-[11.5px] text-[var(--text-3)] mt-1">2 a 20 caracteres — letras, números, ponto ou _.</p>
           </Field>
+          <div className="grid grid-cols-2 gap-2"><Field label="Instagram (opcional)"><input value={instagram} onChange={(event) => setInstagram(event.target.value)} placeholder="@seuinstagram" className="mb-auth-input" disabled={busy} /></Field><Field label="TikTok (opcional)"><input value={tiktok} onChange={(event) => setTiktok(event.target.value)} placeholder="@seutiktok" className="mb-auth-input" disabled={busy} /></Field></div>
           {error && <ErrorNote>{error}</ErrorNote>}
           <NextButton busy={busy} onClick={submitIdentity} disabled={!fullName.trim() || !username.trim()} />
         </>

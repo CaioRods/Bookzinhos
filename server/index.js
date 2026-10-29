@@ -7,7 +7,8 @@ const crypto = require("crypto");
 const multer = require("multer");
 const { createClient } = require("@supabase/supabase-js");
 const { db, sql, initDB } = require("./db");
-const { HANDLE_CHANGE_DAYS, normalizeHandle, canChangeHandle, normalizeGenres } = require("./profile-rules");
+const { HANDLE_CHANGE_DAYS, normalizeHandle, canChangeHandle, normalizeGenres, normalizeSocialHandle } = require("./profile-rules");
+const { summarizeConversations } = require("./chat-summary");
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -655,6 +656,9 @@ function publicUser(user) {
     handleChangedAt: Number(user.handle_changed_at) || 0,
     nextHandleChangeAt: Number(user.handle_changed_at) ? Number(user.handle_changed_at) + HANDLE_CHANGE_DAYS * 86400000 : 0,
     favoriteGenres: user.favorite_genres ? safeParse(user.favorite_genres) : [],
+    instagram: user.instagram_handle || "",
+    tiktok: user.tiktok_handle || "",
+    themeId: user.profile_theme_id || "lilac",
     bio: user.bio,
     avatar: user.avatar,
     shelf: user.shelf ? safeParse(user.shelf) : [],
@@ -800,12 +804,15 @@ app.post("/auth/register", async (req, res) => {
     const code = String(req.body.code || "");
     const avatar = String(req.body.avatar || "🐼").slice(0, 8) || "🐼";
     const favoriteGenres = normalizeGenres(req.body.favoriteGenres);
+    const instagram = normalizeSocialHandle(req.body.instagram, "instagram");
+    const tiktok = normalizeSocialHandle(req.body.tiktok, "tiktok");
     const allowWeak = req.body.allowWeak === true || req.body.allowWeak === "true";
 
     // Validações — a interface já checa, mas o servidor é a palavra final.
     if (fullName.length < 3) return res.status(400).json({ error: "Escreva seu nome completo." });
     if (!NICK_RE.test(username)) return res.status(400).json({ error: "Apelido inválido (2 a 20 letras, números, . ou _)." });
     if (!EMAIL_RE.test(email)) return res.status(400).json({ error: "E-mail inválido." });
+    if (instagram === null || tiktok === null) return res.status(400).json({ error: "Confira o @ do Instagram ou TikTok." });
 
     // Regra: 8 caracteres sempre. Com a caixa marcada ("deixar minha conta
     // não segura"), isso basta; senão, também exige um número e um símbolo.
@@ -826,8 +833,8 @@ app.post("/auth/register", async (req, res) => {
     const bio = "Novo leitor por aqui ✨";
     const now = Date.now();
     await db.query(sql`
-      INSERT INTO users (username, password, bio, avatar, pandinhas, is_admin, created_at, full_name, email, auth_provider, display_name, handle, favorite_genres)
-      VALUES (${username}, ${hashPassword(password)}, ${bio}, ${avatar}, 0, 0, ${now}, ${fullName}, ${email}, 'senha', ${fullName}, ${normalizeHandle(username)}, ${JSON.stringify(favoriteGenres)})
+      INSERT INTO users (username, password, bio, avatar, pandinhas, is_admin, created_at, full_name, email, auth_provider, display_name, handle, favorite_genres, instagram_handle, tiktok_handle)
+      VALUES (${username}, ${hashPassword(password)}, ${bio}, ${avatar}, 0, 0, ${now}, ${fullName}, ${email}, 'senha', ${fullName}, ${normalizeHandle(username)}, ${JSON.stringify(favoriteGenres)}, ${instagram}, ${tiktok})
     `);
     await db.query(sql`DELETE FROM email_codes WHERE email = ${email} COLLATE NOCASE`);
 
@@ -935,10 +942,13 @@ app.put("/auth/me", async (req, res) => {
       changedAt = Date.now();
     }
     const favoriteGenres = normalizeGenres(req.body.favoriteGenres ?? safeParse(existing.favorite_genres));
+    const instagram = normalizeSocialHandle(req.body.instagram ?? existing.instagram_handle, "instagram");
+    const tiktok = normalizeSocialHandle(req.body.tiktok ?? existing.tiktok_handle, "tiktok");
+    if (instagram === null || tiktok === null) return res.status(400).json({ error: "Confira o @ do Instagram ou TikTok." });
     const nextBio = String(bio ?? existing.bio ?? '').slice(0, 200);
     const nextAvatar = String(avatar ?? existing.avatar ?? '🐼');
     const nextShelf = Array.isArray(shelf) ? shelf : safeParse(existing.shelf);
-    await db.query(sql`UPDATE users SET bio=${nextBio}, avatar=${nextAvatar}, shelf=${JSON.stringify(nextShelf)}, display_name=${displayName}, handle=${requestedHandle}, handle_changed_at=${changedAt}, favorite_genres=${JSON.stringify(favoriteGenres)} WHERE username=${username} COLLATE NOCASE`);
+    await db.query(sql`UPDATE users SET bio=${nextBio}, avatar=${nextAvatar}, shelf=${JSON.stringify(nextShelf)}, display_name=${displayName}, handle=${requestedHandle}, handle_changed_at=${changedAt}, favorite_genres=${JSON.stringify(favoriteGenres)}, instagram_handle=${instagram}, tiktok_handle=${tiktok} WHERE username=${username} COLLATE NOCASE`);
     const [user] = await db.query(sql`SELECT * FROM users WHERE username = ${username} COLLATE NOCASE`);
     res.json(publicUser(user));
   } catch (err) {
@@ -1700,6 +1710,18 @@ app.get("/feed", async (req, res) => {
 });
 
 // ─── CHAT ─────────────────────────────────────────────────────────────────────
+
+app.get("/chat", async (req, res) => {
+  try {
+    const me = currentUser(req);
+    if (!me) return res.status(401).json({ error: "Entre para ver suas conversas." });
+    const [messages, users] = await Promise.all([
+      db.query(sql`SELECT sender, receiver, content, created_at, is_read FROM chat_messages WHERE sender=${me} COLLATE NOCASE OR receiver=${me} COLLATE NOCASE ORDER BY created_at DESC`),
+      db.query(sql`SELECT username, display_name, handle, avatar FROM users`),
+    ]);
+    res.json(summarizeConversations(me, messages, users));
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
 
 app.get("/chat/:otherUser", async (req, res) => {
   try {

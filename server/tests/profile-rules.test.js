@@ -6,11 +6,18 @@ const {
   normalizeHandle,
   canChangeHandle,
   normalizeGenres,
+  normalizeSocialHandle,
 } = require('../profile-rules');
 
 test('normalizeHandle removes @ and lowercases a valid handle', () => {
   assert.equal(normalizeHandle('  @Jude.LeItora  '), 'jude.leitora');
   assert.equal(normalizeHandle('nome com espaço'), null);
+});
+
+test('social handles accept profile URLs and store only the username', () => {
+  assert.equal(normalizeSocialHandle('https://instagram.com/jude.duarte/', 'instagram'), 'jude.duarte');
+  assert.equal(normalizeSocialHandle('@cardan_greenbriar', 'tiktok'), 'cardan_greenbriar');
+  assert.equal(normalizeSocialHandle('nome com espaço', 'instagram'), null);
 });
 
 test('handle can change initially and only after thirty days', () => {

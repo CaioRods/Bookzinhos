@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router";
 import { ArrowLeft, Send, Settings } from "lucide-react";
-import { fetchChat, sendMessage, setNickname, fetchBooks } from "../lib/api";
+import { fetchChat, sendMessage, setNickname, fetchBooks, fetchConversations, fetchUserProfile } from "../lib/api";
 import { getFullUrl } from "../lib/types";
-import type { Book, ChatMessage } from "../lib/types";
+import type { Book, ChatMessage, ChatConversation, UserProfile } from "../lib/types";
 import { getUsername } from "../lib/session";
 import { requireAuth } from "../lib/authGate";
-import { Modal, toast } from "../components/Ui";
+import { Avatar, Modal, toast } from "../components/Ui";
 
 const QUICK_EMOTES = ["🐼", "💕", "✨", "📖", "📚", "🤍", "🌸", "🍭", "🎈"];
 
@@ -19,9 +19,13 @@ export function Chat() {
   const [nickname, setNicknameState] = useState<string | null>(null);
   const [inputValue, setInputValue] = useState("");
   const [books, setBooks] = useState<Book[]>([]);
+  const [conversations, setConversations] = useState<ChatConversation[]>([]);
+  const [otherProfile, setOtherProfile] = useState<UserProfile | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [newNickname, setNewNickname] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const refreshConversations = useCallback(() => fetchConversations().then(setConversations).catch(() => {}), []);
 
   const refresh = useCallback(async () => {
     if (!otherUser) return;
@@ -29,22 +33,25 @@ export function Chat() {
       const chat = await fetchChat(otherUser);
       setMessages(chat.messages || []);
       setNicknameState(chat.nickname);
+      await refreshConversations();
     } catch {
       /* silencioso: a próxima rodada tenta de novo */
     }
-  }, [otherUser]);
+  }, [otherUser, refreshConversations]);
 
   useEffect(() => {
     if (!otherUser) return;
     refresh().then(() => setNewNickname((n) => n || ""));
     fetchBooks().then(setBooks).catch(() => setBooks([]));
+    fetchUserProfile(otherUser).then(setOtherProfile).catch(() => setOtherProfile(null));
+    refreshConversations();
 
     // Só busca mensagens novas com a conversa aberta na tela.
     const interval = window.setInterval(() => {
       if (document.visibilityState === "visible") refresh();
     }, 5000);
     return () => window.clearInterval(interval);
-  }, [otherUser, refresh]);
+  }, [otherUser, refresh, refreshConversations]);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -77,15 +84,18 @@ export function Chat() {
 
   return (
     <div className="mb-chat-stage h-screen bg-background">
+      <div className="mb-chat-shell">
+      <aside className="mb-chat-list" aria-label="Outras conversas">
+        <div className="mb-chat-list-heading"><button onClick={() => navigate(-1)} aria-label="Voltar" className="mb-btn mb-btn-ghost mb-btn-icon"><ArrowLeft className="w-5 h-5" /></button><div><strong>Mensagens</strong><small>{conversations.reduce((total, item) => total + item.unreadCount, 0)} não lidas</small></div></div>
+        <div className="mb-chat-list-scroll">{conversations.map((conversation) => <Link key={conversation.username} to={`/chat/${encodeURIComponent(conversation.username)}`} className={`mb-chat-contact ${conversation.username.toLowerCase() === otherUser?.toLowerCase() ? "is-active" : ""}`}><span className="relative"><Avatar emoji={conversation.avatar} size="md" />{conversation.unreadCount > 0 && <b>{conversation.unreadCount > 9 ? "9+" : conversation.unreadCount}</b>}</span><span><strong>{conversation.displayName}</strong><small>{conversation.lastMessage}</small></span><time>{new Date(conversation.createdAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}</time></Link>)}{conversations.length === 0 && <p className="mb-chat-list-empty">Suas conversas aparecerão aqui.</p>}</div>
+      </aside>
       <div className="mb-chat flex flex-col bg-[var(--surface)]">
       <header className="mb-chat-header flex-shrink-0 h-16 px-3 flex items-center justify-between border-b border-[var(--line)] bg-[var(--surface)]/95 backdrop-blur-xl">
         <div className="flex items-center gap-2 min-w-0">
-          <button onClick={() => navigate(-1)} aria-label="Voltar" className="mb-btn mb-btn-ghost mb-btn-icon">
-            <ArrowLeft className="w-5 h-5" />
-          </button>
+          <Avatar emoji={otherProfile?.avatar} size="sm" username={otherProfile?.username} />
           <Link to={`/user/${encodeURIComponent(otherUser || "")}`} className="min-w-0">
             <span className="flex items-center gap-2">
-              <span className="text-[15px] font-semibold text-foreground truncate">{otherUser}</span>
+              <span className="text-[15px] font-semibold text-foreground truncate">{otherProfile?.displayName || otherUser}</span>
               {nickname && <span className="mb-chip mb-chip-primary">@{nickname}</span>}
             </span>
             <span className="block text-[11.5px] text-[var(--text-3)]">Ver perfil</span>
@@ -184,7 +194,7 @@ export function Chat() {
         </div>
       </div>
 
-      </div>
+      </div></div>
       <Modal
         open={showSettings}
         onClose={() => setShowSettings(false)}

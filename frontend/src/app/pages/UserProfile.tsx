@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
 import { useParams, useNavigate, Link } from "react-router";
 import { ArrowLeft, MessageCircle, UserPlus, UserCheck, Star } from "lucide-react";
 import { fetchBooks, fetchUserProfile, followUser, unfollowUser } from "../lib/api";
@@ -8,6 +8,10 @@ import { requireAuth } from "../lib/authGate";
 import { getCoverGradient, getFullUrl, timeAgo } from "../lib/types";
 import type { Book, UserProfile as UserProfileType } from "../lib/types";
 import { Avatar, EmptyState, Skeleton, Stars, toast } from "../components/Ui";
+import { fetchProfileTheme } from "../lib/appearanceApi";
+import { DEFAULT_THEMES } from "../lib/themeCatalog";
+import { accentVariables, type SceneTheme } from "../lib/appearance";
+import { ThemeImage } from "../components/ThemeImage";
 
 type Tab = "resenhas" | "estante" | "lidos" | "favoritos";
 
@@ -17,13 +21,15 @@ export function UserProfile() {
   const me = getUsername();
   const [tab, setTab] = useState<Tab>("resenhas");
 
-  const { data, isLoading, setData } = useLiveData<{ profile: UserProfileType | null; books: Book[] }>(
+  const { data, isLoading, setData } = useLiveData<{ profile: UserProfileType | null; books: Book[]; profileTheme: SceneTheme | null }>(
     async (force) => {
-      const [profile, books] = await Promise.all([
+      const [profile, books, remoteTheme] = await Promise.all([
         fetchUserProfile(username!, force),
         fetchBooks(force),
+        fetchProfileTheme(username!).catch(() => null),
       ]);
-      return { profile, books };
+      const profileTheme = remoteTheme && "mainColor" in remoteTheme ? remoteTheme : DEFAULT_THEMES.find((theme) => theme.id === remoteTheme?.id || theme.id === profile?.themeId) || DEFAULT_THEMES[0];
+      return { profile, books, profileTheme };
     },
     [username],
     { intervalMs: 60000 }
@@ -31,6 +37,7 @@ export function UserProfile() {
 
   const profile = data?.profile ?? null;
   const books = data?.books ?? [];
+  const profileTheme = data?.profileTheme || DEFAULT_THEMES[0];
   const isMe = profile?.username.toLowerCase() === me?.toLowerCase();
 
   const byId = useMemo(() => new Map(books.map((b) => [b.id, b])), [books]);
@@ -104,12 +111,13 @@ export function UserProfile() {
   ];
 
   return (
-    <div className="mb-screen mb-screen--narrow mb-userprofile space-y-6">
+    <div className="mb-screen mb-screen--narrow mb-userprofile space-y-6" style={accentVariables(profileTheme.mainColor, document.documentElement.classList.contains("dark")) as CSSProperties}>
       <button onClick={() => navigate(-1)} className="mb-btn mb-btn-outline mb-btn-sm">
         <ArrowLeft className="w-4 h-4" /> Voltar
       </button>
 
       {/* ── Cabeçalho do perfil ────────────────────────────────────────────── */}
+      <div className="mb-public-profile-banner" style={{ backgroundColor: profileTheme.mainColor }}><ThemeImage theme={profileTheme} crop={profileTheme.profile} /><span>{profileTheme.name}</span></div>
       <header className="mb-profile-hero mb-card p-5 sm:p-6"><p className="mb-eyebrow mb-6">UM LEITOR, MUITAS HISTÓRIAS</p>
         <div className="flex items-start gap-4">
           <Avatar emoji={profile.avatar} size="xl" />
@@ -120,6 +128,7 @@ export function UserProfile() {
               {!!profile.pandinhas && <span className="mb-chip">🐼 {profile.pandinhas}</span>}
             </div>
             <p className="text-xs text-[var(--text-3)] mt-0.5">@{profile.handle || profile.username.toLowerCase()}</p>
+            {(profile.instagram || profile.tiktok) && <div className="flex flex-wrap gap-2 mt-2">{profile.instagram && <a className="mb-chip" href={`https://instagram.com/${profile.instagram}`} target="_blank" rel="noreferrer">Instagram · @{profile.instagram}</a>}{profile.tiktok && <a className="mb-chip" href={`https://tiktok.com/@${profile.tiktok}`} target="_blank" rel="noreferrer">TikTok · @{profile.tiktok}</a>}</div>}
             <p className="text-[13.5px] text-[var(--text-2)] leading-relaxed mt-1.5">
               {profile.bio || "Ainda escrevendo a própria história…"}
             </p>

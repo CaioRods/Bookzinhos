@@ -96,6 +96,9 @@ export interface UserProfile {
   handleChangedAt?: number;
   nextHandleChangeAt?: number;
   favoriteGenres?: string[];
+  instagram?: string;
+  tiktok?: string;
+  themeId?: string;
   bio: string;
   avatar: string;
   shelf: string[];
@@ -132,6 +135,16 @@ export interface ChatMessage {
   shared_book_id?: string | null;
   is_read: number;
   created_at: number;
+}
+
+export interface ChatConversation {
+  username: string;
+  displayName: string;
+  handle: string;
+  avatar?: string | null;
+  lastMessage: string;
+  createdAt: number;
+  unreadCount: number;
 }
 
 export interface AppNotification {
