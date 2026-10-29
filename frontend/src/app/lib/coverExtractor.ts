@@ -50,6 +50,7 @@ export async function extractAndUploadCover(book: Book, onUpdated?: (updated: Bo
 
     const uploadRes = await fetch(`${API_BASE_URL}/books/${book.id}/cover`, {
       method: "POST",
+      credentials: "include",
       body: form,
     });
 

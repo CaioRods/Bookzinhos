@@ -1,5 +1,4 @@
 import { API_BASE_URL } from "./config";
-import { getUsername } from "./session";
 export type Reaction = "heart" | "panda" | "sad" | "moved";
 export const REACTIONS = ["heart", "panda", "sad", "moved"] as const satisfies readonly Reaction[];
 export const normalizeReaction = (value: unknown): Reaction | null =>
@@ -35,9 +34,9 @@ export interface Series {
 export async function uploadCommunityImage(file: File): Promise<string | null> {
   const response = await fetch(API_BASE_URL + "/books/presigned-url", {
     method: "POST",
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
-      "x-user-id": getUsername() || "anonymous",
     },
     body: JSON.stringify({ fileName: file.name, fileType: file.type }),
   });
@@ -59,8 +58,8 @@ export async function communityApi<T>(
 ): Promise<T> {
   const response = await fetch(API_BASE_URL + path, {
     method,
+    credentials: "include",
     headers: {
-      "x-user-id": getUsername() || "anonymous",
       ...(body instanceof FormData
         ? {}
         : { "Content-Type": "application/json" }),

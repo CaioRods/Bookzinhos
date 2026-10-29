@@ -1,9 +1,8 @@
 import { API_BASE_URL } from "./config";
-import { getUsername } from "./session";
 import { invalidate } from "./api";
 import type { BookAppearance, SceneTheme } from "./appearance";
 async function call<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, { ...options, cache: "no-store", headers: { "x-user-id": getUsername() || "anonymous", ...options.headers } });
+  const response = await fetch(`${API_BASE_URL}${path}`, { ...options, credentials: "include", cache: "no-store", headers: { ...options.headers } });
   const data = await response.json().catch(() => null);
   if (!response.ok) throw new Error(data?.error || (response.status === 404 ? "Atualize a API do servidor para habilitar a personalização." : "Não foi possível salvar a personalização."));
   return data;

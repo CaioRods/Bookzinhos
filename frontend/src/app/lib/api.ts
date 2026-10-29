@@ -50,11 +50,11 @@ export function invalidate(...fragments: string[]): void {
 
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   const url = `${API_BASE_URL}${path}`;
-  const userId = localStorage.getItem("books-username") || "anonymous";
 
   const res = await fetch(url, {
     method,
-    headers: { "Content-Type": "application/json", "x-user-id": userId },
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
 
@@ -91,10 +91,9 @@ async function cachedGet<T>(path: string, ttl = DEFAULT_TTL): Promise<T> {
 
 /** Upload multipart (arquivos) — nunca passa pelo cache. */
 async function upload<T>(method: string, path: string, form: FormData): Promise<T> {
-  const userId = localStorage.getItem("books-username") || "anonymous";
   const res = await fetch(`${API_BASE_URL}${path}`, {
     method,
-    headers: { "x-user-id": userId },
+    credentials: "include",
     body: form,
   });
   if (!res.ok) throw new Error(await readError(res));
@@ -174,8 +173,6 @@ export async function uploadBook(data: {
   pdfFile: File;
   coverFile?: File;
 }): Promise<Book> {
-  const userId = localStorage.getItem("books-username") || "anonymous";
-
   const existing = await fetchBooks(true).catch(() => [] as Book[]);
   const duplicate = existing.find(
     (b) =>
@@ -188,7 +185,8 @@ export async function uploadBook(data: {
     // Caminho rápido: upload direto para o storage via URL assinada.
     const presignedRes = await fetch(`${API_BASE_URL}/books/presigned-url`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "x-user-id": userId },
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ fileName: data.pdfFile.name, fileType: "application/pdf" }),
     });
 
@@ -205,7 +203,8 @@ export async function uploadBook(data: {
       if (data.coverFile) {
         const coverPresignedRes = await fetch(`${API_BASE_URL}/books/presigned-url`, {
           method: "POST",
-          headers: { "Content-Type": "application/json", "x-user-id": userId },
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ fileName: data.coverFile.name, fileType: data.coverFile.type }),
         });
         if (coverPresignedRes.ok) {
