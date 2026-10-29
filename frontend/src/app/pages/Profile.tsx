@@ -165,11 +165,11 @@ export function Profile() {
           {(profile.instagram || profile.tiktok) && <div className="flex gap-2 mt-2">{profile.instagram && <a className="mb-chip" href={`https://instagram.com/${profile.instagram}`} target="_blank" rel="noreferrer">Instagram · @{profile.instagram}</a>}{profile.tiktok && <a className="mb-chip" href={`https://tiktok.com/@${profile.tiktok}`} target="_blank" rel="noreferrer">TikTok · @{profile.tiktok}</a>}</div>}
         </div>
       </header>
-      <div className="mb-profile-landscape">
+      {settings.scene !== "none" && <div className="mb-profile-landscape">
         <Scenery scene={settings.scene} />
         <blockquote>“Boas histórias<br />nos levam mais longe.”<span /></blockquote>
         <button className="mb-btn" onClick={() => document.getElementById("profile-scenery")?.scrollIntoView({ behavior: settings.reduceMotion ? "instant" : "smooth", block: "center" })}><Camera size={17} /> Alterar cenário</button>
-      </div>
+      </div>}
       <div className="mb-profile-metrics">{statCards.map(({ label, value, icon: Icon }) => <div key={label}><Icon size={25} /><span><strong>{value}</strong><small>{label}</small></span></div>)}</div>
       <ScenePicker />
 

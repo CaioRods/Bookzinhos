@@ -16,8 +16,8 @@ function database() {
 test('one character identity can be linked to several ordered saga volumes', async (t) => {
   const { connection, db } = database();
   const sql = (parts, ...values) => ({ text: parts.join('?'), values });
-  await db.query('CREATE TABLE books(id TEXT PRIMARY KEY, title TEXT, series_id TEXT, series_name TEXT, series_order INTEGER)');
-  await db.query("INSERT INTO books VALUES ('cruel','O Príncipe Cruel','folk','O povo do ar',1),('wicked','O Rei Perverso','folk','O povo do ar',2),('queen','A Rainha do Nada','folk','O povo do ar',3)");
+  await db.query('CREATE TABLE books(id TEXT PRIMARY KEY, title TEXT, cover_image_path TEXT, series_id TEXT, series_name TEXT, series_order INTEGER)');
+  await db.query("INSERT INTO books VALUES ('cruel','O Príncipe Cruel','/cruel.jpg','folk','O povo do ar',1),('wicked','O Rei Perverso','/wicked.jpg','folk','O povo do ar',2),('queen','A Rainha do Nada','/queen.jpg','folk','O povo do ar',3)");
   const app = express();
   app.use(express.json());
   const requireAdmin = (req, res, next) => req.get('x-user-id') === 'Admin' ? next() : res.sendStatus(403);
@@ -37,6 +37,7 @@ test('one character identity can be linked to several ordered saga volumes', asy
   assert.deepEqual(catalog.characters[0].bookIds.sort(), ['cruel', 'queen']);
   assert.equal(catalog.groups[0].seriesName, 'O povo do ar');
   assert.deepEqual(catalog.groups[0].books.map((book) => book.id), ['cruel', 'wicked', 'queen']);
+  assert.equal(catalog.groups[0].books[0].coverImagePath, '/cruel.jpg');
   assert.equal(catalog.groups[0].characterIds.filter((id) => id === catalog.characters[0].id).length, 1);
 
   const reuse = new FormData();
@@ -52,8 +53,8 @@ test('one character identity can be linked to several ordered saga volumes', asy
 test('legacy book link backfill is repeatable and invalid books are rejected', async (t) => {
   const { connection, db } = database();
   const sql = (parts, ...values) => ({ text: parts.join('?'), values });
-  await db.query('CREATE TABLE books(id TEXT PRIMARY KEY, title TEXT, series_id TEXT, series_name TEXT, series_order INTEGER)');
-  await db.query("INSERT INTO books VALUES ('cruel','O Príncipe Cruel','folk','O povo do ar',1)");
+  await db.query('CREATE TABLE books(id TEXT PRIMARY KEY, title TEXT, cover_image_path TEXT, series_id TEXT, series_name TEXT, series_order INTEGER)');
+  await db.query("INSERT INTO books VALUES ('cruel','O Príncipe Cruel','/cruel.jpg','folk','O povo do ar',1)");
   await db.query('CREATE TABLE character_avatars(id TEXT PRIMARY KEY,name TEXT,book_id TEXT,image_url TEXT,created_at INTEGER)');
   await db.query("INSERT INTO character_avatars VALUES ('jude','Jude Duarte','cruel','/jude.webp',1)");
   const app = express();

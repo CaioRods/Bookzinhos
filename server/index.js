@@ -665,7 +665,7 @@ function publicUser(user) {
     favoriteGenres: user.favorite_genres ? safeParse(user.favorite_genres) : [],
     instagram: user.instagram_handle || "",
     tiktok: user.tiktok_handle || "",
-    themeId: user.profile_theme_id || "lilac",
+    themeId: user.profile_theme_id || "none",
     bio: user.bio,
     avatar: user.avatar,
     shelf: user.shelf ? safeParse(user.shelf) : [],
@@ -840,12 +840,12 @@ app.post("/auth/register", async (req, res) => {
     const bio = "Novo leitor por aqui ✨";
     const now = Date.now();
     await db.query(sql`
-      INSERT INTO users (username, password, bio, avatar, pandinhas, is_admin, created_at, full_name, email, auth_provider, display_name, handle, favorite_genres, instagram_handle, tiktok_handle)
-      VALUES (${username}, ${hashPassword(password)}, ${bio}, ${avatar}, 0, 0, ${now}, ${fullName}, ${email}, 'senha', ${fullName}, ${normalizeHandle(username)}, ${JSON.stringify(favoriteGenres)}, ${instagram}, ${tiktok})
+      INSERT INTO users (username, password, bio, avatar, pandinhas, is_admin, created_at, full_name, email, auth_provider, display_name, handle, favorite_genres, instagram_handle, tiktok_handle, profile_theme_id)
+      VALUES (${username}, ${hashPassword(password)}, ${bio}, ${avatar}, 0, 0, ${now}, ${fullName}, ${email}, 'senha', ${fullName}, ${normalizeHandle(username)}, ${JSON.stringify(favoriteGenres)}, ${instagram}, ${tiktok}, 'none')
     `);
     await db.query(sql`DELETE FROM email_codes WHERE email = ${email} COLLATE NOCASE`);
 
-    res.status(201).json({ username, bio, avatar, shelf: [], pandinhas: 0, isAdmin: false });
+    res.status(201).json({ username, bio, avatar, shelf: [], pandinhas: 0, isAdmin: false, themeId: 'none' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -916,8 +916,8 @@ app.post("/auth/google", async (req, res) => {
     }
     const now = Date.now();
     await db.query(sql`
-      INSERT INTO users (username, password, bio, avatar, pandinhas, is_admin, created_at, full_name, email, auth_provider, display_name, handle)
-      VALUES (${username}, '', 'Novo leitor por aqui ✨', '🐼', 0, 0, ${now}, ${String(info.name || "")}, ${email}, 'google', ${String(info.name || username)}, ${normalizeHandle(username)})
+      INSERT INTO users (username, password, bio, avatar, pandinhas, is_admin, created_at, full_name, email, auth_provider, display_name, handle, profile_theme_id)
+      VALUES (${username}, '', 'Novo leitor por aqui ✨', '🐼', 0, 0, ${now}, ${String(info.name || "")}, ${email}, 'google', ${String(info.name || username)}, ${normalizeHandle(username)}, 'none')
     `);
     const [created] = await db.query(sql`SELECT * FROM users WHERE username = ${username} COLLATE NOCASE`);
     res.status(201).json({ ...publicUser(created), isNew: true });

@@ -65,7 +65,7 @@ function buildCatalog(characterRows, linkRows, books, filterBookId = '') {
     }
     group.books = group.books
       .sort((a, b) => Number(a.series_order || 0) - Number(b.series_order || 0) || a.title.localeCompare(b.title))
-      .map((book) => ({ id: book.id, title: book.title, seriesOrder: book.series_order == null ? null : Number(book.series_order) }));
+      .map((book) => ({ id: book.id, title: book.title, coverImagePath: book.cover_image_path || null, seriesOrder: book.series_order == null ? null : Number(book.series_order) }));
   }
   return { characters, groups: [...groups.values()] };
 }
@@ -111,7 +111,7 @@ module.exports = function registerCharacters({ app, db, sql, upload, requireAdmi
     const [characters, links, books] = await Promise.all([
       db.query('SELECT * FROM character_avatars ORDER BY name'),
       db.query('SELECT character_id, book_id FROM character_books ORDER BY character_id, book_id'),
-      db.query('SELECT id,title,series_id,series_name,series_order FROM books ORDER BY title'),
+      db.query('SELECT id,title,cover_image_path,series_id,series_name,series_order FROM books ORDER BY title'),
     ]);
     return buildCatalog(characters, links, books, filterBookId);
   }

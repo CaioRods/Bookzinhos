@@ -6,10 +6,12 @@ import { levelTier, ProfileProgressAvatar } from "./ProfileProgressAvatar";
 
 describe("ProfileProgressAvatar", () => {
   it("shows circular progress, level and reader category beneath the avatar", () => {
-    render(<ProfileProgressAvatar avatar="🐼" level={12} title="Aprendiz" totalXp={120} currentLevelXp={100} nextLevelXp={200} />);
+    const { container } = render(<ProfileProgressAvatar avatar="🐼" level={12} title="Aprendiz" totalXp={120} currentLevelXp={100} nextLevelXp={200} />);
     expect(screen.getByRole("progressbar", { name: /progresso para o nível 13/i })).toHaveAttribute("aria-valuenow", "20");
     expect(screen.getByText("12")).toHaveClass("mb-level-medallion");
     expect(screen.getByText("Aprendiz")).toBeInTheDocument();
+    expect(container.querySelector(".mb-profile-progress-ring > .mb-level-medallion")).not.toBeInTheDocument();
+    expect(container.querySelector(".mb-profile-progress-ring + .mb-level-medallion")).toBeInTheDocument();
   });
 
   it("maps level ranges to iron, bronze, gold, blue and diamond", () => {

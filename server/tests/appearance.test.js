@@ -9,11 +9,12 @@ test('theme ownership, concurrent limit, public overrides and book appearance pe
   const connection = new sqlite3.Database(':memory:');
   const db = { query: query => new Promise((resolve, reject) => connection.all(typeof query === 'string' ? query : query.text, query.values || [], (error, rows) => error ? reject(error) : resolve(rows))) };
   const sql = (parts, ...values) => ({ text: parts.join('?'), values });
-  await db.query('CREATE TABLE users(username TEXT PRIMARY KEY, is_admin INTEGER)');
-  await db.query("INSERT INTO users VALUES ('Reader', 0), ('Other', 0), ('Admin', 1)");
+  await db.query('CREATE TABLE users(username TEXT PRIMARY KEY, is_admin INTEGER, profile_theme_id TEXT)');
+  await db.query("INSERT INTO users VALUES ('Reader', 0, NULL), ('Other', 0, NULL), ('Admin', 1, NULL)");
   await db.query('CREATE TABLE books(id TEXT PRIMARY KEY, appearance_json TEXT)');
   await db.query("INSERT INTO books VALUES ('book-1', NULL)");
   const app = express();
+  app.use(express.json());
   const currentUser = req => req.get('x-user-id');
   const requireAdmin = async (req, res, next) => {
     const [user] = await db.query(sql`SELECT * FROM users WHERE username = ${currentUser(req)}`);
@@ -47,6 +48,8 @@ test('theme ownership, concurrent limit, public overrides and book appearance pe
   assert.equal((await save('Admin', 'system', 'lilac', { ...config, name: 'Updated' })).status, 200);
   assert.equal((await list())[0].name, 'Updated');
   assert.equal((await save('Admin', 'system', '', { ...config, reference: { bookId: 'missing' } })).status, 400);
+  assert.equal((await fetch(base + '/appearance/profile', { method: 'PUT', headers: { 'content-type': 'application/json', 'x-user-id': 'Reader' }, body: JSON.stringify({ themeId: 'none' }) })).status, 200);
+  assert.equal((await (await fetch(base + '/appearance/profile/Reader')).json()).id, 'none');
   const appearance = { imageUrl: '/banner.webp', mainColor: '#335577', blur: 48, opacity: .6, crop: { x: 30, y: 60, zoom: 2 } };
   const updateBook = user => { const body = new FormData(); body.set('config', JSON.stringify(appearance)); return fetch(base + '/books/book-1/appearance', { method: 'PUT', headers: { 'x-user-id': user }, body }); };
   assert.equal((await updateBook('Reader')).status, 403);

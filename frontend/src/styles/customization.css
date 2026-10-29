@@ -2,6 +2,17 @@
   .mb-scene-section-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 18px; margin-bottom: 18px; }
   .mb-scene-section-heading p { font-size: 12px; color: var(--text-2); margin-top: 6px; }
   .mb-theme-tile { min-width: 0; }
+  .mb-personalization-panel { padding: 18px; border: 1px solid var(--line); border-radius: 20px; background: var(--surface); }
+  .mb-theme-book-group + .mb-theme-book-group { margin-top: 26px; padding-top: 22px; border-top: 1px solid var(--line); }
+  .mb-theme-book-group > header { margin-bottom: 12px; }
+  .mb-theme-book-group > header > a { display: inline-flex; align-items: center; gap: 10px; color: var(--foreground); }
+  .mb-theme-book-group > header > a > span,.mb-character-book-heading > span { width: 38px; height: 52px; display: grid; place-items: center; overflow: hidden; border-radius: 7px; background: var(--surface-2); color: var(--primary); }
+  .mb-theme-book-group > header img,.mb-character-book-heading img { width: 100%; height: 100%; object-fit: cover; }
+  .mb-theme-book-group > header strong,.mb-theme-book-group > header h3 { font-family: var(--font-display); font-size: 18px; }
+  .mb-character-book-group { display: grid; gap: 12px; }
+  .mb-character-book-group + .mb-character-book-group { padding-top: 16px; border-top: 1px solid var(--line); }
+  .mb-character-book-heading { display: inline-flex; width: fit-content; align-items: center; gap: 10px; color: var(--foreground); }
+  .mb-character-book-heading strong { max-width: 260px; font-size: 12px; line-height: 1.35; }
   .mb-theme-tile > .mb-scene-option { width: 100%; display: block; }
   .mb-theme-tile > footer { display: flex; align-items: center; gap: 5px; margin-top: 9px; }
   .mb-theme-tile > footer > span { flex: 1; font-size: 10px; color: var(--text-3); }
@@ -86,6 +97,9 @@
     #profile-scenery { scroll-margin-top: 85px; }
   }
   @media (max-width: 767px) {
+    .mb-notifications-panel { position: fixed !important; top: 68px !important; left: 12px !important; right: 12px !important; width: auto !important; max-width: none !important; max-height: calc(100dvh - 82px); border-radius: 20px; }
+    .mb-notifications-scroll { max-height: calc(100dvh - 146px) !important; overscroll-behavior: contain; }
+    .mb-personalization-panel { padding: 14px; border-radius: 16px; }
     .mb-book-picker-grid { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 15px; }
     .mb-theme-form-row { grid-template-columns: minmax(0,1fr) 85px; gap: 12px; }
     .mb-crop-frame.is-profile { aspect-ratio: 2.5; }

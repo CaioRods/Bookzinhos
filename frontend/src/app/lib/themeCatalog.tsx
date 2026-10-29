@@ -3,7 +3,8 @@ import { SCENES } from "./scenery";
 import { CENTER_CROP, type SceneTheme } from "./appearance";
 import { fetchThemes } from "./appearanceApi";
 import { getUsername } from "./session";
-export const DEFAULT_THEMES: SceneTheme[] = SCENES.map(scene => ({ id: scene.id, name: scene.name, scope: "system", imageUrl: "/scenery/landscapes.webp", width: 1536, height: 1024, atlas: { column: scene.column, row: scene.row }, mainColor: "#64344f", profile: { ...CENTER_CROP }, sidebar: { ...CENTER_CROP }, sidebarOpacity: .75 }));
+export const NO_THEME: SceneTheme = { id: "none", name: "Sem tema", scope: "system", imageUrl: "", width: 1536, height: 1024, atlas: null, mainColor: "#64344f", profile: { ...CENTER_CROP }, sidebar: { ...CENTER_CROP }, sidebarOpacity: 0 };
+export const DEFAULT_THEMES: SceneTheme[] = [NO_THEME, ...SCENES.map(scene => ({ id: scene.id, name: scene.name, scope: "system" as const, imageUrl: "/scenery/landscapes.webp", width: 1536, height: 1024, atlas: { column: scene.column, row: scene.row }, mainColor: "#64344f", profile: { ...CENTER_CROP }, sidebar: { ...CENTER_CROP }, sidebarOpacity: .75 }))];
 const Context = createContext<{ themes: SceneTheme[]; loading: boolean; error: string; refresh: () => Promise<void>; upsert: (theme: SceneTheme) => void; remove: (id: string) => void }>({ themes: DEFAULT_THEMES, loading: true, error: "", refresh: async () => {}, upsert: () => {}, remove: () => {} });
 function merged(records: SceneTheme[]) {
   const map = new Map(DEFAULT_THEMES.map(theme => [theme.id, theme]));

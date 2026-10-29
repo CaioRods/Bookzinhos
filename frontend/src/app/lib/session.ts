@@ -75,6 +75,13 @@ export function saveSession(user: Partial<UserProfile> & { username: string }): 
   if (user.avatar != null) localStorage.setItem(KEYS.avatar, user.avatar);
   localStorage.setItem(KEYS.admin, String(!!user.isAdmin));
   if (user.shelf) localStorage.setItem(KEYS.shelf, JSON.stringify(user.shelf));
+  if (user.themeId !== undefined) {
+    try {
+      const settings = JSON.parse(localStorage.getItem("mybooks-settings") || "{}");
+      localStorage.setItem("mybooks-settings", JSON.stringify({ ...settings, scene: user.themeId || "none" }));
+      window.dispatchEvent(new CustomEvent("mybooks:settings"));
+    } catch { /* preferências inválidas serão restauradas pela tela de configurações */ }
+  }
   notifySessionChanged();
 }
 

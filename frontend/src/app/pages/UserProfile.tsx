@@ -9,7 +9,7 @@ import { getCoverGradient, getFullUrl, timeAgo } from "../lib/types";
 import type { Book, ProgressionSummary, UserProfile as UserProfileType } from "../lib/types";
 import { Avatar, EmptyState, Skeleton, Stars, toast } from "../components/Ui";
 import { fetchProfileTheme } from "../lib/appearanceApi";
-import { DEFAULT_THEMES } from "../lib/themeCatalog";
+import { DEFAULT_THEMES, NO_THEME } from "../lib/themeCatalog";
 import { accentVariables, type SceneTheme } from "../lib/appearance";
 import { ThemeImage } from "../components/ThemeImage";
 import { BadgeGallery } from "../components/BadgeGallery";
@@ -48,7 +48,7 @@ export function UserProfile() {
 
   const profile = data?.profile ?? null;
   const books = data?.books ?? [];
-  const profileTheme = data?.profileTheme || DEFAULT_THEMES[0];
+  const profileTheme = data?.profileTheme || NO_THEME;
   const progression = data?.progression || null;
   const isMe = profile?.username.toLowerCase() === me?.toLowerCase();
 
@@ -129,7 +129,7 @@ export function UserProfile() {
       </button>
 
       {/* ── Cabeçalho do perfil ────────────────────────────────────────────── */}
-      <div className="mb-public-profile-banner" style={{ backgroundColor: profileTheme.mainColor }}><ThemeImage theme={profileTheme} crop={profileTheme.profile} /><span>{profileTheme.name}</span></div>
+      {profileTheme.id !== "none" && <div className="mb-public-profile-banner" style={{ backgroundColor: profileTheme.mainColor }}><ThemeImage theme={profileTheme} crop={profileTheme.profile} /><span>{profileTheme.name}</span></div>}
       <header className="mb-profile-hero mb-card p-5 sm:p-6"><p className="mb-eyebrow mb-6">UM LEITOR, MUITAS HISTÓRIAS</p>
         <div className="flex items-start gap-4">
           {progression ? <ProfileProgressAvatar avatar={profile.avatar} level={progression.level} title={progression.title} totalXp={progression.totalXp} currentLevelXp={progression.currentLevelXp} nextLevelXp={progression.nextLevelXp} /> : <Avatar emoji={profile.avatar} size="xl" />}

@@ -132,7 +132,7 @@ export interface CharacterGroup {
   id: string;
   seriesId: string | null;
   seriesName: string;
-  books: { id: string; title: string; seriesOrder: number | null }[];
+  books: { id: string; title: string; coverImagePath?: string | null; seriesOrder: number | null }[];
   characterIds: string[];
 }
 

@@ -411,7 +411,7 @@ async function initDB() {
   await ensureColumn("users", "favorite_genres", "TEXT NOT NULL DEFAULT '[]'");
   await ensureColumn("users", "instagram_handle", "TEXT NOT NULL DEFAULT ''");
   await ensureColumn("users", "tiktok_handle", "TEXT NOT NULL DEFAULT ''");
-  await ensureColumn("users", "profile_theme_id", "TEXT NOT NULL DEFAULT 'lilac'");
+  await ensureColumn("users", "profile_theme_id", "TEXT NOT NULL DEFAULT 'none'");
   await ensureColumn("users", "registration_order", "INTEGER NOT NULL DEFAULT 0");
   await ensureColumn("books", "publisher", "TEXT NOT NULL DEFAULT ''");
   await ensureColumn("books", "published_year", "TEXT NOT NULL DEFAULT ''");

@@ -153,7 +153,7 @@ export function NotificationsMenu({ onUnreadChange }: { onUnreadChange?: (n: num
       </button>
 
       {open && (
-        <div className="absolute right-0 top-12 z-50 w-[340px] max-w-[calc(100vw-2rem)] mb-card shadow-[var(--shadow-3)] overflow-hidden animate-scale-in">
+        <div className="mb-notifications-panel absolute right-0 top-12 z-50 w-[340px] max-w-[calc(100vw-2rem)] mb-card shadow-[var(--shadow-3)] overflow-hidden animate-scale-in">
           <div className="flex items-center justify-between px-4 h-12 border-b border-[var(--line)]">
             <span className="text-[14px] font-bold text-foreground">Notificações</span>
             <div className="flex items-center gap-1">
@@ -168,7 +168,7 @@ export function NotificationsMenu({ onUnreadChange }: { onUnreadChange?: (n: num
             </div>
           </div>
 
-          <div className="max-h-[380px] overflow-y-auto">
+          <div className="mb-notifications-scroll max-h-[380px] overflow-y-auto">
             {!settings.notificationsOn ? (
               <div className="px-4 py-8 text-center">
                 <p className="text-[13px] text-[var(--text-3)]">As notificações estão desligadas.</p>
