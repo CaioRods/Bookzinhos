@@ -466,6 +466,20 @@ async function initDB() {
     )
   `);
 
+  await db.query(sql`
+    CREATE TABLE IF NOT EXISTS auth_sessions (
+      id           TEXT PRIMARY KEY,
+      token_hash   TEXT NOT NULL UNIQUE,
+      username     TEXT NOT NULL,
+      created_at   INTEGER NOT NULL,
+      expires_at   INTEGER NOT NULL,
+      last_used_at INTEGER NOT NULL,
+      revoked_at   INTEGER,
+      user_agent   TEXT NOT NULL DEFAULT '',
+      ip_address   TEXT NOT NULL DEFAULT ''
+    )
+  `);
+
   // ─── Índices (performance) ──────────────────────────────────────────────────
   const indexes = [
     "CREATE INDEX IF NOT EXISTS idx_reviews_book ON book_reviews(book_id)",
@@ -487,6 +501,9 @@ async function initDB() {
     "CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)",
     "CREATE UNIQUE INDEX IF NOT EXISTS idx_users_handle ON users(handle COLLATE NOCASE) WHERE handle <> ''",
     "CREATE INDEX IF NOT EXISTS idx_notif_user ON notifications(username, is_read, created_at)",
+    "CREATE UNIQUE INDEX IF NOT EXISTS idx_auth_sessions_token ON auth_sessions(token_hash)",
+    "CREATE INDEX IF NOT EXISTS idx_auth_sessions_user ON auth_sessions(username)",
+    "CREATE INDEX IF NOT EXISTS idx_auth_sessions_expiry ON auth_sessions(expires_at)",
   ];
   for (const stmt of indexes) {
     await trySql({ text: stmt, values: [] });
