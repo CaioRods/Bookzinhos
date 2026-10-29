@@ -4,10 +4,9 @@ import { useNavigate } from "react-router";
 import { ArrowLeft, Upload as UploadIcon } from "lucide-react";
 import { uploadBook, saveProgress } from "../lib/api";
 import { randomCoverColor } from "../lib/types";
+import { GenreField } from "../components/GenreField";
 // @ts-ignore
 import pdfjsWorker from "pdfjs-dist/build/pdf.worker.mjs?url";
-
-const GENRES = ["Romance", "Suspense", "Ficção", "Distopia", "Autoconhecimento", "Desenvolvimento", "História", "Outros"];
 
 async function extractPdfCover(pdfFile: File): Promise<{ cover: File | null; numPages: number } | null> {
   const extractionPromise = (async () => {
@@ -295,21 +294,7 @@ export function Upload() {
             />
           </div>
 
-          <div>
-            <span className="mb-label">Gênero</span>
-            <div className="flex flex-wrap gap-1.5">
-              {GENRES.map((g) => (
-                <button
-                  key={g}
-                  type="button"
-                  onClick={() => setFormData({ ...formData, genre: g })}
-                  className={`mb-btn mb-btn-sm ${formData.genre === g ? "mb-btn-primary" : "mb-btn-outline"}`}
-                >
-                  {g}
-                </button>
-              ))}
-            </div>
-          </div>
+          <GenreField value={formData.genre} onChange={(genre) => setFormData({ ...formData, genre })} />
 
           <div>
             <label htmlFor="up-desc" className="mb-label">Sinopse</label>

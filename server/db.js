@@ -405,6 +405,10 @@ async function initDB() {
   await ensureColumn("users", "email", "TEXT NOT NULL DEFAULT ''");
   // Como a conta foi criada: "senha", "google" ou "" (contas antigas).
   await ensureColumn("users", "auth_provider", "TEXT NOT NULL DEFAULT ''");
+  await ensureColumn("users", "display_name", "TEXT NOT NULL DEFAULT ''");
+  await ensureColumn("users", "handle", "TEXT NOT NULL DEFAULT ''");
+  await ensureColumn("users", "handle_changed_at", "INTEGER NOT NULL DEFAULT 0");
+  await ensureColumn("users", "favorite_genres", "TEXT NOT NULL DEFAULT '[]'");
   await ensureColumn("books", "publisher", "TEXT NOT NULL DEFAULT ''");
   await ensureColumn("books", "published_year", "TEXT NOT NULL DEFAULT ''");
   await ensureColumn("books", "appearance_json", "TEXT");
@@ -476,6 +480,7 @@ async function initDB() {
     "CREATE INDEX IF NOT EXISTS idx_banner_events ON banner_events(banner_id, type, created_at)",
     "CREATE INDEX IF NOT EXISTS idx_email_codes ON email_codes(email, purpose)",
     "CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)",
+    "CREATE UNIQUE INDEX IF NOT EXISTS idx_users_handle ON users(handle COLLATE NOCASE) WHERE handle <> ''",
     "CREATE INDEX IF NOT EXISTS idx_notif_user ON notifications(username, is_read, created_at)",
   ];
   for (const stmt of indexes) {
@@ -512,6 +517,8 @@ async function initDB() {
   await trySql(sql`UPDATE book_reviews SET created_at = ${now} WHERE created_at IS NULL OR created_at = 0`);
   await trySql(sql`UPDATE book_reviews SET updated_at = created_at WHERE updated_at IS NULL OR updated_at = 0`);
   await trySql(sql`UPDATE users SET created_at = ${now} WHERE created_at IS NULL OR created_at = 0`);
+  await trySql(sql`UPDATE users SET display_name = CASE WHEN full_name <> '' THEN full_name ELSE username END WHERE display_name IS NULL OR display_name = ''`);
+  await trySql(sql`UPDATE users SET handle = LOWER(username) WHERE handle IS NULL OR handle = ''`);
 
   // ─── Recalcula médias dos livros a partir das resenhas ──────────────────────
   await trySql(sql`

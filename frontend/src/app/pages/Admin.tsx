@@ -14,14 +14,16 @@ import { getFullUrl, timeAgo } from "../lib/types";
 import type { AdminOverview, Banner, BannerReport, Book, HomePost, UserProfile } from "../lib/types";
 import { Avatar, ConfirmDialog, EmptyState, Modal, PageHeader, SectionHeader, Skeleton, toast } from "../components/Ui";
 import { EditBookModal } from "../components/EditBookModal";
+import { CharacterAdmin } from "../components/CharacterAdmin";
 
-type Tab = "overview" | "banners" | "posts" | "books" | "users";
+type Tab = "overview" | "banners" | "posts" | "books" | "characters" | "users";
 
 const TABS: { key: Tab; label: string; icon: typeof LayoutDashboard }[] = [
   { key: "overview", label: "Visão geral", icon: LayoutDashboard },
   { key: "banners", label: "Banners", icon: ImageIcon },
   { key: "posts", label: "Postagens", icon: Megaphone },
   { key: "books", label: "Livros", icon: BookOpen },
+  { key: "characters", label: "Personagens", icon: ImageIcon },
   { key: "users", label: "Leitores", icon: Users },
 ];
 
@@ -66,6 +68,7 @@ export function Admin() {
       {tab === "banners" && <BannersTab />}
       {tab === "posts" && <PostsTab />}
       {tab === "books" && <BooksTab />}
+      {tab === "characters" && <CharacterAdmin />}
       {tab === "users" && <UsersTab />}
     </div>
   );

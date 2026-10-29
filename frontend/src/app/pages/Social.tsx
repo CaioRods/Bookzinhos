@@ -48,7 +48,7 @@ export function Social() {
   const filteredUsers = useMemo(() => {
     const term = search.trim().toLowerCase();
     const list = term
-      ? others.filter((u) => u.username.toLowerCase().includes(term) || (u.bio || "").toLowerCase().includes(term))
+      ? others.filter((u) => [u.username, u.displayName, u.handle, u.bio].some((value) => (value || "").toLowerCase().includes(term)))
       : others;
     // Quem ainda não sigo aparece antes — é o que faz descobrir gente nova.
     return [...list].sort((a, b) => Number(!!a.isFollowedByMe) - Number(!!b.isFollowedByMe));
@@ -174,7 +174,7 @@ export function Social() {
                           to={`/user/${encodeURIComponent(user.username)}`}
                           className="flex items-center gap-2 text-[14px] font-semibold text-foreground hover:text-[var(--primary)] transition-colors"
                         >
-                          <span className="truncate">{user.username}</span>
+                          <span className="truncate">{user.displayName || user.username}</span>
                           {user.isAdmin && <span className="mb-chip mb-chip-primary">Admin</span>}
                         </Link>
                         <p className="text-[12.5px] text-[var(--text-3)] line-clamp-2 mt-0.5">
@@ -227,7 +227,7 @@ export function Social() {
       )}
       </div><aside className="mb-community-rail">
         <section className="mb-card"><header><h2>Leitores em destaque</h2><button onClick={() => setTab("leitores")}>Ver todos</button></header>
-          {others.length === 0 ? <p className="mb-rail-empty">Os próximos leitores aparecem aqui.</p> : others.slice(0, 5).map(user => <div className="mb-suggested-reader" key={user.username}><Avatar emoji={user.avatar} size="sm" username={user.username} /><Link to={`/user/${encodeURIComponent(user.username)}`}><strong>{user.username}</strong><small>@{user.username.toLowerCase()}</small></Link><button onClick={() => toggleFollow(user)} className={user.isFollowedByMe ? "is-following" : ""}>{user.isFollowedByMe ? "Seguindo" : "Seguir"}</button></div>)}
+          {others.length === 0 ? <p className="mb-rail-empty">Os próximos leitores aparecem aqui.</p> : others.slice(0, 5).map(user => <div className="mb-suggested-reader" key={user.username}><Avatar emoji={user.avatar} size="sm" username={user.username} /><Link to={`/user/${encodeURIComponent(user.username)}`}><strong>{user.displayName || user.username}</strong><small>@{user.handle || user.username.toLowerCase()}</small></Link><button onClick={() => toggleFollow(user)} className={user.isFollowedByMe ? "is-following" : ""}>{user.isFollowedByMe ? "Seguindo" : "Seguir"}</button></div>)}
         </section>
         <section className="mb-card"><header><h2>Discussões em alta</h2><button onClick={() => { setTab("feed"); setScope("all"); }}>Ver todas</button></header>
           {(feed || []).filter(item => item.review && item.book && item.review.comments.length > 0).sort((a,b) => (b.review?.comments.length || 0) - (a.review?.comments.length || 0)).slice(0, 5).map(item => <Link key={item.id} to={`/book/${item.book!.id}#avaliar`} className="mb-discussion-link"><MessageCircle size={18} /><span><strong>{item.book!.title}</strong><small>{item.review?.hasSpoiler ? "Discussão com spoilers" : item.review?.comment || "Converse sobre este livro"}</small></span><small>{item.review!.comments.length}</small></Link>)}

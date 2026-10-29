@@ -9,6 +9,7 @@ import { createPortal } from "react-dom";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import { Star, X } from "lucide-react";
+import { getFullUrl } from "../lib/types";
 
 // ─── Estrelas ─────────────────────────────────────────────────────────────────
 
@@ -122,7 +123,9 @@ export function Avatar({
         ring ? "ring-2 ring-[var(--primary)]/30" : ""
       }`}
     >
-      {emoji || "👤"}
+      {emoji && (/^(https?:|\/)/.test(emoji)) ? (
+        <img src={getFullUrl(emoji) || emoji} alt="" className="w-full h-full rounded-full object-cover" loading="lazy" />
+      ) : (emoji || "👤")}
     </span>
   );
   if (!username) return content;

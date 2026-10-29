@@ -10,7 +10,7 @@
 import { API_BASE_URL } from "./config";
 import type {
   AdminOverview, Banner, BannerReport, Book, BookChapter, ChatMessage, FeedItem, HomeData, HomePost,
-  Note, Notifications, ReadingProgress, Review, ReviewComment, Stats, UserProfile,
+  Note, Notifications, ReadingProgress, Review, ReviewComment, Stats, UserProfile, CharacterAvatar,
 } from "./types";
 
 // ─── Cache + deduplicação ─────────────────────────────────────────────────────
@@ -338,6 +338,7 @@ export interface SignupData {
   code: string;
   avatar: string;
   allowWeak: boolean;
+  favoriteGenres: string[];
 }
 
 export function register(data: SignupData): Promise<UserProfile> {
@@ -355,10 +356,30 @@ export function loginWithGoogle(credential: string): Promise<UserProfile & { isN
   return request<UserProfile & { isNew?: boolean }>("POST", "/auth/google", { credential });
 }
 
-export async function updateProfile(bio: string, avatar: string, shelf: string[]): Promise<UserProfile> {
-  const res = await request<UserProfile>("PUT", "/auth/me", { bio, avatar, shelf });
+export async function updateProfile(data: { bio: string; avatar: string; shelf: string[]; displayName?: string; handle?: string; favoriteGenres?: string[] }): Promise<UserProfile> {
+  const res = await request<UserProfile>("PUT", "/auth/me", data);
   invalidate("/users", "/home");
   return res;
+}
+
+export function fetchCharacters(bookId?: string, force = false): Promise<CharacterAvatar[]> {
+  const query = bookId ? `?bookId=${encodeURIComponent(bookId)}` : "";
+  return cachedGet<CharacterAvatar[]>(`/characters${query}`, force ? 0 : 60000);
+}
+
+export async function createCharacter(data: { name: string; bookId?: string; image: Blob }): Promise<CharacterAvatar> {
+  const form = new FormData();
+  form.set("name", data.name);
+  form.set("bookId", data.bookId || "");
+  form.set("image", data.image, "avatar.webp");
+  const result = await upload<CharacterAvatar>("POST", "/characters", form);
+  invalidate("/characters");
+  return result;
+}
+
+export async function deleteCharacter(id: string): Promise<void> {
+  await request("DELETE", `/characters/${encodeURIComponent(id)}`);
+  invalidate("/characters");
 }
 
 // ─── FAVORITOS ────────────────────────────────────────────────────────────────

@@ -76,7 +76,8 @@ export function Chat() {
   };
 
   return (
-    <div className="mb-chat flex flex-col h-screen bg-background">
+    <div className="mb-chat-stage h-screen bg-background">
+      <div className="mb-chat flex flex-col bg-[var(--surface)]">
       <header className="mb-chat-header flex-shrink-0 h-16 px-3 flex items-center justify-between border-b border-[var(--line)] bg-[var(--surface)]/95 backdrop-blur-xl">
         <div className="flex items-center gap-2 min-w-0">
           <button onClick={() => navigate(-1)} aria-label="Voltar" className="mb-btn mb-btn-ghost mb-btn-icon">
@@ -183,6 +184,7 @@ export function Chat() {
         </div>
       </div>
 
+      </div>
       <Modal
         open={showSettings}
         onClose={() => setShowSettings(false)}

@@ -7,6 +7,7 @@ const crypto = require("crypto");
 const multer = require("multer");
 const { createClient } = require("@supabase/supabase-js");
 const { db, sql, initDB } = require("./db");
+const { HANDLE_CHANGE_DAYS, normalizeHandle, canChangeHandle, normalizeGenres } = require("./profile-rules");
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -130,6 +131,7 @@ app.get("/", (_req, res) => {
 app.get("/health", (_req, res) => res.json({ ok: true, ts: Date.now() }));
 const appearance = require("./appearance")({ app, db, sql, upload, uploadFileToCloud, currentUser, requireAdmin });
 const community = require("./community")({ app, db, sql, upload, uploadFileToCloud, currentUser, requireAdmin });
+const characters = require("./characters")({ app, db, sql, upload, uploadFileToCloud, requireAdmin });
 async function seriesFields(body) {
   if (!body.seriesId) return { id: null, name: null, order: null };
   const [series] = await db.query(sql`SELECT * FROM book_series WHERE id = ${body.seriesId}`);
@@ -648,6 +650,11 @@ const isProd = () => process.env.NODE_ENV === "production";
 function publicUser(user) {
   return {
     username: user.username,
+    displayName: user.display_name || user.full_name || user.username,
+    handle: user.handle || String(user.username).toLowerCase(),
+    handleChangedAt: Number(user.handle_changed_at) || 0,
+    nextHandleChangeAt: Number(user.handle_changed_at) ? Number(user.handle_changed_at) + HANDLE_CHANGE_DAYS * 86400000 : 0,
+    favoriteGenres: user.favorite_genres ? safeParse(user.favorite_genres) : [],
     bio: user.bio,
     avatar: user.avatar,
     shelf: user.shelf ? safeParse(user.shelf) : [],
@@ -682,7 +689,7 @@ app.post("/auth/login", async (req, res) => {
     const { username, password } = req.body;
     // Aceita entrar pelo apelido ou pelo e-mail.
     const [user] = await db.query(sql`
-      SELECT * FROM users WHERE username = ${username} COLLATE NOCASE OR email = ${username} COLLATE NOCASE
+      SELECT * FROM users WHERE username = ${username} COLLATE NOCASE OR handle = ${normalizeHandle(username) || username} COLLATE NOCASE OR email = ${username} COLLATE NOCASE
     `);
     if (!user || !verifyPassword(password, user.password)) {
       return res.status(401).json({ error: "Usuário ou senha incorretos." });
@@ -703,7 +710,7 @@ app.get("/auth/available", async (req, res) => {
       if (!NICK_RE.test(nickname)) {
         out.nickname = { ok: false, reason: "formato" };
       } else {
-        const [row] = await db.query(sql`SELECT 1 FROM users WHERE username = ${nickname} COLLATE NOCASE`);
+        const [row] = await db.query(sql`SELECT 1 FROM users WHERE username = ${nickname} COLLATE NOCASE OR handle = ${normalizeHandle(nickname)} COLLATE NOCASE`);
         out.nickname = { ok: !row, reason: row ? "usado" : null };
       }
     }
@@ -792,6 +799,7 @@ app.post("/auth/register", async (req, res) => {
     const password = String(req.body.password || "");
     const code = String(req.body.code || "");
     const avatar = String(req.body.avatar || "🐼").slice(0, 8) || "🐼";
+    const favoriteGenres = normalizeGenres(req.body.favoriteGenres);
     const allowWeak = req.body.allowWeak === true || req.body.allowWeak === "true";
 
     // Validações — a interface já checa, mas o servidor é a palavra final.
@@ -807,7 +815,7 @@ app.post("/auth/register", async (req, res) => {
       return res.status(400).json({ error: "A senha não atende aos requisitos." });
     }
 
-    const [nickTaken] = await db.query(sql`SELECT 1 FROM users WHERE username = ${username} COLLATE NOCASE`);
+    const [nickTaken] = await db.query(sql`SELECT 1 FROM users WHERE username = ${username} COLLATE NOCASE OR handle = ${normalizeHandle(username)} COLLATE NOCASE`);
     if (nickTaken) return res.status(409).json({ error: "Este apelido já existe." });
     const [emailTaken] = await db.query(sql`SELECT 1 FROM users WHERE email = ${email} COLLATE NOCASE`);
     if (emailTaken) return res.status(409).json({ error: "Este e-mail já tem conta. Use 'Esqueci minha senha'." });
@@ -818,8 +826,8 @@ app.post("/auth/register", async (req, res) => {
     const bio = "Novo leitor por aqui ✨";
     const now = Date.now();
     await db.query(sql`
-      INSERT INTO users (username, password, bio, avatar, pandinhas, is_admin, created_at, full_name, email, auth_provider)
-      VALUES (${username}, ${hashPassword(password)}, ${bio}, ${avatar}, 0, 0, ${now}, ${fullName}, ${email}, 'senha')
+      INSERT INTO users (username, password, bio, avatar, pandinhas, is_admin, created_at, full_name, email, auth_provider, display_name, handle, favorite_genres)
+      VALUES (${username}, ${hashPassword(password)}, ${bio}, ${avatar}, 0, 0, ${now}, ${fullName}, ${email}, 'senha', ${fullName}, ${normalizeHandle(username)}, ${JSON.stringify(favoriteGenres)})
     `);
     await db.query(sql`DELETE FROM email_codes WHERE email = ${email} COLLATE NOCASE`);
 
@@ -894,8 +902,8 @@ app.post("/auth/google", async (req, res) => {
     }
     const now = Date.now();
     await db.query(sql`
-      INSERT INTO users (username, password, bio, avatar, pandinhas, is_admin, created_at, full_name, email, auth_provider)
-      VALUES (${username}, '', 'Novo leitor por aqui ✨', '🐼', 0, 0, ${now}, ${String(info.name || "")}, ${email}, 'google')
+      INSERT INTO users (username, password, bio, avatar, pandinhas, is_admin, created_at, full_name, email, auth_provider, display_name, handle)
+      VALUES (${username}, '', 'Novo leitor por aqui ✨', '🐼', 0, 0, ${now}, ${String(info.name || "")}, ${email}, 'google', ${String(info.name || username)}, ${normalizeHandle(username)})
     `);
     const [created] = await db.query(sql`SELECT * FROM users WHERE username = ${username} COLLATE NOCASE`);
     res.status(201).json({ ...publicUser(created), isNew: true });
@@ -909,7 +917,28 @@ app.put("/auth/me", async (req, res) => {
     const { bio, avatar, shelf } = req.body;
     const username = currentUser(req);
     if (!username) return res.status(401).json({ error: "Não autorizado" });
-    await db.query(sql`UPDATE users SET bio=${bio}, avatar=${avatar}, shelf=${JSON.stringify(shelf || [])} WHERE username=${username} COLLATE NOCASE`);
+    const [existing] = await db.query(sql`SELECT * FROM users WHERE username=${username} COLLATE NOCASE`);
+    if (!existing) return res.status(404).json({ error: "Conta não encontrada." });
+    const displayName = String(req.body.displayName ?? existing.display_name ?? existing.full_name ?? username).trim().slice(0, 60);
+    if (displayName.length < 2) return res.status(400).json({ error: "O nome precisa ter pelo menos 2 caracteres." });
+    const requestedHandle = normalizeHandle(req.body.handle ?? existing.handle ?? username);
+    if (!requestedHandle) return res.status(400).json({ error: "O @ deve ter de 2 a 20 letras, números, ponto ou _." });
+    const currentHandle = normalizeHandle(existing.handle || existing.username);
+    let changedAt = Number(existing.handle_changed_at) || 0;
+    if (requestedHandle !== currentHandle) {
+      if (!canChangeHandle(changedAt)) {
+        const next = changedAt + HANDLE_CHANGE_DAYS * 86400000;
+        return res.status(429).json({ error: `Você poderá alterar o @ novamente em ${new Date(next).toLocaleDateString('pt-BR')}.`, nextHandleChangeAt: next });
+      }
+      const [taken] = await db.query(sql`SELECT 1 FROM users WHERE handle=${requestedHandle} COLLATE NOCASE AND username<>${username} COLLATE NOCASE`);
+      if (taken) return res.status(409).json({ error: "Este @ já está sendo usado." });
+      changedAt = Date.now();
+    }
+    const favoriteGenres = normalizeGenres(req.body.favoriteGenres ?? safeParse(existing.favorite_genres));
+    const nextBio = String(bio ?? existing.bio ?? '').slice(0, 200);
+    const nextAvatar = String(avatar ?? existing.avatar ?? '🐼');
+    const nextShelf = Array.isArray(shelf) ? shelf : safeParse(existing.shelf);
+    await db.query(sql`UPDATE users SET bio=${nextBio}, avatar=${nextAvatar}, shelf=${JSON.stringify(nextShelf)}, display_name=${displayName}, handle=${requestedHandle}, handle_changed_at=${changedAt}, favorite_genres=${JSON.stringify(favoriteGenres)} WHERE username=${username} COLLATE NOCASE`);
     const [user] = await db.query(sql`SELECT * FROM users WHERE username = ${username} COLLATE NOCASE`);
     res.json(publicUser(user));
   } catch (err) {
@@ -924,7 +953,7 @@ app.get("/users", async (req, res) => {
   try {
     const me = currentUser(req);
     const [rows, followRows, reviewRows, finishedRows, myFollowing] = await Promise.all([
-      db.query(sql`SELECT username, bio, avatar, pandinhas, is_admin FROM users`),
+      db.query(sql`SELECT username, display_name, handle, bio, avatar, pandinhas, is_admin, favorite_genres FROM users`),
       db.query(sql`SELECT following, COUNT(*) as c FROM follows GROUP BY following`),
       db.query(sql`SELECT username, COUNT(*) as c FROM book_reviews GROUP BY username`),
       db.query(sql`SELECT username, COUNT(*) as c FROM reading_progress WHERE status = 'finalizado' GROUP BY username`),
@@ -940,6 +969,9 @@ app.get("/users", async (req, res) => {
       const key = String(u.username).toLowerCase();
       return {
         username: u.username,
+        displayName: u.display_name || u.username,
+        handle: u.handle || String(u.username).toLowerCase(),
+        favoriteGenres: safeParse(u.favorite_genres),
         bio: u.bio,
         avatar: u.avatar,
         pandinhas: Number(u.pandinhas) || 0,

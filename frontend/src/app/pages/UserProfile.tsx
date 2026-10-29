@@ -115,10 +115,11 @@ export function UserProfile() {
           <Avatar emoji={profile.avatar} size="xl" />
           <div className="flex-1 min-w-0 pt-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-xl font-bold text-foreground truncate">{profile.username}</h1>
+              <h1 className="text-xl font-bold text-foreground truncate">{profile.displayName || profile.username}</h1>
               {profile.isAdmin && <span className="mb-chip mb-chip-primary">🐶 Admin</span>}
               {!!profile.pandinhas && <span className="mb-chip">🐼 {profile.pandinhas}</span>}
             </div>
+            <p className="text-xs text-[var(--text-3)] mt-0.5">@{profile.handle || profile.username.toLowerCase()}</p>
             <p className="text-[13.5px] text-[var(--text-2)] leading-relaxed mt-1.5">
               {profile.bio || "Ainda escrevendo a própria história…"}
             </p>

@@ -33,9 +33,9 @@ export function useFlyingBookId(): string | null {
   return useContext(BookFlightContext).flyingId;
 }
 
-const FLY_MS = 480;
+const FLY_MS = 620;
 const FADE_MS = 180;
-const NAVIGATE_MS = 60;
+const NAVIGATE_MS = 110;
 
 /**
  * Animação de abertura de um livro.
@@ -61,12 +61,13 @@ export function BookTransitionProvider({ children }: { children: ReactNode }) {
 
     const toPage = window.setTimeout(() => {
       navigate(`/book/${flight.book.id}`);
-      setFading(true);
     }, NAVIGATE_MS);
+    const beginFade = window.setTimeout(() => setFading(true), FLY_MS - 80);
     const cleanup = window.setTimeout(() => setFlight(null), FLY_MS + FADE_MS);
 
     return () => {
       window.clearTimeout(toPage);
+      window.clearTimeout(beginFade);
       window.clearTimeout(cleanup);
     };
   }, [flight, navigate]);

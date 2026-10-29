@@ -171,7 +171,7 @@ export function Library() {
     } : prev);
 
   return (
-    <div className="mb-screen mb-screen--wide mb-library mb-library-reference">
+    <div className="mb-screen mb-library mb-library-reference">
       <header className="mb-library-editorial-heading">
         <div><p className="mb-eyebrow">UM UNIVERSO DE HISTÓRIAS</p><h1>Sua biblioteca.</h1><p>{isLoading ? "Carregando o acervo…" : `${books.length} livros. Sua próxima descoberta está aqui.`}</p></div>
         <Link to="/upload" className="mb-btn mb-btn-primary"><Upload size={16} /> Enviar livro</Link>

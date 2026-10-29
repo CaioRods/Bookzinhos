@@ -6,6 +6,7 @@ import {
   loginWithGoogle, fetchServerConfig, type ServerConfig,
 } from "../lib/api";
 import { notifySessionChanged, saveSession } from "../lib/session";
+import { BOOK_GENRES, mergeCustomGenre } from "../lib/genres";
 
 interface LoginProps {
   onLoginSuccess: (name: string) => void;
@@ -147,7 +148,7 @@ function LoginForm({
 
 // ─── Cadastro passo a passo ──────────────────────────────────────────────────────
 
-const SIGNUP_STEPS = ["Você", "E-mail", "Código", "Senha", "Avatar"];
+const SIGNUP_STEPS = ["Você", "E-mail", "Código", "Senha", "Gêneros", "Avatar"];
 
 function SignupWizard({ onDone, goLogin, goForgot }: { onDone: (u: string) => void; goLogin: () => void; goForgot: () => void }) {
   const [step, setStep] = useState(0);
@@ -162,6 +163,8 @@ function SignupWizard({ onDone, goLogin, goForgot }: { onDone: (u: string) => vo
   const [password, setPassword] = useState("");
   const [allowWeak, setAllowWeak] = useState(false);
   const [avatar, setAvatar] = useState("🐶");
+  const [favoriteGenres, setFavoriteGenres] = useState<string[]>([]);
+  const [customGenre, setCustomGenre] = useState("");
 
   const checks = passwordChecks(password);
   const strong = checks.min8 && checks.number && checks.symbol;
@@ -220,7 +223,7 @@ function SignupWizard({ onDone, goLogin, goForgot }: { onDone: (u: string) => vo
     try {
       const res = await register({
         fullName: fullName.trim(), username: username.trim(), email: email.trim().toLowerCase(),
-        password, code: code.trim(), avatar, allowWeak,
+        password, code: code.trim(), avatar, allowWeak, favoriteGenres,
       });
       saveSession(res);
       onDone(res.username);
@@ -315,6 +318,19 @@ function SignupWizard({ onDone, goLogin, goForgot }: { onDone: (u: string) => vo
       )}
 
       {step === 4 && (
+        <>
+          <Field label="Quais gêneros você mais gosta?">
+            <div className="flex flex-wrap gap-1.5 max-h-64 overflow-y-auto pr-1">
+              {BOOK_GENRES.map((genre) => <button key={genre} type="button" onClick={() => genre === "Outros" ? undefined : setFavoriteGenres((old) => old.includes(genre) ? old.filter((item) => item !== genre) : old.length < 12 ? [...old, genre] : old)} className={`mb-chip ${favoriteGenres.includes(genre) ? "mb-chip-primary" : ""}`}>{genre}</button>)}
+            </div>
+            <div className="flex gap-2 mt-3"><input className="mb-auth-input" value={customGenre} maxLength={40} onChange={(event) => setCustomGenre(event.target.value)} placeholder="Outro gênero" /><button type="button" className="mb-btn mb-btn-outline" onClick={() => { setFavoriteGenres((old) => mergeCustomGenre(old, customGenre)); setCustomGenre(""); }}>Adicionar</button></div>
+          </Field>
+          <p className="text-xs text-[var(--text-3)]">Escolha pelo menos um. Você poderá mudar isso no perfil.</p>
+          <NextButton busy={false} onClick={next} disabled={favoriteGenres.length === 0} />
+        </>
+      )}
+
+      {step === 5 && (
         <>
           <Field label="Escolha um emote para o seu perfil">
             <div className="grid grid-cols-8 gap-1.5">

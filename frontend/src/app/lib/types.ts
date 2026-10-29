@@ -91,6 +91,11 @@ export interface Stats {
 
 export interface UserProfile {
   username: string;
+  displayName?: string;
+  handle?: string;
+  handleChangedAt?: number;
+  nextHandleChangeAt?: number;
+  favoriteGenres?: string[];
   bio: string;
   avatar: string;
   shelf: string[];
@@ -108,6 +113,15 @@ export interface UserProfile {
   reading?: string[];
   finishedIds?: string[];
   stats?: { finished: number; reading: number; reviews: number; saved: number };
+}
+
+export interface CharacterAvatar {
+  id: string;
+  name: string;
+  bookId?: string | null;
+  bookTitle?: string | null;
+  imageUrl: string;
+  createdAt: number;
 }
 
 export interface ChatMessage {

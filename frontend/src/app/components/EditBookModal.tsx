@@ -5,8 +5,8 @@ import { editBook, editBookWithCover } from "../lib/api";
 import { getFullUrl, getCoverGradient } from "../lib/types";
 import type { Book } from "../lib/types";
 import { Modal, toast } from "./Ui";
+import { GenreField } from "./GenreField";
 
-const GENRES = ["Romance", "Suspense", "Ficção", "Fantasia", "Distopia", "Autoconhecimento", "Desenvolvimento", "História", "Poesia", "Outros"];
 const COLORS = ["lavender-mint", "peach-lavender", "mint-sky", "blush-lavender", "peach-mint", "lemon-peach", "sky-mint", "lavender-peach"];
 
 interface Props {
@@ -120,20 +120,7 @@ export function EditBookModal({ book, onClose, onSaved }: Props) {
           </div>
         </div>
 
-        <div>
-          <span className="mb-label">Gênero</span>
-          <div className="flex flex-wrap gap-1.5">
-            {GENRES.map((g) => (
-              <button
-                key={g}
-                onClick={() => setForm({ ...form, genre: g })}
-                className={`mb-btn mb-btn-sm ${form.genre === g ? "mb-btn-primary" : "mb-btn-outline"}`}
-              >
-                {g}
-              </button>
-            ))}
-          </div>
-        </div>
+        <GenreField value={form.genre} onChange={(genre) => setForm({ ...form, genre })} />
 
         {!coverPreview && (
           <div>
