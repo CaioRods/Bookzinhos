@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useParams, useNavigate, Link } from "react-router";
+import { useParams, useNavigate, Link, useLocation } from "react-router";
 import { ArrowLeft, Send, Settings } from "lucide-react";
 import { fetchChat, sendMessage, setNickname, fetchBooks, fetchConversations, fetchUserProfile } from "../lib/api";
 import { getFullUrl } from "../lib/types";
@@ -7,12 +7,14 @@ import type { Book, ChatMessage, ChatConversation, UserProfile } from "../lib/ty
 import { getUsername } from "../lib/session";
 import { requireAuth } from "../lib/authGate";
 import { Avatar, Modal, toast } from "../components/Ui";
+import { chatConversationTarget, chatOrigin, rememberChatOrigin } from "../lib/chatNavigation";
 
 const QUICK_EMOTES = ["🐼", "💕", "✨", "📖", "📚", "🤍", "🌸", "🍭", "🎈"];
 
 export function Chat() {
   const { otherUser } = useParams<{ otherUser: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const me = getUsername();
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -24,6 +26,11 @@ export function Chat() {
   const [showSettings, setShowSettings] = useState(false);
   const [newNickname, setNewNickname] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const state = location.state as { chatOrigin?: string; fromChatSwitch?: boolean } | null;
+    if (!state?.fromChatSwitch && state?.chatOrigin) rememberChatOrigin(state.chatOrigin);
+  }, [location.state]);
 
   const refreshConversations = useCallback(() => fetchConversations().then(setConversations).catch(() => {}), []);
 
@@ -86,8 +93,8 @@ export function Chat() {
     <div className="mb-chat-stage h-screen bg-background">
       <div className="mb-chat-shell">
       <aside className="mb-chat-list" aria-label="Outras conversas">
-        <div className="mb-chat-list-heading"><button onClick={() => navigate(-1)} aria-label="Voltar" className="mb-btn mb-btn-ghost mb-btn-icon"><ArrowLeft className="w-5 h-5" /></button><div><strong>Mensagens</strong><small>{conversations.reduce((total, item) => total + item.unreadCount, 0)} não lidas</small></div></div>
-        <div className="mb-chat-list-scroll">{conversations.map((conversation) => <Link key={conversation.username} to={`/chat/${encodeURIComponent(conversation.username)}`} className={`mb-chat-contact ${conversation.username.toLowerCase() === otherUser?.toLowerCase() ? "is-active" : ""}`}><span className="relative"><Avatar emoji={conversation.avatar} size="md" />{conversation.unreadCount > 0 && <b>{conversation.unreadCount > 9 ? "9+" : conversation.unreadCount}</b>}</span><span><strong>{conversation.displayName}</strong><small>{conversation.lastMessage}</small></span><time>{new Date(conversation.createdAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}</time></Link>)}{conversations.length === 0 && <p className="mb-chat-list-empty">Suas conversas aparecerão aqui.</p>}</div>
+        <div className="mb-chat-list-heading"><button onClick={() => navigate(chatOrigin(), { replace: true })} aria-label="Voltar" className="mb-btn mb-btn-ghost mb-btn-icon"><ArrowLeft className="w-5 h-5" /></button><div><strong>Mensagens</strong><small>{conversations.reduce((total, item) => total + item.unreadCount, 0)} não lidas</small></div></div>
+        <div className="mb-chat-list-scroll">{conversations.map((conversation) => <Link key={conversation.username} to={chatConversationTarget(conversation.username)} replace className={`mb-chat-contact ${conversation.username.toLowerCase() === otherUser?.toLowerCase() ? "is-active" : ""}`}><span className="relative"><Avatar emoji={conversation.avatar} size="md" />{conversation.unreadCount > 0 && <b>{conversation.unreadCount > 9 ? "9+" : conversation.unreadCount}</b>}</span><span><strong>{conversation.displayName}</strong><small>{conversation.lastMessage}</small></span><time>{new Date(conversation.createdAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}</time></Link>)}{conversations.length === 0 && <p className="mb-chat-list-empty">Suas conversas aparecerão aqui.</p>}</div>
       </aside>
       <div className="mb-chat flex flex-col bg-[var(--surface)]">
       <header className="mb-chat-header flex-shrink-0 h-16 px-3 flex items-center justify-between border-b border-[var(--line)] bg-[var(--surface)]/95 backdrop-blur-xl">

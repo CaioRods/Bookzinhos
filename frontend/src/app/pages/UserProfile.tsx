@@ -154,7 +154,7 @@ export function UserProfile() {
                 ? <><UserCheck className="w-4 h-4" /> Seguindo</>
                 : <><UserPlus className="w-4 h-4" /> Seguir</>}
             </button>
-            <Link to={`/chat/${encodeURIComponent(profile.username)}`} className="mb-btn mb-btn-outline flex-1">
+            <Link to={`/chat/${encodeURIComponent(profile.username)}`} state={{ chatOrigin: `/user/${encodeURIComponent(profile.username)}` }} className="mb-btn mb-btn-outline flex-1">
               <MessageCircle className="w-4 h-4" /> Conversar
             </Link>
           </div>

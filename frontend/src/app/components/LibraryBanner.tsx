@@ -1,31 +1,14 @@
-import { useMemo } from "react";
+import { useState } from "react";
 import { Link } from "react-router";
 import { BookOpen } from "lucide-react";
 import { getFullUrl, type Book } from "../lib/types";
+import { pickDistinctBooks } from "../lib/randomBooks";
 
 /** Uses the real catalog, so the showcase always leads to available books. */
 export function LibraryBanner({ books }: { books: Book[] }) {
-  const featured = useMemo(() => {
-    const covers = books.filter((book) => book.coverImagePath);
-    const priorities = [
-      /rainha.*nada/i,
-      /pr[ií]ncipe cruel/i,
-      /mundo.*gelo.*fogo/i,
-    ];
-    const selected: Book[] = [];
-    priorities.forEach((pattern) => {
-      const book = covers.find(
-        (book) =>
-          pattern.test(book.title) &&
-          !selected.some((item) => item.id === book.id),
-      );
-      if (book) selected.push(book);
-    });
-    return [
-      ...selected,
-      ...covers.filter((book) => !selected.some((item) => item.id === book.id)),
-    ].slice(0, 3);
-  }, [books]);
+  const [featured] = useState(() =>
+    pickDistinctBooks(books.filter((book) => book.coverImagePath), 3),
+  );
 
   return (
     <section

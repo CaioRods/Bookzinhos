@@ -198,7 +198,7 @@ export function Social() {
                           : <><UserPlus className="w-4 h-4" /> Seguir</>}
                       </button>
                       <button
-                        onClick={() => navigate(`/chat/${encodeURIComponent(user.username)}`)}
+                        onClick={() => navigate(`/chat/${encodeURIComponent(user.username)}`, { state: { chatOrigin: "/social" } })}
                         aria-label={`Conversar com ${user.username}`}
                         className="mb-btn mb-btn-sm mb-btn-outline mb-btn-icon"
                       >
