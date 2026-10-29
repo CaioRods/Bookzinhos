@@ -1,6 +1,11 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { securityHeaders, createCorsOptions } = require("../security");
+const {
+  securityHeaders,
+  createCorsOptions,
+  resolveFrontendOrigins,
+  defaultFrontendOrigins,
+} = require("../security");
 const { createRateLimiter } = require("../rate-limit");
 
 function response() {
@@ -58,4 +63,46 @@ test("rate limiter returns 429 and Retry-After after the allowed count", () => {
   let continued = false;
   limit(req, response(), () => { continued = true; });
   assert.equal(continued, true);
+});
+
+test("resolveFrontendOrigins falls back to production domain in production and localhost in development", () => {
+  assert.deepEqual(defaultFrontendOrigins({ NODE_ENV: "production" }), ["https://mybookzinhos.vercel.app"]);
+  assert.deepEqual(defaultFrontendOrigins({ NODE_ENV: "development" }), ["http://localhost:5173", "http://127.0.0.1:5173"]);
+  assert.deepEqual(resolveFrontendOrigins({ NODE_ENV: "production" }), ["https://mybookzinhos.vercel.app"]);
+  assert.deepEqual(resolveFrontendOrigins({ NODE_ENV: "development" }), ["http://localhost:5173", "http://127.0.0.1:5173"]);
+  assert.deepEqual(resolveFrontendOrigins({}), ["http://localhost:5173", "http://127.0.0.1:5173"]);
+});
+
+test("resolveFrontendOrigins respects custom configured FRONTEND_ORIGINS regardless of environment", () => {
+  assert.deepEqual(
+    resolveFrontendOrigins({ NODE_ENV: "production", FRONTEND_ORIGINS: "https://custom1.vercel.app, https://custom2.vercel.app" }),
+    ["https://custom1.vercel.app", "https://custom2.vercel.app"]
+  );
+  assert.deepEqual(
+    resolveFrontendOrigins({ NODE_ENV: "development", FRONTEND_ORIGINS: "http://localhost:3000" }),
+    ["http://localhost:3000"]
+  );
+});
+
+test("CORS accepts the production fallback origin when NODE_ENV is production", () => {
+  const origins = resolveFrontendOrigins({ NODE_ENV: "production" });
+  const options = createCorsOptions({ origins });
+  return new Promise((resolve, reject) => {
+    options.origin("https://mybookzinhos.vercel.app", (error, allowed) => {
+      try {
+        assert.equal(error, null);
+        assert.equal(allowed, true);
+        options.origin("https://unauthorized.domain.com", (hostileError) => {
+          try {
+            assert.match(hostileError.message, /CORS/);
+            resolve();
+          } catch (e) {
+            reject(e);
+          }
+        });
+      } catch (e) {
+        reject(e);
+      }
+    });
+  });
 });

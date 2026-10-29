@@ -9,7 +9,7 @@ const { createClient } = require("@supabase/supabase-js");
 const { db, sql, initDB } = require("./db");
 const { HANDLE_CHANGE_DAYS, normalizeHandle, canChangeHandle, normalizeGenres, normalizeSocialHandle } = require("./profile-rules");
 const { summarizeConversations } = require("./chat-summary");
-const { securityHeaders, createCorsOptions, parseList } = require("./security");
+const { securityHeaders, createCorsOptions, parseList, resolveFrontendOrigins } = require("./security");
 const { createRateLimiter } = require("./rate-limit");
 const {
   createSessionStore,
@@ -95,7 +95,7 @@ async function uploadFileToCloud(buffer, filename, mimetype) {
 }
 
 // ─── MIDDLEWARE ───────────────────────────────────────────────────────────────
-const frontendOrigins = parseList(process.env.FRONTEND_ORIGINS, ["http://localhost:5173", "http://127.0.0.1:5173"]);
+const frontendOrigins = resolveFrontendOrigins(process.env);
 app.use(securityHeaders({
   connectSources: parseList(process.env.CSP_CONNECT_SOURCES),
   imageSources: parseList(process.env.CSP_IMAGE_SOURCES),

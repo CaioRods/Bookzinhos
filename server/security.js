@@ -40,4 +40,25 @@ function parseList(value, fallback = []) {
   return value ? String(value).split(",").map((item) => item.trim()).filter(Boolean) : fallback;
 }
 
-module.exports = { securityHeaders, createCorsOptions, parseList };
+const DEFAULT_DEVELOPMENT_ORIGINS = ["http://localhost:5173", "http://127.0.0.1:5173"];
+const DEFAULT_PRODUCTION_ORIGINS = ["https://mybookzinhos.vercel.app"];
+
+function defaultFrontendOrigins(env = process.env) {
+  return env?.NODE_ENV === "production"
+    ? DEFAULT_PRODUCTION_ORIGINS
+    : DEFAULT_DEVELOPMENT_ORIGINS;
+}
+
+function resolveFrontendOrigins(env = process.env) {
+  return parseList(env?.FRONTEND_ORIGINS, defaultFrontendOrigins(env));
+}
+
+module.exports = {
+  securityHeaders,
+  createCorsOptions,
+  parseList,
+  defaultFrontendOrigins,
+  resolveFrontendOrigins,
+  DEFAULT_DEVELOPMENT_ORIGINS,
+  DEFAULT_PRODUCTION_ORIGINS,
+};
