@@ -29,6 +29,17 @@
   .mb-crop-sliders label { display: grid; grid-template-columns: 65px minmax(0,1fr) 42px; gap: 10px; align-items: center; font-size: 11px; }
   .mb-crop-sliders input, .mb-editor-range input { width: 100%; accent-color: var(--primary); }
   .mb-crop-sliders output { text-align: right; color: var(--text-2); font-variant-numeric: tabular-nums; }
+  .mb-avatar-cropper { display: grid; gap: 12px; }
+  .mb-avatar-cropper > p { color: var(--text-3); font-size: 11px; line-height: 1.5; text-align: center; }
+  .mb-avatar-crop-stage { position: relative; width: min(320px,100%); aspect-ratio: 1; margin-inline: auto; overflow: hidden; border-radius: 20px; background: var(--surface-2); cursor: grab; touch-action: none; user-select: none; outline: 1px solid var(--line); }
+  .mb-avatar-crop-stage:active { cursor: grabbing; }
+  .mb-avatar-crop-stage:focus-visible { outline: 3px solid var(--ring); outline-offset: 3px; }
+  .mb-avatar-crop-stage > img { position: absolute; left: 0; top: 0; max-width: none; object-fit: fill; transform-origin: 0 0; pointer-events: none; will-change: transform; }
+  .mb-avatar-crop-mask { position: absolute; left: 12.5%; top: 12.5%; width: 75%; aspect-ratio: 1; border-radius: 50%; box-shadow: 0 0 0 999px rgba(16,11,18,.58), inset 0 0 0 2px rgba(255,255,255,.9); pointer-events: none; }
+  .mb-avatar-crop-controls { display: flex; align-items: end; gap: 12px; }
+  .mb-avatar-crop-controls label { flex: 1; display: grid; grid-template-columns: 45px minmax(0,1fr) 44px; align-items: center; gap: 9px; color: var(--text-2); font-size: 11px; }
+  .mb-avatar-crop-controls input { width: 100%; accent-color: var(--primary); }
+  .mb-avatar-crop-controls output { text-align: right; font-variant-numeric: tabular-nums; }
   .mb-editor-range { display: block; padding: 15px; background: var(--surface-2); border-radius: 12px; }
   .mb-editor-range output { float: right; color: var(--primary); font-variant-numeric: tabular-nums; }
   .mb-editor-range input { display: block; margin-top: 13px; }
