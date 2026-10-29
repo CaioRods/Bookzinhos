@@ -1,3 +1,5 @@
+const crypto = require('crypto');
+
 const DEFINITIONS = [
   ['pioneer-3','Entre os 3 primeiros','Pioneiro lendário','pioneer',3], ['pioneer-10','Entre os 10 primeiros','Pioneiro','pioneer',10], ['pioneer-100','Entre os 100 primeiros','Primeira geração','pioneer',100],
   ['published-10','10 livros publicados','Autor da estante','published',10], ['published-100','100 livros publicados','Biblioteca viva','published',100], ['published-1000','1.000 livros publicados','Acervo lendário','published',1000],
@@ -35,9 +37,38 @@ function createBadgeService({ db, sql, now = Date.now }) {
     ]);
     const codes = badgeCodesForStats({ registrationOrder: user.registration_order, finished: finished.n, published: published.n, level: progress?.level, approvedThemes: themes.n });
     for (const code of codes) await db.query(sql`INSERT OR IGNORE INTO user_badges(username,badge_code,earned_at) VALUES(${username},${code},${now()})`);
-    return db.query(sql`SELECT d.code,d.name,d.description,d.category,d.threshold,b.earned_at AS earnedAt FROM user_badges b JOIN badge_definitions d ON d.code=b.badge_code WHERE b.username=${username} COLLATE NOCASE ORDER BY b.earned_at`);
+    return db.query(sql`SELECT d.code,d.name,d.description,d.category,d.threshold,MIN(x.earned_at) AS earnedAt,MAX(x.manual) AS manual
+      FROM (SELECT badge_code,earned_at,0 AS manual FROM user_badges WHERE username=${username} COLLATE NOCASE
+      UNION ALL SELECT badge_code,granted_at AS earned_at,1 AS manual FROM admin_badges WHERE username=${username} COLLATE NOCASE) x
+      JOIN badge_definitions d ON d.code=x.badge_code GROUP BY d.code,d.name,d.description,d.category,d.threshold ORDER BY earnedAt`);
   };
-  return { ready, evaluateBadges };
+  const listDefinitions = async () => { await ready(); return db.query('SELECT code,name,description,category,threshold FROM badge_definitions ORDER BY category,threshold,name'); };
+  const requireReason = (reason) => {
+    const value = String(reason || '').trim();
+    if (!value) throw new Error('Informe o motivo da alteração do selo.');
+    return value;
+  };
+  const grantBadge = async ({ username, code, admin, reason }) => {
+    await ready();
+    const cleanReason = requireReason(reason);
+    const [[user], [definition]] = await Promise.all([
+      db.query(sql`SELECT username FROM users WHERE username=${username} COLLATE NOCASE`),
+      db.query(sql`SELECT code FROM badge_definitions WHERE code=${code}`),
+    ]);
+    if (!user) throw new Error('Leitor não encontrado.');
+    if (!definition) throw new Error('Selo não encontrado.');
+    await db.query(sql`INSERT OR REPLACE INTO admin_badges(username,badge_code,granted_by,reason,granted_at) VALUES(${username},${code},${admin},${cleanReason},${now()})`);
+    await db.query(sql`INSERT INTO admin_audit_log(id,admin_username,target_username,action,amount,reason,metadata,created_at) VALUES(${crypto.randomUUID()},${admin},${username},'grant_badge',0,${cleanReason},${JSON.stringify({ code })},${now()})`);
+    return evaluateBadges(username);
+  };
+  const revokeBadge = async ({ username, code, admin, reason }) => {
+    await ready();
+    const cleanReason = requireReason(reason);
+    await db.query(sql`DELETE FROM admin_badges WHERE username=${username} COLLATE NOCASE AND badge_code=${code}`);
+    await db.query(sql`INSERT INTO admin_audit_log(id,admin_username,target_username,action,amount,reason,metadata,created_at) VALUES(${crypto.randomUUID()},${admin},${username},'revoke_badge',0,${cleanReason},${JSON.stringify({ code })},${now()})`);
+    return evaluateBadges(username);
+  };
+  return { ready, evaluateBadges, listDefinitions, grantBadge, revokeBadge };
 }
 
 module.exports = { DEFINITIONS, badgeCodesForStats, createBadgeService };

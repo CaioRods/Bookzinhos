@@ -408,6 +408,22 @@ export function setUserLevel(username: string, level: number, reason: string) {
   });
 }
 
+export function fetchBadgeDefinitions(force = false) {
+  return cachedGet<import("./types").ReaderBadge[]>("/admin/badges", force ? 0 : 300000);
+}
+
+export async function grantUserBadge(username: string, code: string, reason: string) {
+  const result = await request<import("./types").ReaderBadge[]>("POST", `/admin/users/${encodeURIComponent(username)}/badges/${encodeURIComponent(code)}`, { reason });
+  invalidate(`/progression/${encodeURIComponent(username)}`);
+  return result;
+}
+
+export async function revokeUserBadge(username: string, code: string, reason: string) {
+  const result = await request<import("./types").ReaderBadge[]>("DELETE", `/admin/users/${encodeURIComponent(username)}/badges/${encodeURIComponent(code)}`, { reason });
+  invalidate(`/progression/${encodeURIComponent(username)}`);
+  return result;
+}
+
 // ─── FAVORITOS ────────────────────────────────────────────────────────────────
 
 export function fetchSavedIds(force = false): Promise<string[]> {

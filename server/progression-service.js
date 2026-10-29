@@ -27,6 +27,11 @@ async function ensureProgressionSchema(db) {
     username TEXT NOT NULL COLLATE NOCASE, badge_code TEXT NOT NULL, earned_at INTEGER NOT NULL,
     PRIMARY KEY(username,badge_code)
   )`);
+  await db.query(`CREATE TABLE IF NOT EXISTS admin_badges (
+    username TEXT NOT NULL COLLATE NOCASE, badge_code TEXT NOT NULL,
+    granted_by TEXT NOT NULL COLLATE NOCASE, reason TEXT NOT NULL, granted_at INTEGER NOT NULL,
+    PRIMARY KEY(username,badge_code)
+  )`);
   await db.query('CREATE INDEX IF NOT EXISTS idx_xp_events_user_date ON xp_events(username,created_at DESC)');
   await db.query('CREATE INDEX IF NOT EXISTS idx_xp_boosts_user_end ON xp_boosts(username,ends_at)');
   await db.query(`INSERT OR IGNORE INTO user_progression(username,total_xp,level,updated_at)

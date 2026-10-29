@@ -12,8 +12,8 @@ import { fetchProfileTheme } from "../lib/appearanceApi";
 import { DEFAULT_THEMES } from "../lib/themeCatalog";
 import { accentVariables, type SceneTheme } from "../lib/appearance";
 import { ThemeImage } from "../components/ThemeImage";
-import { ProgressionCard } from "../components/ProgressionCard";
 import { BadgeGallery } from "../components/BadgeGallery";
+import { ProfileProgressAvatar } from "../components/ProfileProgressAvatar";
 
 type Tab = "resenhas" | "estante" | "lidos" | "favoritos";
 
@@ -124,7 +124,7 @@ export function UserProfile() {
       <div className="mb-public-profile-banner" style={{ backgroundColor: profileTheme.mainColor }}><ThemeImage theme={profileTheme} crop={profileTheme.profile} /><span>{profileTheme.name}</span></div>
       <header className="mb-profile-hero mb-card p-5 sm:p-6"><p className="mb-eyebrow mb-6">UM LEITOR, MUITAS HISTÓRIAS</p>
         <div className="flex items-start gap-4">
-          <Avatar emoji={profile.avatar} size="xl" />
+          {progression ? <ProfileProgressAvatar avatar={profile.avatar} level={progression.level} title={progression.title} totalXp={progression.totalXp} currentLevelXp={progression.currentLevelXp} nextLevelXp={progression.nextLevelXp} /> : <Avatar emoji={profile.avatar} size="xl" />}
           <div className="flex-1 min-w-0 pt-1">
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-xl font-bold text-foreground truncate">{profile.displayName || profile.username}</h1>
@@ -167,7 +167,7 @@ export function UserProfile() {
         )}
       </header>
 
-      {progression && <div className="mb-public-progression-grid"><ProgressionCard progression={progression} /><BadgeGallery badges={progression.badges} /></div>}
+      {progression && <div className="mb-public-progression-grid mb-public-progression-grid--badges"><BadgeGallery badges={progression.badges} /></div>}
 
       {/* ── Abas ───────────────────────────────────────────────────────────── */}
       <div className="flex gap-1.5 overflow-x-auto no-scrollbar border-b border-[var(--line)] pb-2">

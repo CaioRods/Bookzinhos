@@ -26,4 +26,16 @@ module.exports = function registerProgressionRoutes({ app, db, sql, currentUser,
     try { res.json(await db.query(sql`SELECT * FROM xp_events WHERE username=${req.params.username} COLLATE NOCASE ORDER BY created_at DESC LIMIT 100`)); }
     catch (error) { res.status(500).json({ error: error.message }); }
   });
+  app.get('/admin/badges', requireAdmin, async (req, res) => {
+    try { res.json(await badges.listDefinitions()); }
+    catch (error) { res.status(500).json({ error: error.message }); }
+  });
+  app.post('/admin/users/:username/badges/:code', requireAdmin, async (req, res) => {
+    try { res.json(await badges.grantBadge({ username: req.params.username, code: req.params.code, admin: currentUser(req), reason: req.body.reason })); }
+    catch (error) { res.status(400).json({ error: error.message }); }
+  });
+  app.delete('/admin/users/:username/badges/:code', requireAdmin, async (req, res) => {
+    try { res.json(await badges.revokeBadge({ username: req.params.username, code: req.params.code, admin: currentUser(req), reason: req.body.reason })); }
+    catch (error) { res.status(400).json({ error: error.message }); }
+  });
 };

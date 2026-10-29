@@ -8,7 +8,7 @@ import {
 import {
   createBanner, createPost, deleteBanner, deleteBook, deletePost, fetchAdminOverview,
   fetchAllUsers, fetchBannerReport, fetchBanners, fetchBooks, fetchPosts, fetchProgression,
-  adjustUserXp, setUserLevel, updateBanner, updatePost,
+  adjustUserXp, fetchBadgeDefinitions, grantUserBadge, revokeUserBadge, setUserLevel, updateBanner, updatePost,
 } from "../lib/api";
 import { isAdmin as isAdminUser } from "../lib/session";
 import { getFullUrl, timeAgo } from "../lib/types";
@@ -958,9 +958,13 @@ function UserProgressionAdmin({ username }: { username: string }) {
   const [level, setLevel] = useState(1);
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
+  const [badgeDefinitions, setBadgeDefinitions] = useState<Awaited<ReturnType<typeof fetchBadgeDefinitions>>>([]);
+  const [badgeCode, setBadgeCode] = useState("");
 
   useEffect(() => {
-    fetchProgression(username, true).then((value) => { setSummary(value); setLevel(value.level); }).catch(() => setSummary(null));
+    Promise.all([fetchProgression(username, true), fetchBadgeDefinitions()]).then(([value, definitions]) => {
+      setSummary(value); setLevel(value.level); setBadgeDefinitions(definitions); setBadgeCode((current) => current || definitions[0]?.code || "");
+    }).catch(() => setSummary(null));
   }, [username]);
 
   const run = async (action: "xp" | "level") => {
@@ -980,6 +984,23 @@ function UserProgressionAdmin({ username }: { username: string }) {
     } finally { setBusy(false); }
   };
 
+  const selectedBadge = badgeDefinitions.find((badge) => badge.code === badgeCode);
+  const earnedBadge = summary?.badges.find((badge) => badge.code === badgeCode);
+  const updateBadge = async () => {
+    if (!badgeCode) return;
+    if (!reason.trim()) return toast("Informe o motivo da alteração do selo.", "error");
+    setBusy(true);
+    try {
+      const badges = earnedBadge?.manual
+        ? await revokeUserBadge(username, badgeCode, reason)
+        : await grantUserBadge(username, badgeCode, reason);
+      setSummary((current) => current ? { ...current, badges } : current);
+      setReason("");
+      toast(earnedBadge?.manual ? "Selo administrativo removido." : "Selo concedido ao leitor.");
+    } catch (error) { toast(error instanceof Error ? error.message : "Não foi possível alterar o selo.", "error"); }
+    finally { setBusy(false); }
+  };
+
   return <div className="mt-4 pt-3 border-t border-[var(--line)] space-y-2">
     <p className="text-[12px] text-[var(--text-3)]">{summary ? `Nível ${summary.level} · ${summary.totalXp} XP · ${summary.title}` : "Carregando progressão…"}</p>
     <input className="mb-input" value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Motivo obrigatório (fica na auditoria)" />
@@ -993,5 +1014,14 @@ function UserProgressionAdmin({ username }: { username: string }) {
         <button className="mb-btn mb-btn-sm mb-btn-soft" disabled={busy} onClick={() => run("level")}>Definir nível</button>
       </div>
     </div>
+    <div className="flex gap-1.5">
+      <select className="mb-input min-w-0" value={badgeCode} onChange={(event) => setBadgeCode(event.target.value)} aria-label={`Selo para ${username}`}>
+        {badgeDefinitions.map((badge) => <option key={badge.code} value={badge.code}>{badge.name}</option>)}
+      </select>
+      <button className="mb-btn mb-btn-sm mb-btn-outline" disabled={busy || !badgeCode || (!!earnedBadge && !earnedBadge.manual)} onClick={updateBadge}>
+        {earnedBadge?.manual ? "Remover selo" : earnedBadge ? "Selo automático" : "Dar selo"}
+      </button>
+    </div>
+    {selectedBadge && <p className="text-[11px] text-[var(--text-3)]">{selectedBadge.description}</p>}
   </div>;
 }
