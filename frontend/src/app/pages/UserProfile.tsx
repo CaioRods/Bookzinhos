@@ -1,4 +1,4 @@
-import { useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useParams, useNavigate, Link } from "react-router";
 import { ArrowLeft, MessageCircle, UserPlus, UserCheck, Star } from "lucide-react";
 import { fetchBooks, fetchProgression, fetchUserProfile, followUser, unfollowUser } from "../lib/api";
@@ -23,7 +23,7 @@ export function UserProfile() {
   const me = getUsername();
   const [tab, setTab] = useState<Tab>("resenhas");
 
-  const { data, isLoading, setData } = useLiveData<{ profile: UserProfileType | null; books: Book[]; profileTheme: SceneTheme | null; progression: ProgressionSummary | null }>(
+  const { data, isLoading, setData, reload } = useLiveData<{ profile: UserProfileType | null; books: Book[]; profileTheme: SceneTheme | null; progression: ProgressionSummary | null }>(
     async (force) => {
       const [profile, books, remoteTheme, progression] = await Promise.all([
         fetchUserProfile(username!, force),
@@ -37,6 +37,14 @@ export function UserProfile() {
     [username],
     { intervalMs: 60000 }
   );
+  useEffect(() => {
+    const refresh = (event: Event) => {
+      const changed = (event as CustomEvent<{ username: string }>).detail?.username;
+      if (changed?.toLowerCase() === username?.toLowerCase()) void reload();
+    };
+    window.addEventListener("mybooks:progression-updated", refresh);
+    return () => window.removeEventListener("mybooks:progression-updated", refresh);
+  }, [reload, username]);
 
   const profile = data?.profile ?? null;
   const books = data?.books ?? [];

@@ -78,6 +78,14 @@ export function RootLayout() {
   }, []);
 
   useEffect(() => { if (username) fetchProgression(username).then(setProgression).catch(() => setProgression(null)); else setProgression(null); }, [username]);
+  useEffect(() => {
+    const refresh = (event: Event) => {
+      const changed = (event as CustomEvent<{ username: string }>).detail?.username;
+      if (username && changed?.toLowerCase() === username.toLowerCase()) fetchProgression(username, true).then(setProgression).catch(() => {});
+    };
+    window.addEventListener("mybooks:progression-updated", refresh);
+    return () => window.removeEventListener("mybooks:progression-updated", refresh);
+  }, [username]);
 
   useEffect(() => {
     if (location.pathname.startsWith("/read/")) return;

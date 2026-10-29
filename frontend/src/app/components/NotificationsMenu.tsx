@@ -191,7 +191,7 @@ export function NotificationsMenu({ onUnreadChange }: { onUnreadChange?: (n: num
                     }`}
                   >
                     <span className="relative flex-shrink-0 mt-0.5">
-                      <Avatar emoji={n.avatar || "🔔"} size="xs" />
+                      <Avatar emoji={n.avatar || "🔔"} size="xs" username={n.actor} link={false} />
                       <span
                         className="absolute -bottom-1 -right-1 w-[17px] h-[17px] rounded-full flex items-center justify-center ring-2 ring-[var(--surface)]"
                         style={{ background: TINTS[n.type] || "var(--primary)" }}

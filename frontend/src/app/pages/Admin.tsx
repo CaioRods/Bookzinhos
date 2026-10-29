@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import {
   createBanner, createPost, deleteBanner, deleteBook, deletePost, fetchAdminOverview,
-  fetchAllUsers, fetchBannerReport, fetchBanners, fetchBooks, fetchPosts, fetchProgression,
+  fetchAllUsers, fetchAdminProgression, fetchBannerReport, fetchBanners, fetchBooks, fetchPosts,
   adjustUserXp, fetchBadgeDefinitions, grantUserBadge, revokeUserBadge, setUserLevel, updateBanner, updatePost,
 } from "../lib/api";
 import { isAdmin as isAdminUser } from "../lib/session";
@@ -930,7 +930,7 @@ function UsersTab() {
           {users.map((user) => (
             <article key={user.username} className="mb-card p-4">
               <Link to={`/user/${encodeURIComponent(user.username)}`} className="flex items-center gap-3 mb-card-hover rounded-xl">
-                <Avatar emoji={user.avatar} size="md" />
+                <Avatar emoji={user.avatar} size="md" username={user.username} link={false} />
                 <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <p className="text-[13.5px] font-semibold text-foreground truncate">{user.username}</p>
@@ -953,7 +953,7 @@ function UsersTab() {
 }
 
 function UserProgressionAdmin({ username }: { username: string }) {
-  const [summary, setSummary] = useState<Awaited<ReturnType<typeof fetchProgression>> | null>(null);
+  const [summary, setSummary] = useState<Awaited<ReturnType<typeof fetchAdminProgression>> | null>(null);
   const [amount, setAmount] = useState(100);
   const [level, setLevel] = useState(1);
   const [reason, setReason] = useState("");
@@ -962,7 +962,7 @@ function UserProgressionAdmin({ username }: { username: string }) {
   const [badgeCode, setBadgeCode] = useState("");
 
   useEffect(() => {
-    Promise.all([fetchProgression(username, true), fetchBadgeDefinitions()]).then(([value, definitions]) => {
+    Promise.all([fetchAdminProgression(username, true), fetchBadgeDefinitions()]).then(([value, definitions]) => {
       setSummary(value); setLevel(value.level); setBadgeDefinitions(definitions); setBadgeCode((current) => current || definitions[0]?.code || "");
     }).catch(() => setSummary(null));
   }, [username]);
@@ -974,7 +974,7 @@ function UserProgressionAdmin({ username }: { username: string }) {
       const value = action === "xp"
         ? await adjustUserXp(username, amount, reason)
         : await setUserLevel(username, level, reason);
-      const refreshed = await fetchProgression(username, true);
+      const refreshed = await fetchAdminProgression(username, true);
       setSummary(refreshed);
       setLevel(refreshed.level);
       setReason("");

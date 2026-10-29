@@ -240,7 +240,7 @@ export function PostComposer({
   return (
     <section className="mb-composer">
       <header>
-        <Avatar size="sm" emoji={getAvatar()} />
+        <Avatar size="sm" emoji={getAvatar()} username={getUsername() || undefined} link={false} />
         <div>
           <strong>Uma história merece outra conversa.</strong>
           <small>Compartilhe uma descoberta com a comunidade.</small>
@@ -423,7 +423,7 @@ function SharePost({
               key={u.username}
               onClick={() => send(u.username)}
             >
-              <Avatar size="sm" emoji={u.avatar} />
+              <Avatar size="sm" emoji={u.avatar} username={u.username} link={false} />
               {u.username}
               <Send size={16} />
             </button>

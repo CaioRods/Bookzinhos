@@ -22,7 +22,7 @@ export function AccountMenu({ avatar, username, admin, progression, onLogout }: 
   return <div className="mb-account-menu" ref={root}>
     <button type="button" aria-label={`Conta de ${username}`} aria-expanded={open} onClick={() => setOpen((value) => !value)}>{progression ? <ProfileProgressAvatar compact avatar={avatar} level={progression.level} title={progression.title} totalXp={progression.totalXp} currentLevelXp={progression.currentLevelXp} nextLevelXp={progression.nextLevelXp} /> : <Avatar emoji={avatar} size="sm" />}</button>
     {open && <div className="mb-account-popover" role="menu">
-      <header><Avatar emoji={avatar} size="md" /><span><strong>{username}</strong><small>{progression ? `Nível ${progression.level} · ${progression.title}` : "Meu perfil literário"}</small></span></header>
+      <header><Avatar emoji={avatar} size="md" username={username} link={false} /><span><strong>{username}</strong><small>{progression ? `Nível ${progression.level} · ${progression.title}` : "Meu perfil literário"}</small></span></header>
       {progression && <div className="mb-account-xp"><i style={{ width: `${progress}%` }} /></div>}
       <Link role="menuitem" to="/profile"><UserRound /> Perfil</Link>
       <Link role="menuitem" to="/settings"><Settings /> Configurações</Link>

@@ -157,7 +157,7 @@ export function Profile() {
     <div className="mb-screen mb-screen--narrow mb-profile space-y-6">
       <p className="mb-eyebrow mb-profile-kicker">MEU PERFIL</p>
       <header className="mb-reference-profile">
-        <Avatar emoji={profile.avatar} size="hero" />
+        <Avatar emoji={profile.avatar} size="hero" username={profile.username} link={false} />
         <div className="min-w-0">
           <div className="mb-profile-name-row"><h1>{profile.displayName || profile.username}</h1><button onClick={() => setIsEditing(true)} className="mb-btn mb-btn-soft"><Pencil size={16} /> Editar perfil</button></div>
           <p className="mb-profile-handle">@{profile.handle || profile.username.toLowerCase()}</p>

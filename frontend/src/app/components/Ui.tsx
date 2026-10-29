@@ -10,6 +10,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import { Star, X } from "lucide-react";
 import { getFullUrl } from "../lib/types";
+import { fetchUserLevel } from "../lib/api";
 
 // ─── Estrelas ─────────────────────────────────────────────────────────────────
 
@@ -111,12 +112,27 @@ export function Avatar({
   size = "md",
   username,
   ring,
+  link = true,
 }: {
   emoji?: string | null;
   size?: keyof typeof AVATAR_SIZES;
   username?: string;
   ring?: boolean;
+  link?: boolean;
 }) {
+  const [publicLevel, setPublicLevel] = useState<{ level: number; title: string } | null>(null);
+  useEffect(() => {
+    if (!username) { setPublicLevel(null); return; }
+    let active = true;
+    const load = (force = false) => fetchUserLevel(username, force).then((value) => { if (active) setPublicLevel(value); }).catch(() => {});
+    void load();
+    const refresh = (event: Event) => {
+      const changed = (event as CustomEvent<{ username: string }>).detail?.username;
+      if (changed?.toLowerCase() === username.toLowerCase()) void load(true);
+    };
+    window.addEventListener("mybooks:progression-updated", refresh);
+    return () => { active = false; window.removeEventListener("mybooks:progression-updated", refresh); };
+  }, [username]);
   const content = (
     <span
       className={`${AVATAR_SIZES[size]} inline-flex items-center justify-center rounded-full bg-[var(--surface-2)] border border-[var(--line)] select-none flex-shrink-0 ${
@@ -128,10 +144,11 @@ export function Avatar({
       ) : (emoji || "👤")}
     </span>
   );
-  if (!username) return content;
+  const decorated = username && publicLevel ? <span className={`mb-avatar-level mb-avatar-level--${publicLevel.level < 20 ? "iron" : publicLevel.level < 40 ? "bronze" : publicLevel.level < 60 ? "gold" : publicLevel.level < 80 ? "blue" : "diamond"}`} title={`${publicLevel.title} · nível ${publicLevel.level}`}>{content}<b>{publicLevel.level}</b></span> : content;
+  if (!username || !link) return decorated;
   return (
     <Link to={`/user/${encodeURIComponent(username)}`} className="hover:opacity-80 transition-opacity">
-      {content}
+      {decorated}
     </Link>
   );
 }

@@ -207,7 +207,7 @@ export function BookDetails() {
                 onClick={() => handleShare(u.username)}
                 className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-[var(--surface-2)] transition-colors text-left cursor-pointer"
               >
-                <Avatar emoji={u.avatar} size="sm" />
+                <Avatar emoji={u.avatar} size="sm" username={u.username} link={false} />
                 <span className="flex-1 min-w-0">
                   <span className="block text-[13.5px] font-semibold text-foreground truncate">{u.username}</span>
                   <span className="block text-[12px] text-[var(--text-3)] truncate">{u.bio || "Leitor do myBooks"}</span>

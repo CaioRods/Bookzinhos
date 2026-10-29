@@ -77,3 +77,28 @@ test('admin can grant and remove a badge with an audited reason', async (t) => {
   assert.equal(revoke.status, 200);
   assert.equal((await db.query("SELECT * FROM admin_badges WHERE username='Ana'")).length, 0);
 });
+
+test('lightweight public level endpoint never exposes xp totals', async (t) => {
+  const { connection, db, sql } = memoryDb();
+  t.after(() => new Promise((resolve) => connection.close(resolve)));
+  await db.query('CREATE TABLE users(username TEXT PRIMARY KEY COLLATE NOCASE)');
+  await db.query("INSERT INTO users VALUES ('Ana')");
+  const progression = createProgressionService({ db, sql, now: () => 7_000 });
+  await progression.ready();
+  await progression.adjustXpByAdmin({ admin: 'Admin', username: 'Ana', amount: 500, reason: 'teste' });
+  const app = express(); app.use(express.json());
+  const currentUser = (req) => req.get('x-user-id');
+  const requireAdmin = (_req, _res, next) => next();
+  registerProgressionRoutes({ app, db, sql, currentUser, requireAdmin, progression, badges: { evaluateBadges: async () => [] } });
+  const server = await new Promise((resolve) => { const listening = app.listen(0, '127.0.0.1', () => resolve(listening)); });
+  t.after(() => new Promise((resolve) => server.close(resolve)));
+  const response = await fetch(`http://127.0.0.1:${server.address().port}/users/Ana/level`, { headers: { 'x-user-id': 'Bia' } });
+  const body = await response.json();
+  assert.equal(response.status, 200);
+  assert.equal(typeof body.level, 'number');
+  assert.equal(typeof body.title, 'string');
+  assert.equal('totalXp' in body, false);
+  const publicProgression = await (await fetch(`http://127.0.0.1:${server.address().port}/progression/Ana`, { headers: { 'x-user-id': 'Bia' } })).json();
+  assert.equal(publicProgression.level, body.level);
+  assert.equal('totalXp' in publicProgression, false);
+});

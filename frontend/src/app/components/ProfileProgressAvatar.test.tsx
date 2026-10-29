@@ -28,4 +28,10 @@ describe("ProfileProgressAvatar", () => {
     expect(screen.getByText("40")).toHaveClass("mb-level-medallion");
     expect(screen.queryByText("Leitor")).not.toBeInTheDocument();
   });
+
+  it("does not expose another reader's xp percentage when totals are omitted", () => {
+    const { container } = render(<ProfileProgressAvatar avatar="🐼" level={25} title="Explorador" />);
+    expect(container.querySelector('[role="img"][aria-label="Nível público 25"]')).toBeInTheDocument();
+    expect(container.querySelector('[role="progressbar"]')).not.toBeInTheDocument();
+  });
 });

@@ -394,8 +394,22 @@ export function fetchProgression(username: string, force = false) {
   return cachedGet<ProgressionSummary>(`/progression/${encodeURIComponent(username)}`, force ? 0 : 30000);
 }
 
+export function fetchAdminProgression(username: string, force = false) {
+  return cachedGet<ProgressionSummary>(`/admin/users/${encodeURIComponent(username)}/progression`, force ? 0 : 30000);
+}
+
+export function fetchUserLevel(username: string, force = false) {
+  return cachedGet<{ username: string; level: number; title: string }>(`/users/${encodeURIComponent(username)}/level`, force ? 0 : 60000);
+}
+
+function dispatchProgressionUpdate(username: string) {
+  invalidate(`/progression/${encodeURIComponent(username)}`, `/users/${encodeURIComponent(username)}/level`, `/admin/users/${encodeURIComponent(username)}/progression`);
+  window.dispatchEvent(new CustomEvent("mybooks:progression-updated", { detail: { username } }));
+}
+
 export function adjustUserXp(username: string, amount: number, reason: string) {
   return request<ProgressionSummary & ProgressionResult>("POST", `/admin/users/${encodeURIComponent(username)}/xp`, { amount, reason }).then((result) => {
+    dispatchProgressionUpdate(username);
     if (username.toLowerCase() === (localStorage.getItem("books-username") || "").toLowerCase()) dispatchProgressionResult(result);
     return result;
   });
@@ -403,6 +417,7 @@ export function adjustUserXp(username: string, amount: number, reason: string) {
 
 export function setUserLevel(username: string, level: number, reason: string) {
   return request<ProgressionSummary & ProgressionResult>("PUT", `/admin/users/${encodeURIComponent(username)}/level`, { level, reason }).then((result) => {
+    dispatchProgressionUpdate(username);
     if (username.toLowerCase() === (localStorage.getItem("books-username") || "").toLowerCase()) dispatchProgressionResult(result);
     return result;
   });

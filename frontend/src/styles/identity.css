@@ -19,6 +19,7 @@
   .mb-public-progression-grid--badges { grid-template-columns: 1fr; }
   .mb-profile-progress-avatar { --level-metal: #44474d; --level-metal-light: #92979f; --level-ink: #fff; width: 92px; flex: 0 0 92px; display: grid; justify-items: center; gap: 4px; text-align: center; }
   .mb-profile-progress-ring { --profile-progress: 0deg; position: relative; display: grid; place-items: center; width: 82px; height: 82px; margin-bottom: 9px; border-radius: 50%; background: conic-gradient(var(--primary) var(--profile-progress), color-mix(in srgb,var(--primary) 14%,var(--surface-3)) 0); box-shadow: 0 0 0 1px color-mix(in srgb,var(--primary) 20%,transparent), 0 10px 26px color-mix(in srgb,var(--primary) 14%,transparent); }
+  .mb-profile-progress-ring--public { background: var(--level-metal-light); }
   .mb-profile-progress-ring::before { content: ""; position: absolute; width: 72px; height: 72px; border-radius: 50%; background: var(--surface); }
   .mb-profile-progress-ring::after { content: ""; position: absolute; z-index: 2; left: 50%; bottom: -4px; width: 42px; height: 18px; transform: translateX(-50%); border-radius: 50% 50% 8px 8px; background: var(--surface); }
   .mb-profile-progress-ring > span { position: relative; z-index: 1; width: 68px; height: 68px; font-size: 38px; }
@@ -35,6 +36,11 @@
   .mb-profile-progress-avatar--compact .mb-profile-progress-ring::after { bottom: -3px; width: 25px; height: 11px; }
   .mb-profile-progress-avatar--compact .mb-profile-progress-ring > span { width: 35px; height: 35px; font-size: 18px; }
   .mb-profile-progress-avatar--compact .mb-level-medallion { bottom: -6px; min-width: 22px; height: 16px; padding: 0 5px; border-width: 1px; font-size: 9px; }
+  .mb-avatar-level { --mini-metal: #44474d; --mini-light: #92979f; position: relative; display: inline-flex; flex: 0 0 auto; }
+  .mb-avatar-level > b { position: absolute; z-index: 2; left: 50%; bottom: -4px; min-width: 18px; height: 13px; padding: 0 4px; display: grid; place-items: center; transform: translateX(-50%); border: 1px solid color-mix(in srgb,var(--mini-light) 70%,white); border-radius: 999px; color: white; background: linear-gradient(145deg,var(--mini-light),var(--mini-metal)); box-shadow: 0 2px 5px rgb(0 0 0 / 25%); font-size: 8px; font-weight: 850; line-height: 1; }
+  .mb-avatar-level--bronze { --mini-metal: #8a4f28; --mini-light: #d08a50; }.mb-avatar-level--gold { --mini-metal: #a66d00; --mini-light: #ffd76a; }.mb-avatar-level--blue { --mini-metal: #155b9b; --mini-light: #64b5f6; }.mb-avatar-level--diamond { --mini-metal: #409cc2; --mini-light: #e8fbff; }
+  .mb-avatar-level--gold > b,.mb-avatar-level--diamond > b { color: #3e2800; }
+  .mb-avatar-level--diamond > b { box-shadow: 0 0 8px rgb(95 211 255 / 75%),0 2px 5px rgb(0 0 0 / 20%); }
   .mb-progression-card,.mb-badge-gallery { border: 1px solid color-mix(in srgb,var(--primary) 22%,var(--line)); border-radius: 20px; padding: 20px; background: color-mix(in srgb,var(--surface) 93%,var(--primary)); }
   .mb-progression-card > div:first-child,.mb-badge-gallery header { display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text-3); }.mb-progression-card > div:first-child b { color: var(--primary); }.mb-progression-card h2 { font-family: var(--font-display); font-size: 25px; margin: 10px 0 15px; }.mb-progression-card p { color: var(--text-3); font-size: 10px; margin-top: 8px; }
   .mb-xp-track { height: 8px; border-radius: 6px; overflow: hidden; background: var(--surface-3); }.mb-xp-track i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg,var(--primary),color-mix(in srgb,var(--primary) 55%,#f2ca62)); }
