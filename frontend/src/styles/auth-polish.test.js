@@ -10,6 +10,7 @@ describe("login viewport", () => {
     expect(stylesheet).not.toMatch(/\.mb-auth-card-content\s*\{[^}]*overflow-y\s*:\s*auto/i);
     expect(loginSource).not.toContain("max-h-64 overflow-y-auto");
     expect(stylesheet).toMatch(/@media\s*\(max-width:767px\)[\s\S]*?\.mb-auth-panel\s*\{[^}]*position\s*:\s*fixed[^}]*top\s*:/i);
+    expect(stylesheet).toMatch(/@media\s*\(max-width:767px\)[\s\S]*?\.mb-auth-card\s*\{[^}]*height\s*:\s*min\(560px,calc\(100dvh\s*-\s*132px\)\)/i);
   });
 
   it("uses a translucent acrylic surface for the login card", () => {
