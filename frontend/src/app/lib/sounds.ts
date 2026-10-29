@@ -125,3 +125,11 @@ export function soundSuccess(): void {
     blip({ freq: 784, dur: 0.14, type: "sine", gain: 0.06, delay: 0.08 });
   });
 }
+
+export function soundLevelUp(milestone: boolean): void {
+  play(() => {
+    blip({ freq: 440, toFreq: 660, dur: .18, gain: .07 });
+    blip({ freq: 660, toFreq: milestone ? 1046 : 880, dur: .24, gain: .08, delay: .12 });
+    if (milestone) blip({ freq: 1046, dur: .34, gain: .06, delay: .28 });
+  });
+}

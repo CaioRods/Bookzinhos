@@ -12,6 +12,7 @@ import type {
   AdminOverview, Banner, BannerReport, Book, BookChapter, ChatMessage, FeedItem, HomeData, HomePost,
   Note, Notifications, ReadingProgress, Review, ReviewComment, Stats, UserProfile, CharacterAvatar, CharacterCatalog, ChatConversation, ProgressionSummary,
 } from "./types";
+import { dispatchProgressionResult, type ProgressionResult } from "./progressionEvents";
 
 // ─── Cache + deduplicação ─────────────────────────────────────────────────────
 
@@ -394,11 +395,17 @@ export function fetchProgression(username: string, force = false) {
 }
 
 export function adjustUserXp(username: string, amount: number, reason: string) {
-  return request<ProgressionSummary>("POST", `/admin/users/${encodeURIComponent(username)}/xp`, { amount, reason });
+  return request<ProgressionSummary & ProgressionResult>("POST", `/admin/users/${encodeURIComponent(username)}/xp`, { amount, reason }).then((result) => {
+    if (username.toLowerCase() === (localStorage.getItem("books-username") || "").toLowerCase()) dispatchProgressionResult(result);
+    return result;
+  });
 }
 
 export function setUserLevel(username: string, level: number, reason: string) {
-  return request<ProgressionSummary>("PUT", `/admin/users/${encodeURIComponent(username)}/level`, { level, reason });
+  return request<ProgressionSummary & ProgressionResult>("PUT", `/admin/users/${encodeURIComponent(username)}/level`, { level, reason }).then((result) => {
+    if (username.toLowerCase() === (localStorage.getItem("books-username") || "").toLowerCase()) dispatchProgressionResult(result);
+    return result;
+  });
 }
 
 // ─── FAVORITOS ────────────────────────────────────────────────────────────────

@@ -25,4 +25,11 @@ describe("AccountMenu", () => {
     fireEvent.click(screen.getByRole("menuitem", { name: "Sair" }));
     expect(logout).toHaveBeenCalledOnce();
   });
+
+  it("renders an uploaded avatar as an image without nesting a profile link", () => {
+    render(<MemoryRouter><AccountMenu avatar="/uploads/ana.webp" username="Ana" admin={false} progression={progression} onLogout={() => {}} /></MemoryRouter>);
+    const trigger = screen.getByRole("button", { name: /conta de ana/i });
+    expect(trigger.querySelector("img")).toBeInTheDocument();
+    expect(trigger.querySelector("a")).not.toBeInTheDocument();
+  });
 });

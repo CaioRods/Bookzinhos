@@ -75,6 +75,7 @@ export function saveSession(user: Partial<UserProfile> & { username: string }): 
   if (user.avatar != null) localStorage.setItem(KEYS.avatar, user.avatar);
   localStorage.setItem(KEYS.admin, String(!!user.isAdmin));
   if (user.shelf) localStorage.setItem(KEYS.shelf, JSON.stringify(user.shelf));
+  notifySessionChanged();
 }
 
 export function clearSession(): void {

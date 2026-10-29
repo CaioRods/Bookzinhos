@@ -1066,3 +1066,40 @@
     transform: none;
   }
 }
+
+.mb-level-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgb(25 14 27 / 72%);
+  backdrop-filter: blur(14px);
+  animation: mb-level-fade .35s ease both;
+}
+.mb-level-overlay > div {
+  position: relative;
+  width: min(440px, 100%);
+  padding: 42px 28px 30px;
+  text-align: center;
+  border: 1px solid rgb(255 255 255 / 35%);
+  border-radius: 30px;
+  color: #fff;
+  background: radial-gradient(circle at 50% 0, rgb(255 220 143 / 38%), transparent 42%), linear-gradient(145deg, #4a254b, #241426);
+  box-shadow: 0 30px 90px rgb(0 0 0 / 45%);
+  animation: mb-level-rise .55s cubic-bezier(.2,.8,.2,1) both;
+}
+.mb-level-overlay > div > button[aria-label="Fechar"] { position: absolute; top: 16px; right: 16px; padding: 7px; border-radius: 999px; background: rgb(255 255 255 / 10%); }
+.mb-level-overlay .mb-level-spark { width: 42px; height: 42px; margin: 0 auto 12px; color: #f5cc69; filter: drop-shadow(0 0 16px rgb(245 204 105 / 65%)); }
+.mb-level-overlay small { letter-spacing: .18em; color: #f5cc69; }
+.mb-level-overlay p { display: flex; align-items: center; justify-content: center; gap: 18px; margin: 20px 0 10px; font-size: 42px; }
+.mb-level-overlay p span { opacity: .45; }
+.mb-level-overlay p i { font-size: 24px; font-style: normal; color: #f5cc69; }
+.mb-level-overlay p strong { font-size: 64px; line-height: 1; }
+.mb-level-overlay h2 { margin-bottom: 24px; font-family: var(--font-display); font-size: 25px; }
+@keyframes mb-level-fade { from { opacity: 0; } }
+@keyframes mb-level-rise { from { opacity: 0; transform: translateY(30px) scale(.92); } }
+@media (prefers-reduced-motion: reduce) {
+  .mb-level-overlay, .mb-level-overlay > div { animation: none; }
+}

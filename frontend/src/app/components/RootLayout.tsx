@@ -22,6 +22,7 @@ import { primeSounds, soundTap } from "../lib/sounds";
 import { createActivityTracker } from "../lib/activityTracker";
 import { sendActivityHeartbeat } from "../lib/api";
 import { AccountMenu } from "./AccountMenu";
+import { LevelUpOverlay } from "./LevelUpOverlay";
 
 interface NavItem {
   path: string;
@@ -167,6 +168,7 @@ export function RootLayout() {
   return (
     <BookTransitionProvider>
       <AuthGateModal />
+      <LevelUpOverlay />
       <a href="#main-content" className="mb-skip-link">Pular para o conteúdo</a>
       <SceneAtmosphere theme={selectedTheme} />
       <div className="mb-app-window bg-background">

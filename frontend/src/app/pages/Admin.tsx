@@ -7,7 +7,8 @@ import {
 } from "lucide-react";
 import {
   createBanner, createPost, deleteBanner, deleteBook, deletePost, fetchAdminOverview,
-  fetchAllUsers, fetchBannerReport, fetchBanners, fetchBooks, fetchPosts, updateBanner, updatePost,
+  fetchAllUsers, fetchBannerReport, fetchBanners, fetchBooks, fetchPosts, fetchProgression,
+  adjustUserXp, setUserLevel, updateBanner, updatePost,
 } from "../lib/api";
 import { isAdmin as isAdminUser } from "../lib/session";
 import { getFullUrl, timeAgo } from "../lib/types";
@@ -927,9 +928,10 @@ function UsersTab() {
       ) : (
         <div className="grid sm:grid-cols-2 gap-3">
           {users.map((user) => (
-            <Link key={user.username} to={`/user/${encodeURIComponent(user.username)}`} className="mb-card mb-card-hover p-4 flex items-center gap-3">
-              <Avatar emoji={user.avatar} size="md" />
-              <div className="min-w-0 flex-1">
+            <article key={user.username} className="mb-card p-4">
+              <Link to={`/user/${encodeURIComponent(user.username)}`} className="flex items-center gap-3 mb-card-hover rounded-xl">
+                <Avatar emoji={user.avatar} size="md" />
+                <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <p className="text-[13.5px] font-semibold text-foreground truncate">{user.username}</p>
                   {user.isAdmin && <span className="mb-chip mb-chip-primary">Admin</span>}
@@ -939,11 +941,57 @@ function UsersTab() {
                   <span className="mb-chip">{user.followers ?? 0} seguidores</span>
                   <span className="mb-chip">{user.reviewCount ?? 0} resenhas</span>
                 </div>
-              </div>
-            </Link>
+                </div>
+              </Link>
+              <UserProgressionAdmin username={user.username} />
+            </article>
           ))}
         </div>
       )}
     </div>
   );
+}
+
+function UserProgressionAdmin({ username }: { username: string }) {
+  const [summary, setSummary] = useState<Awaited<ReturnType<typeof fetchProgression>> | null>(null);
+  const [amount, setAmount] = useState(100);
+  const [level, setLevel] = useState(1);
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    fetchProgression(username, true).then((value) => { setSummary(value); setLevel(value.level); }).catch(() => setSummary(null));
+  }, [username]);
+
+  const run = async (action: "xp" | "level") => {
+    if (!reason.trim()) return toast("Informe o motivo do ajuste.", "error");
+    setBusy(true);
+    try {
+      const value = action === "xp"
+        ? await adjustUserXp(username, amount, reason)
+        : await setUserLevel(username, level, reason);
+      const refreshed = await fetchProgression(username, true);
+      setSummary(refreshed);
+      setLevel(refreshed.level);
+      setReason("");
+      toast(action === "xp" ? `${value.totalXp} XP no total.` : `Nível alterado para ${value.level}.`);
+    } catch (error) {
+      toast(error instanceof Error ? error.message : "Não foi possível ajustar a progressão.", "error");
+    } finally { setBusy(false); }
+  };
+
+  return <div className="mt-4 pt-3 border-t border-[var(--line)] space-y-2">
+    <p className="text-[12px] text-[var(--text-3)]">{summary ? `Nível ${summary.level} · ${summary.totalXp} XP · ${summary.title}` : "Carregando progressão…"}</p>
+    <input className="mb-input" value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Motivo obrigatório (fica na auditoria)" />
+    <div className="grid grid-cols-2 gap-2">
+      <div className="flex gap-1.5">
+        <input className="mb-input min-w-0" type="number" value={amount} onChange={(event) => setAmount(Number(event.target.value))} aria-label={`XP para ${username}`} />
+        <button className="mb-btn mb-btn-sm mb-btn-soft" disabled={busy} onClick={() => run("xp")}>Aplicar XP</button>
+      </div>
+      <div className="flex gap-1.5">
+        <input className="mb-input min-w-0" type="number" min="1" max="100" value={level} onChange={(event) => setLevel(Number(event.target.value))} aria-label={`Nível de ${username}`} />
+        <button className="mb-btn mb-btn-sm mb-btn-soft" disabled={busy} onClick={() => run("level")}>Definir nível</button>
+      </div>
+    </div>
+  </div>;
 }
