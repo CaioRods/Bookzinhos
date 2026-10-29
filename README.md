@@ -47,13 +47,9 @@ npm run icons --prefix frontend
 
 ## Contas
 
-| Conta   | Senha    | O que faz                                                     |
-| ------- | -------- | ------------------------------------------------------------- |
-| `Admin` | `537942` | Painel completo — banners, mural, acervo e leitores (emote 🐶) |
-| `Caio`  | `1234`   | Leitor comum                                                   |
-| `Helo`  | `1234`   | Leitor comum                                                   |
-
-Qualquer pessoa pode criar a própria conta pela tela de entrada.
+Qualquer pessoa pode criar a própria conta pela tela de entrada. Não há senhas
+padrão no código. Em uma instalação nova, `ADMIN_INITIAL_PASSWORD` cria a
+primeira conta Admin; remova a variável depois do primeiro boot.
 Detalhes do painel: [ADMIN.md](ADMIN.md).
 
 ## O que o app faz
@@ -87,6 +83,12 @@ Detalhes do painel: [ADMIN.md](ADMIN.md).
 
 Deploy do servidor e geração do APK: [COMO_DAR_DEPLOY.md](COMO_DAR_DEPLOY.md) e
 [COMO_USAR.md](COMO_USAR.md).
+
+Configure `FRONTEND_ORIGINS` com a URL exata do frontend. Na hospedagem atual,
+frontend e API estão em projetos Vercel diferentes, então produção usa
+`SESSION_COOKIE_SECURE=true` e `SESSION_COOKIE_SAMESITE=none`. Wildcard de CORS
+é incompatível com cookies. Hosts de storage/CDN devem entrar em
+`CSP_IMAGE_SOURCES` e `CSP_CONNECT_SOURCES`, nunca na permissão de scripts.
 
 ## Observações de produto
 

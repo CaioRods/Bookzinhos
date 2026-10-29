@@ -2,13 +2,13 @@
  * URL do servidor myBooks.
  */
 
-const PROD_URL = "https://bookzinhos-server.vercel.app";
+export function resolveApiBaseUrl(hostname: string): string {
+  const local = hostname === "localhost"
+    || hostname === "127.0.0.1"
+    || /^\d+\.\d+\.\d+\.\d+$/.test(hostname);
+  return local ? `http://${hostname}:3001` : "/api";
+}
 
-const isLocal = typeof window !== "undefined" && 
-  (window.location.hostname === "localhost" || 
-   window.location.hostname === "127.0.0.1" || 
-   window.location.hostname.match(/^\d+\.\d+\.\d+\.\d+$/));
-
-export const API_BASE_URL = isLocal
-  ? `http://${window.location.hostname}:3001`
-  : PROD_URL;
+export const API_BASE_URL = resolveApiBaseUrl(
+  typeof window === "undefined" ? "localhost" : window.location.hostname,
+);

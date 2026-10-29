@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+// @ts-nocheck -- Vitest executes this Node-only filesystem regression test.
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 

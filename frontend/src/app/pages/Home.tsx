@@ -4,6 +4,7 @@ import {
   ChevronLeft, ChevronRight, Search, ArrowRight, Star, Megaphone, Heart, MessageCircle, Edit3, Send, Pin,
   Plus, BookOpen, Sparkles, TrendingUp, PenSquare,
 } from "lucide-react";
+import { getEditorialFeature } from "../lib/homeEditorial";
 import { fetchFeed, fetchHome, togglePostLike, updateGlobalStatus } from "../lib/api";
 import { useLiveData } from "../lib/useLiveData";
 import { getCoverGradient, getFullUrl, timeAgo } from "../lib/types";
@@ -406,11 +407,11 @@ function HeroFeature({ book, collection, count, index, onSelect, onOpen }: {
   book: Book; collection: Book[]; readers: { username: string; avatar: string }[]; count: number; index: number; onSelect: (i: number) => void; onOpen: () => void;
 }) {
   const navigate = useNavigate();
-  const displayed = collection.length > 1 ? collection : [book];
+  const feature = getEditorialFeature(book, collection);
+  const displayed = feature.books;
   const multiple = displayed.length > 1;
-  const isTrilogy = displayed.length === 3 && displayed.every(entry => /príncipe cruel|rei perverso|rainha do nada/i.test(entry.title));
   return <section className="mb-editorial-feature" aria-label="Livros em destaque" aria-roledescription="carrossel">
-    <div className="mb-editorial-copy"><p className="mb-eyebrow">{isTrilogy ? "SÉRIE EM DESTAQUE" : multiple ? "AUTOR EM DESTAQUE" : "LIVRO EM DESTAQUE"}</p><h2>{isTrilogy ? <>O povo<br />do ar.</> : multiple ? <>Mais histórias.<br />Novos mundos.</> : book.title}</h2><p>{isTrilogy ? "Uma trilogia. Um reino. Nenhuma regra." : multiple ? `Conheça as histórias de ${book.author}.` : book.author}</p><button className="mb-btn mb-btn-primary" onClick={() => multiple ? navigate(`/library?q=${encodeURIComponent(book.author)}`) : onOpen()}>{isTrilogy ? "Explorar a trilogia" : multiple ? "Explorar a coleção" : "Explorar o livro"}<ArrowRight size={17} /></button></div>
+    <div className="mb-editorial-copy"><p className="mb-eyebrow">{feature.eyebrow}</p><h2>{feature.title.split("\n").map((line, lineIndex) => <span key={line}>{line}{lineIndex === 0 && feature.title.includes("\n") ? <br /> : null}</span>)}</h2><p>{feature.description}</p><button className="mb-btn mb-btn-primary" onClick={onOpen}>{feature.actionLabel}<ArrowRight size={17} /></button></div>
     <div className={`mb-editorial-books ${multiple ? "is-collection" : ""}`}>{displayed.map((entry, i) => <button key={entry.id} onClick={() => navigate(`/book/${entry.id}`)} aria-label={`Ver ${entry.title}`} style={{ "--book-index": i } as React.CSSProperties}><Book3D book={entry} width={132} pose={{ ry: -12, rx: 0, rz: i === 1 ? 0 : i === 0 ? -2 : 2 }} still /></button>)}</div>
     {count > 1 && <div className="mb-editorial-controls"><div className="mb-editorial-dots">{Array.from({ length: count }, (_, i) => <button key={i} onClick={() => onSelect(i)} aria-label={`Destaque ${i + 1} de ${count}`} aria-current={i === index % count ? "true" : undefined}><span /></button>)}</div><button aria-label="Destaque anterior" onClick={() => onSelect((index - 1 + count) % count)}><ChevronLeft size={18} /></button><button aria-label="Próximo destaque" onClick={() => onSelect((index + 1) % count)}><ChevronRight size={18} /></button></div>}
   </section>;

@@ -372,3 +372,15 @@
 - [ ] **Step 8: Review and push**
 
   Inspect `git diff origin/main...HEAD`, confirm no secrets or unrelated files are included, then run `git push origin main` and verify the remote reports the new `main` tip.
+
+## Verification Record
+
+2026-10-29:
+
+- `node --test server/tests/*.test.js` — exit 0, 38/38 tests passed.
+- `npm --prefix frontend run test:run` — exit 0, 48/48 tests passed.
+- `npm --prefix frontend run typecheck` — exit 0.
+- `npm --prefix frontend run build` — exit 0, Vite production build generated.
+- Production CORS preflight from `https://mybookzinhos.vercel.app` — HTTP 204 with exact `Access-Control-Allow-Origin` and credentials enabled.
+- Safari session architecture — production frontend now calls same-origin `/api`; Vercel rewrites it to the backend so the session cookie is first-party.
+- Home editorial — author-collection variant removed; only book and explicit trilogy variants remain.
