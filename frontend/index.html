@@ -21,25 +21,7 @@
     <link rel="icon" type="image/svg+xml" href="/logo.svg?v=3" />
     <link rel="alternate icon" type="image/png" href="/favicon-64.png?v=3" />
     <title>myBooks</title>
-    <script>
-      // Reforço ao viewport: no iPhone instalado como app o Safari ignora
-      // `user-scalable=no`, então barramos o pinça-zoom (gesture*) e o
-      // toque-duplo na mão. A leitura acontece sempre com a página inteira.
-      document.addEventListener("gesturestart", function (e) { e.preventDefault(); }, { passive: false });
-      document.addEventListener("gesturechange", function (e) { e.preventDefault(); }, { passive: false });
-      (function () {
-        var lastTouch = 0;
-        document.addEventListener(
-          "touchend",
-          function (e) {
-            var now = Date.now();
-            if (now - lastTouch <= 300) e.preventDefault();
-            lastTouch = now;
-          },
-          { passive: false }
-        );
-      })();
-    </script>
+    <script src="/theme-bootstrap.js"></script>
     <style>
       /* Cor de fundo do arranque, antes do CSS do app chegar.
          Depois que os tokens carregam, `var(--background)` assume — por isso
