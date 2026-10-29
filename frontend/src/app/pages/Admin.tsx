@@ -15,8 +15,9 @@ import type { AdminOverview, Banner, BannerReport, Book, HomePost, UserProfile }
 import { Avatar, ConfirmDialog, EmptyState, Modal, PageHeader, SectionHeader, Skeleton, toast } from "../components/Ui";
 import { EditBookModal } from "../components/EditBookModal";
 import { CharacterAdmin } from "../components/CharacterAdmin";
+import { ThemeReviewQueue } from "../components/ThemeReviewQueue";
 
-type Tab = "overview" | "banners" | "posts" | "books" | "characters" | "users";
+type Tab = "overview" | "banners" | "posts" | "books" | "characters" | "themes" | "users";
 
 const TABS: { key: Tab; label: string; icon: typeof LayoutDashboard }[] = [
   { key: "overview", label: "Visão geral", icon: LayoutDashboard },
@@ -24,6 +25,7 @@ const TABS: { key: Tab; label: string; icon: typeof LayoutDashboard }[] = [
   { key: "posts", label: "Postagens", icon: Megaphone },
   { key: "books", label: "Livros", icon: BookOpen },
   { key: "characters", label: "Personagens", icon: ImageIcon },
+  { key: "themes", label: "Temas", icon: ImageIcon },
   { key: "users", label: "Leitores", icon: Users },
 ];
 
@@ -69,6 +71,7 @@ export function Admin() {
       {tab === "posts" && <PostsTab />}
       {tab === "books" && <BooksTab />}
       {tab === "characters" && <CharacterAdmin />}
+      {tab === "themes" && <ThemeReviewQueue />}
       {tab === "users" && <UsersTab />}
     </div>
   );

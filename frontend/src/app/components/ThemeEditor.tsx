@@ -3,7 +3,7 @@ import { ImagePlus, Loader2 } from "lucide-react";
 import type { SceneTheme } from "../lib/appearance";
 import { CENTER_CROP } from "../lib/appearance";
 import { fetchBooks } from "../lib/api";
-import { saveTheme } from "../lib/appearanceApi";
+import { saveTheme, submitTheme } from "../lib/appearanceApi";
 import { getUsername, isAdmin } from "../lib/session";
 import { inspectImage } from "../lib/imageFile";
 import { useThemeCatalog } from "../lib/themeCatalog";
@@ -17,6 +17,7 @@ export function ThemeEditor({ theme, onClose, onSaved }: { theme: SceneTheme | n
   const [surface, setSurface] = useState<"profile" | "sidebar">("profile");
   const [file, setFile] = useState<File | null>(null), [preview, setPreview] = useState("");
   const [busy, setBusy] = useState(false), [reading, setReading] = useState(false), [error, setError] = useState("");
+  const [requestPublic, setRequestPublic] = useState(false);
   const [picker, setPicker] = useState(false), [bookName, setBookName] = useState(theme?.reference?.bookId || "");
   useEffect(() => { if (!theme?.reference?.bookId) return; let alive = true; fetchBooks().then(books => { const book = books.find(book => book.id === theme.reference?.bookId); if (alive && book) setBookName(book.title); }).catch(() => {}); return () => { alive = false; }; }, [theme?.reference?.bookId]);
   const fileInput = useRef<HTMLInputElement>(null), url = useRef("");
@@ -32,7 +33,7 @@ export function ThemeEditor({ theme, onClose, onSaved }: { theme: SceneTheme | n
   const save = async () => {
     if (!getUsername()) { setError("Entre na sua conta para salvar um tema."); return; }
     setBusy(true); setError("");
-    try { const saved = await saveTheme(draft, scope, file); onSaved(saved); toast(scope === "system" ? "Tema publicado para todos." : "Tema pessoal salvo."); }
+    try { const saved = await saveTheme(draft, scope, file); if (requestPublic && scope === "personal") await submitTheme(saved.id); onSaved(saved); toast(requestPublic && scope === "personal" ? "Tema salvo e enviado para aprovação." : scope === "system" ? "Tema publicado para todos." : "Tema pessoal salvo."); }
     catch (error) { setError(error instanceof Error ? error.message : "Não foi possível salvar."); }
     finally { setBusy(false); }
   };
@@ -47,6 +48,7 @@ export function ThemeEditor({ theme, onClose, onSaved }: { theme: SceneTheme | n
       <label className="mb-theme-checkbox"><input type="checkbox" checked={!!draft.reference} onChange={event => setDraft({ ...draft, reference: event.target.checked ? { bookId: "", saga: "" } : null })} />Este tema faz referência a um livro ou saga</label>
       {draft.reference && <div className="mb-theme-reference-fields"><button className="mb-btn mb-btn-outline" onClick={() => setPicker(true)}>{draft.reference.bookId ? `Livro: ${bookName}` : "Pesquisar livro de referência"}</button><label>Nome da saga (opcional)<input className="mb-input" aria-label="Nome da saga" value={draft.reference.saga} maxLength={100} onChange={event => setDraft({ ...draft, reference: { ...draft.reference!, saga: event.target.value } })} placeholder="Ex.: O povo do ar" /></label></div>}
       {isAdmin() && <label className="mb-theme-checkbox mb-system-publish"><input type="checkbox" checked={scope === "system"} onChange={event => setScope(event.target.checked ? "system" : "personal")} />Disponível para todos (Admin)<small>Ativado: publica ou atualiza um tema do sistema. Desativado: salva uma cópia pessoal.</small></label>}
+      {!isAdmin() && <label className="mb-theme-checkbox mb-system-publish"><input type="checkbox" checked={requestPublic} onChange={event => setRequestPublic(event.target.checked)} />Solicitar ao admin para liberar para todos<small>Seu tema continua pessoal enquanto aguarda análise.</small></label>}
       {atLimit && <p role="alert">Você já tem quatro temas pessoais. Edite ou exclua um deles para criar outro.</p>}{error && <p role="alert" className="mb-editor-error">{error}</p>}
     </div>
   </Modal>{picker && <BookPicker selectedId={draft.reference?.bookId || ""} title="Livro de referência do tema" onSelect={book => { setDraft(current => ({ ...current, reference: { bookId: book.id, saga: current.reference?.saga || "" } })); setBookName(book.title); }} onClose={() => setPicker(false)} />}</>;

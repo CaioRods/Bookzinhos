@@ -138,6 +138,7 @@ const activity = require("./activity")({ app, db, sql, currentUser, progression 
 const badges = require("./badges").createBadgeService({ db, sql });
 const progressionEvents = require("./progression-events").createProgressionEvents({ progression });
 require("./progression-routes")({ app, db, sql, currentUser, requireAdmin, progression, badges });
+require("./theme-submissions")({ app, db, sql, currentUser, requireAdmin, progression });
 async function seriesFields(body) {
   if (!body.seriesId) return { id: null, name: null, order: null };
   const [series] = await db.query(sql`SELECT * FROM book_series WHERE id = ${body.seriesId}`);

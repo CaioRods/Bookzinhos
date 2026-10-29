@@ -1,0 +1,30 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const express = require('express');
+const sqlite3 = require('sqlite3');
+const register = require('../theme-submissions');
+
+test('theme approval publishes a copy, awards xp once and grants exactly 24 hours', async (t) => {
+  const connection = new sqlite3.Database(':memory:');
+  const db = { query: (q) => new Promise((resolve, reject) => connection.all(typeof q === 'string' ? q : q.text, q.values || [], (e, rows) => e ? reject(e) : resolve(rows))) };
+  const sql = (p, ...v) => ({ text: p.join('?'), values: v });
+  await db.query('CREATE TABLE appearance_themes(id TEXT PRIMARY KEY,owner TEXT,slot INTEGER,data TEXT,updated_at INTEGER)');
+  await db.query("INSERT INTO appearance_themes VALUES('mine','Ana',1,'{\"name\":\"Bosque\"}',1)");
+  await db.query('CREATE TABLE xp_boosts(id TEXT PRIMARY KEY,username TEXT,multiplier REAL,starts_at INTEGER,ends_at INTEGER,source TEXT)');
+  const awards = [];
+  const app = express(); app.use(express.json());
+  const currentUser = (req) => req.get('x-user-id');
+  const requireAdmin = (req, res, next) => currentUser(req) === 'Admin' ? next() : res.sendStatus(403);
+  register({ app, db, sql, currentUser, requireAdmin, progression: { awardXp: async (event) => awards.push(event) }, now: () => 1_000 });
+  const server = await new Promise((resolve) => { const listening = app.listen(0, '127.0.0.1', () => resolve(listening)); });
+  t.after(async () => { await new Promise((resolve) => server.close(resolve)); await new Promise((resolve) => connection.close(resolve)); });
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const created = await (await fetch(`${base}/appearance/themes/mine/submissions`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-user-id': 'Ana' }, body: '{}' })).json();
+  const response = await fetch(`${base}/admin/theme-submissions/${created.id}/decision`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-user-id': 'Admin' }, body: JSON.stringify({ decision: 'approved', reason: '' }) });
+  assert.equal(response.status, 200);
+  const [boost] = await db.query("SELECT * FROM xp_boosts WHERE username='Ana'");
+  assert.equal(boost.ends_at - boost.starts_at, 86_400_000);
+  assert.equal(awards.length, 1);
+  assert.equal((await db.query("SELECT * FROM appearance_themes WHERE owner=''" )).length, 1);
+  assert.equal((await fetch(`${base}/admin/theme-submissions/${created.id}/decision`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-user-id': 'Admin' }, body: JSON.stringify({ decision: 'approved' }) })).status, 409);
+});

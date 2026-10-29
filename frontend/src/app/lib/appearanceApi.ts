@@ -17,6 +17,10 @@ export async function saveTheme(theme: SceneTheme, scope: "personal" | "system",
   return call("/appearance/themes", { method: "POST", body: form });
 }
 export const deleteTheme = (id: string) => call(`/appearance/themes/${encodeURIComponent(id)}`, { method: "DELETE" });
+export type ThemeSubmission = { id: string; theme_id?: string; themeId?: string; owner: string; theme_data?: string; themeData?: SceneTheme; status: string; updated_at?: number };
+export const submitTheme = (id: string) => call<ThemeSubmission>(`/appearance/themes/${encodeURIComponent(id)}/submissions`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+export const fetchThemeSubmissions = () => call<ThemeSubmission[]>("/admin/theme-submissions?status=pending");
+export const decideThemeSubmission = (id: string, decision: "approved" | "rejected" | "changes_requested", reason = "") => call(`/admin/theme-submissions/${encodeURIComponent(id)}/decision`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ decision, reason }) });
 export async function saveBookAppearance(id: string, config: BookAppearance, image?: File | null): Promise<BookAppearance> {
   const form = new FormData(); form.set("config", JSON.stringify(config)); if (image) form.set("image", image);
   const result = await call<BookAppearance>(`/books/${encodeURIComponent(id)}/appearance`, { method: "PUT", body: form });
