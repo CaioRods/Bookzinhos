@@ -393,13 +393,6 @@
     color: #fff;
   }
   @media (min-width: 1024px) {
-    body:has(.mb-library-reference) {
-      padding: 10px;
-    }
-    .mb-app-window:has(.mb-library-reference) {
-      grid-template-columns: 232px minmax(0, 1fr);
-      height: calc(100dvh - 20px);
-    }
     .mb-library-reference {
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto;
