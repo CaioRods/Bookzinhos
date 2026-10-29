@@ -1,6 +1,10 @@
 import { createRoot } from "react-dom/client";
 import App from "./app/App";
 import "./styles/index.css";
+import "@fontsource-variable/plus-jakarta-sans/wght.css";
+import "@fontsource/literata/latin-400.css";
+import "@fontsource/literata/latin-600.css";
+import "@fontsource/literata/latin-700.css";
 
 createRoot(document.getElementById("root")!).render(<App />);
 

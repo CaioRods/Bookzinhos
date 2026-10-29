@@ -3,11 +3,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, ArrowRight, ArrowLeft, Check, X, Eye, EyeOff, ShieldAlert, Sparkles, UserRound, LockKeyhole } from "lucide-react";
 import {
   login, register, resetPassword, sendEmailCode, verifyEmailCode, checkAvailability,
-  loginWithGoogle, fetchServerConfig, type ServerConfig,
+  loginWithGoogle, fetchServerConfig, fetchBooks, type ServerConfig,
 } from "../lib/api";
 import { notifySessionChanged, saveSession } from "../lib/session";
 import { BOOK_GENRES, mergeCustomGenre } from "../lib/genres";
 import { waitForAuthHandoff } from "../lib/authTransition";
+import { selectLoginShowcase } from "../lib/loginShowcase";
+import { getFullUrl, type Book } from "../lib/types";
 
 interface LoginProps {
   onLoginSuccess: (name: string) => void;
@@ -35,9 +37,11 @@ function passwordChecks(pw: string) {
 export function Login({ onLoginSuccess, onGuest }: LoginProps) {
   const [config, setConfig] = useState<ServerConfig | null>(null);
   const [authenticated, setAuthenticated] = useState(false);
+  const [showcase, setShowcase] = useState<Book[]>([]);
 
   useEffect(() => {
     fetchServerConfig().then(setConfig).catch(() => setConfig({ googleClientId: null, emailDelivery: false }));
+    fetchBooks().then((books) => setShowcase(selectLoginShowcase(books))).catch(() => setShowcase([]));
   }, []);
 
   const finishLogin = async (username: string) => {
@@ -51,18 +55,13 @@ export function Login({ onLoginSuccess, onGuest }: LoginProps) {
   return (
     <div className={`mb-auth-shell ${authenticated ? "is-authenticated" : ""}`}>
       <div className="mb-auth-ambient" aria-hidden="true"><span /><span /><span /></div>
-      <header className="mb-auth-top"><a href="/" aria-label="myBooks, início"><Brand /></a><span>SUA BIBLIOTECA, EM BOA COMPANHIA.</span></header>
+      <header className="mb-auth-top"><a href="/" aria-label="myBooks, início"><Brand /></a><span>Sua biblioteca, em boa companhia.</span></header>
       <main className="mb-auth-layout">
         <section className="mb-auth-story" aria-label="Bem-vindo ao myBooks">
-          <p className="mb-eyebrow">UM LUGAR PARA AS SUAS HISTÓRIAS</p>
-          <h1>Leia.<br />Descubra.<br /><em>Fique mais um capítulo.</em></h1>
+          <p className="mb-auth-kicker">Um lugar para as suas histórias</p>
+          <h1>Sua próxima<br />história já<br /><em>está esperando.</em></h1>
           <p className="mb-auth-description">Os livros que você ama. As histórias que ainda vai descobrir. Tudo em um lugar só seu.</p>
-          <div className="mb-auth-art" aria-hidden="true">
-            <div className="mb-art-book mb-art-book--one"><span>entre<br />páginas</span><small>uma nova perspectiva</small></div>
-            <div className="mb-art-book mb-art-book--two"><span>o tempo<br />de ler.</span><small>uma pausa para você</small></div>
-            <div className="mb-art-book mb-art-book--three"><span>mais um<br />capítulo</span><small>e tantas possibilidades</small></div>
-            <div className="mb-art-shelf" />
-          </div>
+          <LoginLibraryShowcase books={showcase} />
           <p className="mb-auth-note">Uma boa história fica ainda melhor quando compartilhada.</p>
         </section>
         <section className="mb-auth-panel" aria-label="Acesse sua biblioteca">
@@ -71,6 +70,24 @@ export function Login({ onLoginSuccess, onGuest }: LoginProps) {
           <p className="mb-auth-footnote">Feito para quem encontra um mundo em cada livro.</p>
         </section>
       </main>
+    </div>
+  );
+}
+
+function LoginLibraryShowcase({ books }: { books: Book[] }) {
+  const slots = Array.from({ length: 5 }, (_, index) => books[index] ?? null);
+  return (
+    <div className="mb-auth-library" aria-label="Livros disponíveis no catálogo">
+      <div className="mb-auth-library-track">
+        {slots.map((book, index) => (
+          <div className={`mb-auth-cover mb-auth-cover--${index + 1} ${book ? "is-loaded" : "is-placeholder"}`} key={book?.id ?? `placeholder-${index}`}>
+            {book?.coverImagePath ? (
+              <img src={getFullUrl(book.coverImagePath) || undefined} alt={`Capa de ${book.title}`} loading={index < 2 ? "eager" : "lazy"} />
+            ) : <span aria-hidden="true" />}
+          </div>
+        ))}
+      </div>
+      <div className="mb-auth-library-shelf" aria-hidden="true" />
     </div>
   );
 }
