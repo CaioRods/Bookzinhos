@@ -121,10 +121,24 @@ export interface UserProfile {
 export interface CharacterAvatar {
   id: string;
   name: string;
+  bookIds: string[];
   bookId?: string | null;
   bookTitle?: string | null;
   imageUrl: string;
   createdAt: number;
+}
+
+export interface CharacterGroup {
+  id: string;
+  seriesId: string | null;
+  seriesName: string;
+  books: { id: string; title: string; seriesOrder: number | null }[];
+  characterIds: string[];
+}
+
+export interface CharacterCatalog {
+  characters: CharacterAvatar[];
+  groups: CharacterGroup[];
 }
 
 export interface ChatMessage {

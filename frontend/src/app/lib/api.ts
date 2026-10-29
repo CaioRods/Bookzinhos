@@ -10,7 +10,7 @@
 import { API_BASE_URL } from "./config";
 import type {
   AdminOverview, Banner, BannerReport, Book, BookChapter, ChatMessage, FeedItem, HomeData, HomePost,
-  Note, Notifications, ReadingProgress, Review, ReviewComment, Stats, UserProfile, CharacterAvatar, ChatConversation,
+  Note, Notifications, ReadingProgress, Review, ReviewComment, Stats, UserProfile, CharacterAvatar, CharacterCatalog, ChatConversation,
 } from "./types";
 
 // ─── Cache + deduplicação ─────────────────────────────────────────────────────
@@ -364,16 +364,17 @@ export async function updateProfile(data: { bio: string; avatar: string; shelf: 
   return res;
 }
 
-export function fetchCharacters(bookId?: string, force = false): Promise<CharacterAvatar[]> {
+export function fetchCharacters(bookId?: string, force = false): Promise<CharacterCatalog> {
   const query = bookId ? `?bookId=${encodeURIComponent(bookId)}` : "";
-  return cachedGet<CharacterAvatar[]>(`/characters${query}`, force ? 0 : 60000);
+  return cachedGet<CharacterCatalog>(`/characters${query}`, force ? 0 : 60000);
 }
 
-export async function createCharacter(data: { name: string; bookId?: string; image: Blob }): Promise<CharacterAvatar> {
+export async function createCharacter(data: { name: string; characterId?: string; bookIds: string[]; image?: Blob }): Promise<CharacterAvatar> {
   const form = new FormData();
   form.set("name", data.name);
-  form.set("bookId", data.bookId || "");
-  form.set("image", data.image, "avatar.webp");
+  form.set("characterId", data.characterId || "");
+  form.set("bookIds", JSON.stringify(data.bookIds));
+  if (data.image) form.set("image", data.image, "avatar.webp");
   const result = await upload<CharacterAvatar>("POST", "/characters", form);
   invalidate("/characters");
   return result;
