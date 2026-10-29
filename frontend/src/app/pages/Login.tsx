@@ -350,7 +350,7 @@ function SignupWizard({ onDone, goLogin, goForgot }: { onDone: (u: string) => vo
       {step === 4 && (
         <>
           <Field label="Quais gêneros você mais gosta?">
-            <div className="flex flex-wrap gap-1.5 max-h-64 overflow-y-auto pr-1">
+            <div className="flex flex-wrap gap-1.5 pr-1">
               {BOOK_GENRES.map((genre) => <button key={genre} type="button" onClick={() => genre === "Outros" ? undefined : setFavoriteGenres((old) => old.includes(genre) ? old.filter((item) => item !== genre) : old.length < 12 ? [...old, genre] : old)} className={`mb-chip ${favoriteGenres.includes(genre) ? "mb-chip-primary" : ""}`}>{genre}</button>)}
             </div>
             <div className="flex gap-2 mt-3"><input className="mb-auth-input" value={customGenre} maxLength={40} onChange={(event) => setCustomGenre(event.target.value)} placeholder="Outro gênero" /><button type="button" className="mb-btn mb-btn-outline" onClick={() => { setFavoriteGenres((old) => mergeCustomGenre(old, customGenre)); setCustomGenre(""); }}>Adicionar</button></div>
