@@ -5,7 +5,8 @@ import {
   CheckCircle, Maximize2, Minimize2, List, Download, Loader2, Sun, Plus, Minus,
   BookOpen, ScrollText, Columns2, Square, Bookmark, X,
 } from "lucide-react";
-import { fetchBook, fetchProgress, saveProgress, fetchChapters, saveChapter, deleteChapter } from "../lib/api";
+import { fetchBook, fetchProgress, saveProgress, fetchChapters, saveChapter, deleteChapter, sendActivityHeartbeat } from "../lib/api";
+import { createActivityTracker } from "../lib/activityTracker";
 import { getFullUrl } from "../lib/types";
 import type { Book, ReadingProgress, BookChapter } from "../lib/types";
 import { useDeviceTier } from "../components/ui/use-device-tier";
@@ -167,7 +168,18 @@ export function BookReader() {
   const uiTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const touchRef = useRef<{ x: number; y: number; t: number } | null>(null);
   const savedPageRef = useRef(-1);
+  const activityPageRef = useRef(1);
   const restoredRef = useRef(false);
+
+  useEffect(() => { activityPageRef.current = currentPage + 1; }, [currentPage]);
+  useEffect(() => {
+    if (!id) return;
+    const tracker = createActivityTracker({ send: async (clientElapsedSeconds) => { try { await sendActivityHeartbeat({ scope: "reader", bookId: id, page: activityPageRef.current, clientElapsedSeconds }); } catch { /* leitura continua offline */ } } });
+    const interact = () => tracker.interact();
+    tracker.start();
+    ["pointerdown", "keydown", "scroll", "touchstart"].forEach((event) => window.addEventListener(event, interact, { passive: true }));
+    return () => { tracker.stop(); ["pointerdown", "keydown", "scroll", "touchstart"].forEach((event) => window.removeEventListener(event, interact)); };
+  }, [id]);
 
   const pdfUrl = book?.pdfPath ? getFullUrl(book.pdfPath) : null;
   const textPages = book?.pages ?? [];

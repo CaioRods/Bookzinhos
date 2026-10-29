@@ -19,6 +19,8 @@ import { AuthGateModal } from "./AuthGateModal";
 import { RouteSkeleton } from "./Skeletons";
 import { useSettings } from "../lib/settings";
 import { primeSounds, soundTap } from "../lib/sounds";
+import { createActivityTracker } from "../lib/activityTracker";
+import { sendActivityHeartbeat } from "../lib/api";
 
 interface NavItem {
   path: string;
@@ -71,6 +73,18 @@ export function RootLayout() {
     const idle = window.setTimeout(warmRoutes, 500);
     return () => window.clearTimeout(idle);
   }, []);
+
+  useEffect(() => {
+    if (location.pathname.startsWith("/read/")) return;
+    const tracker = createActivityTracker({ send: async (clientElapsedSeconds) => { try { await sendActivityHeartbeat({ scope: "app", clientElapsedSeconds }); } catch { /* atividade é secundária */ } } });
+    const interact = () => tracker.interact();
+    tracker.start();
+    ["pointerdown", "keydown", "scroll", "touchstart"].forEach((event) => window.addEventListener(event, interact, { passive: true }));
+    return () => {
+      tracker.stop();
+      ["pointerdown", "keydown", "scroll", "touchstart"].forEach((event) => window.removeEventListener(event, interact));
+    };
+  }, [location.pathname]);
 
   useEffect(() => {
     const syncSession = () => {

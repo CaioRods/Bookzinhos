@@ -133,6 +133,8 @@ app.get("/health", (_req, res) => res.json({ ok: true, ts: Date.now() }));
 const appearance = require("./appearance")({ app, db, sql, upload, uploadFileToCloud, currentUser, requireAdmin });
 const community = require("./community")({ app, db, sql, upload, uploadFileToCloud, currentUser, requireAdmin });
 const characters = require("./characters")({ app, db, sql, upload, uploadFileToCloud, requireAdmin });
+const progression = require("./progression-service").createProgressionService({ db, sql });
+const activity = require("./activity")({ app, db, sql, currentUser, progression });
 async function seriesFields(body) {
   if (!body.seriesId) return { id: null, name: null, order: null };
   const [series] = await db.query(sql`SELECT * FROM book_series WHERE id = ${body.seriesId}`);

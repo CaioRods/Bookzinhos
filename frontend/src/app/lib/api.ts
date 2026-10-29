@@ -385,6 +385,10 @@ export async function deleteCharacter(id: string): Promise<void> {
   invalidate("/characters");
 }
 
+export function sendActivityHeartbeat(data: { scope: "app" | "reader"; bookId?: string; page?: number; clientElapsedSeconds: number }) {
+  return request<{ creditedSeconds: number; eligible?: boolean }>("POST", "/activity/heartbeat", data);
+}
+
 // ─── FAVORITOS ────────────────────────────────────────────────────────────────
 
 export function fetchSavedIds(force = false): Promise<string[]> {
