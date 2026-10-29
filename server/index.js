@@ -9,9 +9,20 @@ const { createClient } = require("@supabase/supabase-js");
 const { db, sql, initDB } = require("./db");
 const { HANDLE_CHANGE_DAYS, normalizeHandle, canChangeHandle, normalizeGenres, normalizeSocialHandle } = require("./profile-rules");
 const { summarizeConversations } = require("./chat-summary");
+const {
+  createSessionStore,
+  createSessionMiddleware,
+  requireUser,
+  readSessionCookie,
+  buildSessionCookie,
+  buildExpiredSessionCookie,
+  cookieOptionsFromEnv,
+} = require("./auth-session");
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const sessionStore = createSessionStore({ db });
+const sessionCookieOptions = cookieOptionsFromEnv(process.env);
 
 // ─── STORAGE ──────────────────────────────────────────────────────────────────
 let s3Client = null;
@@ -88,11 +99,9 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads"), { maxAge: "1
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 100 * 1024 * 1024 } });
 
-/** Nome do usuário logado, vindo do header enviado pelo app. */
+/** Nome do usuário autenticado por uma sessão resolvida no servidor. */
 function currentUser(req) {
-  const raw = req.headers["x-user-id"];
-  if (!raw || raw === "anonymous") return null;
-  return String(raw);
+  return req.auth?.username || null;
 }
 
 async function isAdmin(username) {
@@ -105,6 +114,7 @@ async function isAdmin(username) {
 async function requireAdmin(req, res, next) {
   try {
     const me = currentUser(req);
+    if (!me) return res.status(401).json({ error: "Entre na sua conta para continuar." });
     if (!(await isAdmin(me))) {
       return res.status(403).json({ error: "Apenas a conta Admin pode fazer isso." });
     }
@@ -119,6 +129,7 @@ async function requireAdmin(req, res, next) {
 app.use((_req, res, next) => {
   startup.then(() => next()).catch(() => res.status(503).json({ error: "O servidor ainda não conseguiu inicializar o banco de dados." }));
 });
+app.use(createSessionMiddleware({ store: sessionStore }));
 
 app.get("/", (_req, res) => {
   res.send(`
@@ -410,7 +421,7 @@ app.post("/books/:id/open", async (req, res) => {
 });
 
 // ─── PRESIGNED URL ────────────────────────────────────────────────────────────
-app.post("/books/presigned-url", async (req, res) => {
+app.post("/books/presigned-url", requireUser, async (req, res) => {
   try {
     const { fileName, fileType } = req.body;
     if (!fileName || !fileType) {
@@ -449,7 +460,7 @@ app.post("/books/presigned-url", async (req, res) => {
   }
 });
 
-app.post("/books", upload.fields([{ name: "pdf", maxCount: 1 }, { name: "cover", maxCount: 1 }]), async (req, res) => {
+app.post("/books", requireUser, upload.fields([{ name: "pdf", maxCount: 1 }, { name: "cover", maxCount: 1 }]), async (req, res) => {
   try {
     const { title, author, description, genre, isPublic, coverColor, publisher, publishedYear } = req.body;
     const series = req.body.seriesId !== undefined ? await seriesFields(req.body) : undefined;
@@ -496,7 +507,7 @@ app.post("/books", upload.fields([{ name: "pdf", maxCount: 1 }, { name: "cover",
   }
 });
 
-app.put("/books/:id", upload.fields([{ name: "cover", maxCount: 1 }]), async (req, res) => {
+app.put("/books/:id", requireAdmin, upload.fields([{ name: "cover", maxCount: 1 }]), async (req, res) => {
   try {
     const { title, author, description, genre, isPublic, coverColor, publisher, publishedYear } = req.body;
     const series = req.body.seriesId !== undefined ? await seriesFields(req.body) : undefined;
@@ -535,7 +546,7 @@ app.put("/books/:id", upload.fields([{ name: "cover", maxCount: 1 }]), async (re
   }
 });
 
-app.post("/books/:id/cover", upload.fields([{ name: "cover", maxCount: 1 }]), async (req, res) => {
+app.post("/books/:id/cover", requireAdmin, upload.fields([{ name: "cover", maxCount: 1 }]), async (req, res) => {
   try {
     const coverFile = req.files?.cover?.[0];
     if (!coverFile) return res.status(400).json({ error: "Arquivo de capa obrigatório" });
@@ -549,7 +560,7 @@ app.post("/books/:id/cover", upload.fields([{ name: "cover", maxCount: 1 }]), as
   }
 });
 
-app.delete("/books/:id", async (req, res) => {
+app.delete("/books/:id", requireAdmin, async (req, res) => {
   try {
     const id = req.params.id;
     const [row] = await db.query(sql`SELECT pdf_path, cover_image_path FROM books WHERE id = ${id}`);
@@ -655,6 +666,14 @@ async function sendEmailCode(email, code, purpose) {
 
 const isProd = () => process.env.NODE_ENV === "production";
 
+async function issueSession(req, res, username) {
+  const session = await sessionStore.create(username, {
+    userAgent: String(req.headers["user-agent"] || "").slice(0, 500),
+    ipAddress: String(req.ip || req.socket?.remoteAddress || "").slice(0, 100),
+  });
+  res.append("Set-Cookie", buildSessionCookie(session.rawToken, sessionCookieOptions));
+}
+
 function publicUser(user) {
   return {
     username: user.username,
@@ -705,7 +724,34 @@ app.post("/auth/login", async (req, res) => {
     if (!user || !verifyPassword(password, user.password)) {
       return res.status(401).json({ error: "Usuário ou senha incorretos." });
     }
+    if (!String(user.password || "").startsWith("scrypt$")) {
+      await db.query(sql`UPDATE users SET password = ${hashPassword(password)} WHERE username = ${user.username} COLLATE NOCASE`);
+    }
+    await issueSession(req, res, user.username);
     res.json(publicUser(user));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/auth/session", async (req, res) => {
+  try {
+    const username = currentUser(req);
+    if (!username) return res.status(401).json({ error: "Sessão inválida ou expirada." });
+    const [user] = await db.query(sql`SELECT * FROM users WHERE username = ${username} COLLATE NOCASE`);
+    if (!user) return res.status(401).json({ error: "Sessão inválida ou expirada." });
+    res.json(publicUser(user));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/auth/logout", async (req, res) => {
+  try {
+    const token = readSessionCookie(req);
+    if (token) await sessionStore.revoke(token);
+    res.append("Set-Cookie", buildExpiredSessionCookie(sessionCookieOptions));
+    res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -845,6 +891,7 @@ app.post("/auth/register", async (req, res) => {
     `);
     await db.query(sql`DELETE FROM email_codes WHERE email = ${email} COLLATE NOCASE`);
 
+    await issueSession(req, res, username);
     res.status(201).json({ username, bio, avatar, shelf: [], pandinhas: 0, isAdmin: false, themeId: 'none' });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -904,7 +951,10 @@ app.post("/auth/google", async (req, res) => {
 
     const email = String(info.email || "").toLowerCase();
     const [existing] = await db.query(sql`SELECT * FROM users WHERE email = ${email} COLLATE NOCASE`);
-    if (existing) return res.json(publicUser(existing));
+    if (existing) {
+      await issueSession(req, res, existing.username);
+      return res.json(publicUser(existing));
+    }
 
     // Apelido único a partir do e-mail.
     const base = (email.split("@")[0] || "leitor").replace(/[^a-zA-Z0-9_.]/g, "").slice(0, 16) || "leitor";
@@ -920,13 +970,14 @@ app.post("/auth/google", async (req, res) => {
       VALUES (${username}, '', 'Novo leitor por aqui ✨', '🐼', 0, 0, ${now}, ${String(info.name || "")}, ${email}, 'google', ${String(info.name || username)}, ${normalizeHandle(username)}, 'none')
     `);
     const [created] = await db.query(sql`SELECT * FROM users WHERE username = ${username} COLLATE NOCASE`);
+    await issueSession(req, res, created.username);
     res.status(201).json({ ...publicUser(created), isNew: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.put("/auth/me", async (req, res) => {
+app.put("/auth/me", requireUser, async (req, res) => {
   try {
     const { bio, avatar, shelf } = req.body;
     const username = currentUser(req);
@@ -1042,7 +1093,7 @@ app.get("/users/:username", async (req, res) => {
   }
 });
 
-app.post("/users/:username/follow", async (req, res) => {
+app.post("/users/:username/follow", requireUser, async (req, res) => {
   try {
     const me = currentUser(req);
     const target = req.params.username;
@@ -1066,7 +1117,7 @@ app.post("/users/:username/follow", async (req, res) => {
   }
 });
 
-app.delete("/users/:username/follow", async (req, res) => {
+app.delete("/users/:username/follow", requireUser, async (req, res) => {
   try {
     const me = currentUser(req);
     const target = req.params.username;
@@ -1090,9 +1141,9 @@ app.get("/books/:id/reviews", async (req, res) => {
 });
 
 /** Cria ou atualiza a resenha do usuário logado (uma por livro). */
-app.post("/books/:id/reviews", async (req, res) => {
+app.post("/books/:id/reviews", requireUser, async (req, res) => {
   try {
-    const me = currentUser(req) || req.body.username;
+    const me = currentUser(req);
     const { rating, comment, hasSpoiler } = req.body;
     if (!me) return res.status(401).json({ error: "Entre na sua conta para avaliar." });
     if (rating == null) return res.status(400).json({ error: "Escolha uma nota de 1 a 5." });
@@ -1123,7 +1174,7 @@ app.post("/books/:id/reviews", async (req, res) => {
   }
 });
 
-app.delete("/reviews/:reviewId", async (req, res) => {
+app.delete("/reviews/:reviewId", requireUser, async (req, res) => {
   try {
     const me = currentUser(req);
     const id = Number(req.params.reviewId);
@@ -1145,7 +1196,7 @@ app.delete("/reviews/:reviewId", async (req, res) => {
   }
 });
 
-app.post("/reviews/:reviewId/like", async (req, res) => {
+app.post("/reviews/:reviewId/like", requireUser, async (req, res) => {
   try {
     const me = currentUser(req);
     const id = Number(req.params.reviewId);
@@ -1178,7 +1229,7 @@ app.post("/reviews/:reviewId/like", async (req, res) => {
   }
 });
 
-app.post("/reviews/:reviewId/comments", async (req, res) => {
+app.post("/reviews/:reviewId/comments", requireUser, async (req, res) => {
   try {
     const me = currentUser(req);
     const id = Number(req.params.reviewId);
@@ -1220,7 +1271,7 @@ app.post("/reviews/:reviewId/comments", async (req, res) => {
   }
 });
 
-app.delete("/reviews/:reviewId/comments/:commentId", async (req, res) => {
+app.delete("/reviews/:reviewId/comments/:commentId", requireUser, async (req, res) => {
   try {
     const me = currentUser(req);
     const commentId = Number(req.params.commentId);
@@ -1545,7 +1596,7 @@ app.delete("/posts/:id", requireAdmin, async (req, res) => {
   }
 });
 
-app.post("/posts/:id/like", async (req, res) => {
+app.post("/posts/:id/like", requireUser, async (req, res) => {
   try {
     const me = currentUser(req);
     const id = Number(req.params.id);
@@ -1745,7 +1796,7 @@ app.get("/chat/:otherUser", async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.post("/chat/:otherUser", async (req, res) => {
+app.post("/chat/:otherUser", requireUser, async (req, res) => {
   try {
     const me = currentUser(req);
     const other = req.params.otherUser;
@@ -1775,7 +1826,7 @@ app.post("/chat/:otherUser", async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.post("/chat/nickname/:otherUser", async (req, res) => {
+app.post("/chat/nickname/:otherUser", requireUser, async (req, res) => {
   try {
     const me = currentUser(req);
     const other = req.params.otherUser;
@@ -1800,7 +1851,7 @@ app.get("/status", async (_req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.post("/status", async (req, res) => {
+app.post("/status", requireUser, async (req, res) => {
   try {
     const username = currentUser(req);
     const { content, emote } = req.body;
@@ -1815,7 +1866,7 @@ app.post("/status", async (req, res) => {
   }
 });
 
-app.get("/notifications", async (req, res) => {
+app.get("/notifications", requireUser, async (req, res) => {
   try {
     const me = currentUser(req);
     if (!me) return res.json({ unreadCount: 0, details: {}, items: [] });
@@ -1857,7 +1908,7 @@ app.get("/notifications", async (req, res) => {
 });
 
 /** Marca avisos como lidos — todos, ou apenas os ids informados. */
-app.post("/notifications/read", async (req, res) => {
+app.post("/notifications/read", requireUser, async (req, res) => {
   try {
     const me = currentUser(req);
     if (!me) return res.status(401).json({ error: "Nao autorizado" });
@@ -1877,9 +1928,9 @@ app.post("/notifications/read", async (req, res) => {
 
 // ─── PROGRESS ─────────────────────────────────────────────────────────────────
 
-app.get("/progress", async (req, res) => {
+app.get("/progress", requireUser, async (req, res) => {
   try {
-    const username = currentUser(req) || "Caio";
+    const username = currentUser(req);
     const rows = await db.query(sql`SELECT * FROM reading_progress WHERE username = ${username} COLLATE NOCASE`);
     res.json(rows.map((r) => ({
       bookId: r.book_id, currentPage: Number(r.current_page), totalPages: Number(r.total_pages),
@@ -1890,9 +1941,9 @@ app.get("/progress", async (req, res) => {
   }
 });
 
-app.get("/progress/:bookId", async (req, res) => {
+app.get("/progress/:bookId", requireUser, async (req, res) => {
   try {
-    const username = currentUser(req) || "Caio";
+    const username = currentUser(req);
     const [row] = await db.query(sql`SELECT * FROM reading_progress WHERE book_id = ${req.params.bookId} AND username = ${username} COLLATE NOCASE`);
     if (!row) return res.status(404).json({ error: "Sem progresso" });
     res.json({ bookId: row.book_id, currentPage: Number(row.current_page), totalPages: Number(row.total_pages), progress: Number(row.progress), status: row.status, startedAt: Number(row.started_at), lastReadAt: Number(row.last_read_at) });
@@ -1901,11 +1952,11 @@ app.get("/progress/:bookId", async (req, res) => {
   }
 });
 
-app.put("/progress/:bookId", async (req, res) => {
+app.put("/progress/:bookId", requireUser, async (req, res) => {
   try {
     const { bookId } = req.params;
     const { currentPage, totalPages, progress, status } = req.body;
-    const username = currentUser(req) || "Caio";
+    const username = currentUser(req);
     const [existing] = await db.query(sql`SELECT 1 FROM reading_progress WHERE book_id = ${bookId} AND username = ${username} COLLATE NOCASE`);
     if (existing) {
       await db.query(sql`UPDATE reading_progress SET current_page=${currentPage},total_pages=${totalPages},progress=${progress},status=${status},last_read_at=${Date.now()} WHERE book_id=${bookId} AND username=${username} COLLATE NOCASE`);
@@ -1933,9 +1984,9 @@ app.put("/progress/:bookId", async (req, res) => {
 
 // ─── NOTES (diário pessoal) ───────────────────────────────────────────────────
 
-app.get("/notes", async (req, res) => {
+app.get("/notes", requireUser, async (req, res) => {
   try {
-    const username = currentUser(req) || "Caio";
+    const username = currentUser(req);
     const rows = await db.query(sql`SELECT * FROM notes WHERE username = ${username} COLLATE NOCASE ORDER BY created_at DESC`);
     res.json(rows.map((r) => ({ id: r.id, bookId: r.book_id, date: r.date_label, feedback: r.feedback, rating: Number(r.rating), createdAt: Number(r.created_at) })));
   } catch (err) {
@@ -1943,7 +1994,7 @@ app.get("/notes", async (req, res) => {
   }
 });
 
-app.get("/notes/book/:bookId", async (req, res) => {
+app.get("/notes/book/:bookId", requireUser, async (req, res) => {
   try {
     const rows = await db.query(sql`SELECT * FROM notes WHERE book_id = ${req.params.bookId} ORDER BY created_at DESC`);
     res.json(rows.map((r) => ({ id: r.id, bookId: r.book_id, username: r.username, date: r.date_label, feedback: r.feedback, rating: Number(r.rating), createdAt: Number(r.created_at) })));
@@ -1952,10 +2003,10 @@ app.get("/notes/book/:bookId", async (req, res) => {
   }
 });
 
-app.post("/notes", async (req, res) => {
+app.post("/notes", requireUser, async (req, res) => {
   try {
     const { bookId, feedback, rating } = req.body;
-    const username = currentUser(req) || "Caio";
+    const username = currentUser(req);
     if (!bookId || !feedback || rating == null)
       return res.status(400).json({ error: "Campos obrigatórios faltando" });
     const now = new Date();
@@ -1968,9 +2019,9 @@ app.post("/notes", async (req, res) => {
   }
 });
 
-app.delete("/notes/:id", async (req, res) => {
+app.delete("/notes/:id", requireUser, async (req, res) => {
   try {
-    const username = currentUser(req) || "Caio";
+    const username = currentUser(req);
     await db.query(sql`DELETE FROM notes WHERE id = ${req.params.id} AND username = ${username} COLLATE NOCASE`);
     res.json({ ok: true });
   } catch (err) {
@@ -1980,9 +2031,9 @@ app.delete("/notes/:id", async (req, res) => {
 
 // ─── SAVED ────────────────────────────────────────────────────────────────────
 
-app.get("/saved", async (req, res) => {
+app.get("/saved", requireUser, async (req, res) => {
   try {
-    const username = currentUser(req) || "Caio";
+    const username = currentUser(req);
     const rows = await db.query(sql`SELECT book_id FROM saved_books WHERE username = ${username} COLLATE NOCASE ORDER BY saved_at DESC`);
     res.json(rows.map((r) => r.book_id));
   } catch (err) {
@@ -1990,9 +2041,9 @@ app.get("/saved", async (req, res) => {
   }
 });
 
-app.post("/saved/:bookId", async (req, res) => {
+app.post("/saved/:bookId", requireUser, async (req, res) => {
   try {
-    const username = currentUser(req) || "Caio";
+    const username = currentUser(req);
     await db.query(sql`INSERT OR IGNORE INTO saved_books (username,book_id,saved_at) VALUES (${username},${req.params.bookId},${Date.now()})`);
     const [uploaded] = await db.query(sql`SELECT uploaded_by FROM books WHERE id=${req.params.bookId}`);
     if (uploaded?.uploaded_by) await progressionEvents.rewardForAction({ type: 'book_save', actor: username, beneficiary: uploaded.uploaded_by, entityType: 'book', entityId: req.params.bookId, idempotencyKey: `book_save:${String(username).toLowerCase()}:${req.params.bookId}` });
@@ -2002,9 +2053,9 @@ app.post("/saved/:bookId", async (req, res) => {
   }
 });
 
-app.delete("/saved/:bookId", async (req, res) => {
+app.delete("/saved/:bookId", requireUser, async (req, res) => {
   try {
-    const username = currentUser(req) || "Caio";
+    const username = currentUser(req);
     await db.query(sql`DELETE FROM saved_books WHERE book_id = ${req.params.bookId} AND username = ${username} COLLATE NOCASE`);
     res.json({ saved: false });
   } catch (err) {
@@ -2026,7 +2077,7 @@ app.get("/books/:id/chapters", async (req, res) => {
   }
 });
 
-app.post("/books/:id/chapters", async (req, res) => {
+app.post("/books/:id/chapters", requireAdmin, async (req, res) => {
   try {
     const { startPage, title } = req.body;
     if (startPage == null || !title) return res.status(400).json({ error: "Campos obrigatórios faltando" });
@@ -2040,7 +2091,7 @@ app.post("/books/:id/chapters", async (req, res) => {
   }
 });
 
-app.delete("/books/:id/chapters/:startPage", async (req, res) => {
+app.delete("/books/:id/chapters/:startPage", requireAdmin, async (req, res) => {
   try {
     await db.query(sql`DELETE FROM book_chapters WHERE book_id = ${req.params.id} AND start_page = ${Number(req.params.startPage)}`);
     res.json({ success: true });
@@ -2051,9 +2102,9 @@ app.delete("/books/:id/chapters/:startPage", async (req, res) => {
 
 // ─── STATS ────────────────────────────────────────────────────────────────────
 
-app.get("/stats", async (req, res) => {
+app.get("/stats", requireUser, async (req, res) => {
   try {
-    const username = currentUser(req) || "Caio";
+    const username = currentUser(req);
     const [rows] = await db.query(sql`
       SELECT
         SUM(CASE WHEN status='finalizado' THEN 1 ELSE 0 END) as finished,

@@ -77,4 +77,44 @@ function readSessionCookie(req) {
   return null;
 }
 
-module.exports = { COOKIE_NAME, DEFAULT_TTL_MS, createSessionStore, buildSessionCookie, buildExpiredSessionCookie, readSessionCookie };
+function createSessionMiddleware({ store }) {
+  if (!store?.resolve) throw new TypeError("A session store is required");
+  return async function resolveSession(req, res, next) {
+    try {
+      const rawToken = readSessionCookie(req);
+      const session = rawToken ? await store.resolve(rawToken) : null;
+      req.auth = session ? { username: session.username, sessionId: session.id, expiresAt: session.expiresAt } : null;
+      next();
+    } catch (error) {
+      next(error);
+    }
+  };
+}
+
+function requireUser(req, res, next) {
+  if (!req.auth?.username) return res.status(401).json({ error: "Entre na sua conta para continuar." });
+  next();
+}
+
+function cookieOptionsFromEnv(env = process.env) {
+  const explicitSecure = env.SESSION_COOKIE_SECURE;
+  const secure = explicitSecure == null
+    ? env.NODE_ENV === "production"
+    : String(explicitSecure).toLowerCase() === "true";
+  const sameSite = String(env.SESSION_COOKIE_SAMESITE || "lax").toLowerCase();
+  if (sameSite === "none" && !secure) throw new Error("SameSite=None requires Secure");
+  const days = Math.max(1, Number(env.SESSION_TTL_DAYS) || 30);
+  return { secure, sameSite, maxAgeSeconds: Math.floor(days * 86400) };
+}
+
+module.exports = {
+  COOKIE_NAME,
+  DEFAULT_TTL_MS,
+  createSessionStore,
+  buildSessionCookie,
+  buildExpiredSessionCookie,
+  readSessionCookie,
+  createSessionMiddleware,
+  requireUser,
+  cookieOptionsFromEnv,
+};

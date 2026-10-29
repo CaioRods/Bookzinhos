@@ -1,6 +1,7 @@
 require("dotenv").config();
 const path = require("path");
 const fs = require("fs");
+const crypto = require("crypto");
 
 function sql(strings, ...values) {
   return {
@@ -127,8 +128,12 @@ if (process.env.TURSO_DATABASE_URL) {
 
 // Conta administradora do myBooks (controla livros, banners e posts da home).
 const ADMIN_USERNAME = "Admin";
-const ADMIN_PASSWORD = "537942";
+const ADMIN_PASSWORD = process.env.ADMIN_INITIAL_PASSWORD || "";
 const ADMIN_AVATAR = "\u{1F436}"; // 🐶
+function initialPasswordHash(password) {
+  const salt = crypto.randomBytes(16).toString("hex");
+  return `scrypt$${salt}$${crypto.scryptSync(password, salt, 64).toString("hex")}`;
+}
 
 /** Executa uma query ignorando erros esperados (coluna já existe, índice duplicado...). */
 async function trySql(query, label) {
@@ -509,18 +514,19 @@ async function initDB() {
     await trySql({ text: stmt, values: [] });
   }
 
-  // ─── Usuários padrão ────────────────────────────────────────────────────────
+  // ─── Conta administrativa inicial ───────────────────────────────────────────
   const now = Date.now();
-  await trySql(sql`INSERT OR IGNORE INTO users (username, password, bio, avatar, pandinhas, is_admin, created_at) VALUES ('Caio', '1234', 'Apaixonado por histórias que transformam', '🐼', 0, 0, ${now})`);
-  await trySql(sql`INSERT OR IGNORE INTO users (username, password, bio, avatar, pandinhas, is_admin, created_at) VALUES ('Helo', '1234', 'Apaixonada por histórias que transformam', '🎀', 0, 0, ${now})`);
-
-  // Conta administradora — garantida com a senha e o emote corretos a cada boot.
+  if (ADMIN_PASSWORD) {
+    const [adminExists] = await db.query(sql`SELECT 1 FROM users WHERE username = ${ADMIN_USERNAME} COLLATE NOCASE`);
+    if (!adminExists) {
+      await trySql(sql`
+        INSERT INTO users (username, password, bio, avatar, pandinhas, is_admin, created_at)
+        VALUES (${ADMIN_USERNAME}, ${initialPasswordHash(ADMIN_PASSWORD)}, 'Curadoria oficial do myBooks 🐶', ${ADMIN_AVATAR}, 0, 1, ${now})
+      `);
+    }
+  }
   await trySql(sql`
-    INSERT OR IGNORE INTO users (username, password, bio, avatar, pandinhas, is_admin, created_at)
-    VALUES (${ADMIN_USERNAME}, ${ADMIN_PASSWORD}, 'Curadoria oficial do myBooks 🐶', ${ADMIN_AVATAR}, 0, 1, ${now})
-  `);
-  await trySql(sql`
-    UPDATE users SET password = ${ADMIN_PASSWORD}, avatar = ${ADMIN_AVATAR}, is_admin = 1
+    UPDATE users SET avatar = ${ADMIN_AVATAR}, is_admin = 1
     WHERE username = ${ADMIN_USERNAME} COLLATE NOCASE
   `);
 
