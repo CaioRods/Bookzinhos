@@ -36,3 +36,4 @@ server/uploads/
 .idea/
 .vscode/
 .DS_Store
+.worktrees/
