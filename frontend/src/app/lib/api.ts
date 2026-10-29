@@ -10,7 +10,7 @@
 import { API_BASE_URL } from "./config";
 import type {
   AdminOverview, Banner, BannerReport, Book, BookChapter, ChatMessage, FeedItem, HomeData, HomePost,
-  Note, Notifications, ReadingProgress, Review, ReviewComment, Stats, UserProfile, CharacterAvatar, CharacterCatalog, ChatConversation,
+  Note, Notifications, ReadingProgress, Review, ReviewComment, Stats, UserProfile, CharacterAvatar, CharacterCatalog, ChatConversation, ProgressionSummary,
 } from "./types";
 
 // ─── Cache + deduplicação ─────────────────────────────────────────────────────
@@ -387,6 +387,18 @@ export async function deleteCharacter(id: string): Promise<void> {
 
 export function sendActivityHeartbeat(data: { scope: "app" | "reader"; bookId?: string; page?: number; clientElapsedSeconds: number }) {
   return request<{ creditedSeconds: number; eligible?: boolean }>("POST", "/activity/heartbeat", data);
+}
+
+export function fetchProgression(username: string, force = false) {
+  return cachedGet<ProgressionSummary>(`/progression/${encodeURIComponent(username)}`, force ? 0 : 30000);
+}
+
+export function adjustUserXp(username: string, amount: number, reason: string) {
+  return request<ProgressionSummary>("POST", `/admin/users/${encodeURIComponent(username)}/xp`, { amount, reason });
+}
+
+export function setUserLevel(username: string, level: number, reason: string) {
+  return request<ProgressionSummary>("PUT", `/admin/users/${encodeURIComponent(username)}/level`, { level, reason });
 }
 
 // ─── FAVORITOS ────────────────────────────────────────────────────────────────

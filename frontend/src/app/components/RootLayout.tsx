@@ -6,12 +6,12 @@ import { GlobalSearch } from "./GlobalSearch";
 import { Brand } from "./Brand";
 import { Outlet, useLocation, useNavigation, Link, NavLink } from "react-router";
 import {
-  Home, Library, BookOpen, PenLine, User, Users, Shield, ChevronRight,
-  SlidersHorizontal, LogIn,
+  Home, Library, BookOpen, PenLine, User, Users, ChevronRight, LogIn,
 } from "lucide-react";
 import { useEffect, useState, useMemo, type ComponentType } from "react";
-import { fetchNotifications } from "../lib/api";
-import { getAvatar, getUsername, isAdmin as isAdminUser, isGuest, leaveGuestMode } from "../lib/session";
+import { fetchNotifications, fetchProgression } from "../lib/api";
+import { clearSession, getAvatar, getUsername, isAdmin as isAdminUser, isGuest, leaveGuestMode } from "../lib/session";
+import type { ProgressionSummary } from "../lib/types";
 import { ReaderChoiceProvider } from "../lib/readerChoice";
 import { BookTransitionProvider } from "./BookTransition";
 import { NotificationsMenu } from "./NotificationsMenu";
@@ -21,6 +21,7 @@ import { useSettings } from "../lib/settings";
 import { primeSounds, soundTap } from "../lib/sounds";
 import { createActivityTracker } from "../lib/activityTracker";
 import { sendActivityHeartbeat } from "../lib/api";
+import { AccountMenu } from "./AccountMenu";
 
 interface NavItem {
   path: string;
@@ -57,6 +58,7 @@ export function RootLayout() {
   const [username, setUsername] = useState(getUsername);
   const [admin, setAdmin] = useState(isAdminUser);
   const [guest, setGuest] = useState(isGuest);
+  const [progression, setProgression] = useState<ProgressionSummary | null>(null);
 
   useEffect(() => {
     primeSounds();
@@ -73,6 +75,8 @@ export function RootLayout() {
     const idle = window.setTimeout(warmRoutes, 500);
     return () => window.clearTimeout(idle);
   }, []);
+
+  useEffect(() => { if (username) fetchProgression(username).then(setProgression).catch(() => setProgression(null)); else setProgression(null); }, [username]);
 
   useEffect(() => {
     if (location.pathname.startsWith("/read/")) return;
@@ -129,8 +133,6 @@ export function RootLayout() {
       { path: "/my-books", icon: BookOpen, label: "Meus livros" },
       { path: "/notes", icon: PenLine, label: "Diário de leitura" },
     ];
-    if (admin) items.push({ path: "/admin", icon: Shield, label: "Admin" });
-    items.push({ path: "/settings", icon: SlidersHorizontal, label: "Configurações" });
     return items;
   }, [unreadCount, admin]);
 
@@ -229,9 +231,7 @@ export function RootLayout() {
         <div className="mb-desktop-actions hidden lg:flex items-center">
           <GlobalSearch />
           <NotificationsMenu />
-          <Link to="/profile" aria-label="Meu perfil" className="w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--line)] shadow-[var(--shadow-1)] flex items-center justify-center text-lg select-none hover:scale-105 transition-transform">
-            {avatar}
-          </Link>
+          {username && <AccountMenu avatar={avatar} username={username} admin={admin} progression={progression} onLogout={() => { clearSession(); window.location.href = "/"; }} />}
         </div>
 
         {/* ── Cabeçalho (celular) ─────────────────────────────────────────── */}
@@ -241,20 +241,7 @@ export function RootLayout() {
           </Link>
           <div className="flex items-center gap-1">
             <NotificationsMenu />
-            <NavLink
-              to="/settings"
-              aria-label="Configurações"
-              className={({ isActive }) =>
-                `w-9 h-9 rounded-full flex items-center justify-center transition-colors ${
-                  isActive ? "text-[var(--primary)] bg-[var(--primary-soft)]" : "text-[var(--text-2)] hover:bg-[var(--surface-2)]"
-                }`
-              }
-            >
-              <SlidersHorizontal className="w-[18px] h-[18px]" />
-            </NavLink>
-            <Link to="/profile" aria-label="Meu perfil" className="w-9 h-9 rounded-full bg-[var(--surface)] border border-[var(--line)] flex items-center justify-center text-base select-none ml-0.5">
-              {avatar}
-            </Link>
+            {username && <AccountMenu avatar={avatar} username={username} admin={admin} progression={progression} onLogout={() => { clearSession(); window.location.href = "/"; }} />}
           </div>
         </header>
 

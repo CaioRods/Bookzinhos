@@ -10,6 +10,7 @@ import type { UserProfile } from "./types";
 
 const KEYS = {
   username: "books-username",
+  displayName: "books-display-name",
   bio: "books-bio",
   avatar: "books-avatar",
   admin: "books-is-admin",
@@ -44,6 +45,10 @@ export function getAvatar(): string {
   return localStorage.getItem(KEYS.avatar) || "🐼";
 }
 
+export function getDisplayName(): string {
+  return localStorage.getItem(KEYS.displayName) || getUsername() || "Leitora";
+}
+
 export function getBio(): string {
   return localStorage.getItem(KEYS.bio) || "";
 }
@@ -65,6 +70,7 @@ export function getShelf(): string[] {
 export function saveSession(user: Partial<UserProfile> & { username: string }): void {
   localStorage.removeItem(GUEST_KEY); // entrar de verdade encerra o modo visitante
   localStorage.setItem(KEYS.username, user.username);
+  localStorage.setItem(KEYS.displayName, user.displayName || user.username);
   if (user.bio != null) localStorage.setItem(KEYS.bio, user.bio);
   if (user.avatar != null) localStorage.setItem(KEYS.avatar, user.avatar);
   localStorage.setItem(KEYS.admin, String(!!user.isAdmin));

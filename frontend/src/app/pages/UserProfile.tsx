@@ -1,17 +1,19 @@
 import { useMemo, useState, type CSSProperties } from "react";
 import { useParams, useNavigate, Link } from "react-router";
 import { ArrowLeft, MessageCircle, UserPlus, UserCheck, Star } from "lucide-react";
-import { fetchBooks, fetchUserProfile, followUser, unfollowUser } from "../lib/api";
+import { fetchBooks, fetchProgression, fetchUserProfile, followUser, unfollowUser } from "../lib/api";
 import { useLiveData } from "../lib/useLiveData";
 import { getUsername } from "../lib/session";
 import { requireAuth } from "../lib/authGate";
 import { getCoverGradient, getFullUrl, timeAgo } from "../lib/types";
-import type { Book, UserProfile as UserProfileType } from "../lib/types";
+import type { Book, ProgressionSummary, UserProfile as UserProfileType } from "../lib/types";
 import { Avatar, EmptyState, Skeleton, Stars, toast } from "../components/Ui";
 import { fetchProfileTheme } from "../lib/appearanceApi";
 import { DEFAULT_THEMES } from "../lib/themeCatalog";
 import { accentVariables, type SceneTheme } from "../lib/appearance";
 import { ThemeImage } from "../components/ThemeImage";
+import { ProgressionCard } from "../components/ProgressionCard";
+import { BadgeGallery } from "../components/BadgeGallery";
 
 type Tab = "resenhas" | "estante" | "lidos" | "favoritos";
 
@@ -21,15 +23,16 @@ export function UserProfile() {
   const me = getUsername();
   const [tab, setTab] = useState<Tab>("resenhas");
 
-  const { data, isLoading, setData } = useLiveData<{ profile: UserProfileType | null; books: Book[]; profileTheme: SceneTheme | null }>(
+  const { data, isLoading, setData } = useLiveData<{ profile: UserProfileType | null; books: Book[]; profileTheme: SceneTheme | null; progression: ProgressionSummary | null }>(
     async (force) => {
-      const [profile, books, remoteTheme] = await Promise.all([
+      const [profile, books, remoteTheme, progression] = await Promise.all([
         fetchUserProfile(username!, force),
         fetchBooks(force),
         fetchProfileTheme(username!).catch(() => null),
+        fetchProgression(username!, force).catch(() => null),
       ]);
       const profileTheme = remoteTheme && "mainColor" in remoteTheme ? remoteTheme : DEFAULT_THEMES.find((theme) => theme.id === remoteTheme?.id || theme.id === profile?.themeId) || DEFAULT_THEMES[0];
-      return { profile, books, profileTheme };
+      return { profile, books, profileTheme, progression };
     },
     [username],
     { intervalMs: 60000 }
@@ -38,6 +41,7 @@ export function UserProfile() {
   const profile = data?.profile ?? null;
   const books = data?.books ?? [];
   const profileTheme = data?.profileTheme || DEFAULT_THEMES[0];
+  const progression = data?.progression || null;
   const isMe = profile?.username.toLowerCase() === me?.toLowerCase();
 
   const byId = useMemo(() => new Map(books.map((b) => [b.id, b])), [books]);
@@ -162,6 +166,8 @@ export function UserProfile() {
           <Link to="/profile" className="mb-btn mb-btn-outline w-full mt-4">Editar meu perfil</Link>
         )}
       </header>
+
+      {progression && <div className="mb-public-progression-grid"><ProgressionCard progression={progression} /><BadgeGallery badges={progression.badges} /></div>}
 
       {/* ── Abas ───────────────────────────────────────────────────────────── */}
       <div className="flex gap-1.5 overflow-x-auto no-scrollbar border-b border-[var(--line)] pb-2">

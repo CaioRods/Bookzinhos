@@ -141,6 +141,13 @@ export interface CharacterCatalog {
   groups: CharacterGroup[];
 }
 
+export interface ReaderBadge { code: string; name: string; description: string; category: string; threshold: number; earnedAt: number }
+export interface ProgressionSummary {
+  totalXp: number; level: number; title: string; currentLevelXp: number; nextLevelXp: number; boostUntil: number;
+  stats: { activeSeconds: number; finished: number; published: number; reviews: number };
+  badges: ReaderBadge[];
+}
+
 export interface ChatMessage {
   id: number;
   sender: string;

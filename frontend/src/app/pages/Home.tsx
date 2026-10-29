@@ -8,7 +8,7 @@ import { fetchFeed, fetchHome, togglePostLike, updateGlobalStatus } from "../lib
 import { useLiveData } from "../lib/useLiveData";
 import { getCoverGradient, getFullUrl, timeAgo } from "../lib/types";
 import type { Book, FeedItem, HomeData, HomePost, ReadingProgress } from "../lib/types";
-import { getUsername, isAdmin as isAdminUser } from "../lib/session";
+import { getDisplayName, isAdmin as isAdminUser } from "../lib/session";
 import { requireAuth } from "../lib/authGate";
 import { Book3D } from "../components/Book3D";
 import { BookCard } from "../components/BookCard";
@@ -22,7 +22,7 @@ const EMOTES = ["📚", "☕", "✨", "📖", "🌿", "🤍", "🌸", "🔖", "�
 export function Home() {
   const navigate = useNavigate();
   const openBook = useOpenBook();
-  const userName = getUsername() || "Leitora";
+  const [userName, setUserName] = useState(getDisplayName);
   const admin = isAdminUser();
 
   const { data, isLoading, setData, reload } = useLiveData<HomeData>((force) => fetchHome(force), [], {
@@ -31,6 +31,11 @@ export function Home() {
   const { data: feed } = useLiveData<FeedItem[]>((force) => fetchFeed("all", force), [], { intervalMs: 60000 });
 
   const [search, setSearch] = useState("");
+  useEffect(() => {
+    const syncName = () => setUserName(getDisplayName());
+    window.addEventListener("mybooks:session", syncName);
+    return () => window.removeEventListener("mybooks:session", syncName);
+  }, []);
   const [heroIndex, setHeroIndex] = useState(0);
   const searchRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
