@@ -545,6 +545,10 @@ async function initDB() {
     )
   `, "limpeza de livros duplicados");
 
+  // Progressão usa apenas tabelas aditivas e pode ser inicializada várias vezes.
+  const { ensureProgressionSchema } = require("./progression-service");
+  await ensureProgressionSchema(db);
+
   console.log("✅ Banco pronto — schema, índices e conta Admin garantidos");
 }
 
