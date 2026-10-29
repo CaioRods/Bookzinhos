@@ -4,16 +4,32 @@ import { Login } from "../pages/Login";
 import { BookOpening } from "./BookOpening";
 import { completeOpening, needsOpening } from "../lib/opening";
 import { getUsername, isGuest, enterGuestMode } from "../lib/session";
+import { clearSession, saveSession } from "../lib/session";
+import { getAuthenticatedSession } from "../lib/api";
 
 export function AuthWrapper() {
-  const [user, setUser] = useState<string | null>(getUsername);
+  const [user, setUser] = useState<string | null>(null);
   const [guest, setGuest] = useState<boolean>(isGuest);
+  const [restoring, setRestoring] = useState(true);
   const [openingFor, setOpeningFor] = useState<string | null>(() => {
     const username = getUsername();
     return needsOpening(username) ? username : null;
   });
   const previousUser = useRef(user);
   const content = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let active = true;
+    getAuthenticatedSession()
+      .then((profile) => {
+        if (!active) return;
+        if (profile) saveSession(profile);
+        else if (!isGuest()) clearSession();
+      })
+      .catch(() => { /* falha temporária: mantém a entrada disponível */ })
+      .finally(() => { if (active) setRestoring(false); });
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     const sync = () => {
@@ -47,6 +63,8 @@ export function AuthWrapper() {
     if (openingFor) completeOpening(openingFor);
     setOpeningFor(null);
   }, [openingFor]);
+
+  if (restoring) return <div className="mb-auth-restoring" role="status" aria-label="Restaurando sessão" />;
 
   if (user || guest)
     return (

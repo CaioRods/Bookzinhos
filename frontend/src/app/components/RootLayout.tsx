@@ -9,7 +9,7 @@ import {
   Home, Library, BookOpen, PenLine, User, Users, ChevronRight, LogIn,
 } from "lucide-react";
 import { useEffect, useState, useMemo, type ComponentType } from "react";
-import { fetchNotifications, fetchProgression } from "../lib/api";
+import { fetchNotifications, fetchProgression, logout } from "../lib/api";
 import { clearSession, getAvatar, getUsername, isAdmin as isAdminUser, isGuest, leaveGuestMode } from "../lib/session";
 import type { ProgressionSummary } from "../lib/types";
 import { ReaderChoiceProvider } from "../lib/readerChoice";
@@ -241,7 +241,7 @@ export function RootLayout() {
         <div className="mb-desktop-actions hidden lg:flex items-center">
           <GlobalSearch />
           <NotificationsMenu />
-          {username && <AccountMenu avatar={avatar} username={username} admin={admin} progression={progression} onLogout={() => { clearSession(); window.location.href = "/"; }} />}
+          {username && <AccountMenu avatar={avatar} username={username} admin={admin} progression={progression} onLogout={async () => { try { await logout(); } finally { clearSession(); window.location.href = "/"; } }} />}
         </div>
 
         {/* ── Cabeçalho (celular) ─────────────────────────────────────────── */}
@@ -251,7 +251,7 @@ export function RootLayout() {
           </Link>
           <div className="flex items-center gap-1">
             <NotificationsMenu />
-            {username && <AccountMenu avatar={avatar} username={username} admin={admin} progression={progression} onLogout={() => { clearSession(); window.location.href = "/"; }} />}
+            {username && <AccountMenu avatar={avatar} username={username} admin={admin} progression={progression} onLogout={async () => { try { await logout(); } finally { clearSession(); window.location.href = "/"; } }} />}
           </div>
         </header>
 

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { login } from "./api";
+import { getAuthenticatedSession, login, logout } from "./api";
 import { communityApi, uploadCommunityImage } from "./community";
 
 describe("authenticated API transport", () => {
@@ -32,5 +32,17 @@ describe("authenticated API transport", () => {
     const options = fetchMock.mock.calls[0][1] as RequestInit;
     expect(options.credentials).toBe("include");
     expect(new Headers(options.headers).has("x-user-id")).toBe(false);
+  });
+
+  it("restores and revokes the server session through dedicated endpoints", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(new Response(JSON.stringify({ username: "Jude" }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true }), { status: 200 }));
+    await expect(getAuthenticatedSession()).resolves.toMatchObject({ username: "Jude" });
+    await expect(logout()).resolves.toEqual({ ok: true });
+    expect(fetchMock.mock.calls.map(([url]) => String(url))).toEqual([
+      expect.stringContaining("/auth/session"),
+      expect.stringContaining("/auth/logout"),
+    ]);
   });
 });

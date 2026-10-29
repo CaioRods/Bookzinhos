@@ -11,7 +11,7 @@ import {
 import { getSavedReaderMode, setSavedReaderMode, type ReaderMode } from "../lib/readerChoice";
 import { soundToggle } from "../lib/sounds";
 import { clearSession, getUsername, isAdmin as isAdminUser } from "../lib/session";
-import { invalidate } from "../lib/api";
+import { invalidate, logout } from "../lib/api";
 import { ConfirmDialog, PageHeader, toast } from "../components/Ui";
 
 const THEMES: { key: ThemeChoice; label: string; icon: typeof Sun }[] = [
@@ -237,9 +237,8 @@ export function Settings() {
         title="Sair da conta?"
         description="Você precisará entrar de novo com usuário e senha."
         confirmLabel="Sair"
-        onConfirm={() => {
-          clearSession();
-          window.location.href = "/";
+        onConfirm={async () => {
+          try { await logout(); } finally { clearSession(); window.location.href = "/"; }
         }}
         onCancel={() => setConfirmLogout(false)}
       />

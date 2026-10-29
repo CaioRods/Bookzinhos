@@ -1,9 +1,8 @@
 /**
  * Sessão local do usuário.
  *
- * O servidor identifica quem está logado pelo header `x-user-id`; aqui ficam os
- * dados que a interface precisa ler sem ida ao servidor (nome, avatar, se é a
- * conta Admin). Um único lugar para ler e gravar isso.
+ * O servidor identifica quem está logado somente pelo cookie HttpOnly. Estes
+ * dados são um cache visual; nunca concedem acesso ou permissão no servidor.
  */
 
 import type { UserProfile } from "./types";
@@ -88,6 +87,7 @@ export function saveSession(user: Partial<UserProfile> & { username: string }): 
 export function clearSession(): void {
   Object.values(KEYS).forEach((key) => localStorage.removeItem(key));
   localStorage.removeItem(GUEST_KEY);
+  notifySessionChanged();
 }
 
 /** Dispara um evento para que o layout atualize avatar/nome sem recarregar. */

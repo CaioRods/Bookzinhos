@@ -5,7 +5,7 @@ import { Link } from "react-router";
 import {
   Camera, Clock3, Heart, UserPlus, BookOpen, Check, LogOut, Pencil, Smartphone, ExternalLink, Star, Users, Loader2, SlidersHorizontal,
 } from "lucide-react";
-import { fetchBooks, fetchStats, fetchUserProfile, updateProfile } from "../lib/api";
+import { fetchBooks, fetchStats, fetchUserProfile, logout, updateProfile } from "../lib/api";
 import { clearSession, getUsername, notifySessionChanged, saveSession } from "../lib/session";
 import { getCoverGradient, getFullUrl } from "../lib/types";
 import type { Book, Stats, UserProfile as UserProfileType } from "../lib/types";
@@ -117,9 +117,8 @@ export function Profile() {
     });
   };
 
-  const handleLogout = () => {
-    clearSession();
-    window.location.href = "/";
+  const handleLogout = async () => {
+    try { await logout(); } finally { clearSession(); window.location.href = "/"; }
   };
 
   const changeReaderMode = (mode: ReaderMode | null) => {

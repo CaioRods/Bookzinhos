@@ -298,6 +298,18 @@ export function login(username: string, password: string): Promise<UserProfile> 
   return request<UserProfile>("POST", "/auth/login", { username, password });
 }
 
+export async function getAuthenticatedSession(): Promise<UserProfile | null> {
+  const response = await fetch(`${API_BASE_URL}/auth/session`, { credentials: "include" });
+  if (response.status === 401) return null;
+  if (!response.ok) throw new Error(await readError(response));
+  return response.json() as Promise<UserProfile>;
+}
+
+export function logout(): Promise<{ ok: true }> {
+  invalidate();
+  return request<{ ok: true }>("POST", "/auth/logout");
+}
+
 /** Dados de configuração pública do servidor (Google, entrega de e-mail). */
 export interface ServerConfig {
   googleClientId: string | null;

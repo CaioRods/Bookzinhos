@@ -14,6 +14,11 @@ vi.mock("../lib/session", () => ({
   enterGuestMode: () => {
     session.guest = true;
   },
+  saveSession: (profile: { username: string }) => { session.username = profile.username; window.dispatchEvent(new Event("mybooks:session")); },
+  clearSession: () => { session.username = null; window.dispatchEvent(new Event("mybooks:session")); },
+}));
+vi.mock("../lib/api", () => ({
+  getAuthenticatedSession: async () => session.username ? { username: session.username } : null,
 }));
 vi.mock("../pages/Login", () => ({
   Login: ({
@@ -59,10 +64,10 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 describe("authenticated opening", () => {
-  it("prepares the app beneath the opening for an existing session and dismisses it", () => {
+  it("prepares the app beneath the opening for an existing session and dismisses it", async () => {
     session.username = "ExistingReader";
     app();
-    expect(screen.getByText("Finalizar abertura")).toBeTruthy();
+    expect(await screen.findByText("Finalizar abertura")).toBeTruthy();
     expect(
       document
         .querySelector(".mb-authenticated-app")
@@ -74,20 +79,20 @@ describe("authenticated opening", () => {
       screen.getByRole("heading", { name: "Biblioteca pronta" }),
     ).toBeTruthy();
   });
-  it("plays after a successful login and replays after logging in again", () => {
+  it("plays after a successful login and replays after logging in again", async () => {
     const view = app();
-    fireEvent.click(screen.getByText("Entrar na conta"));
+    fireEvent.click(await screen.findByText("Entrar na conta"));
     expect(screen.getByText("Finalizar abertura")).toBeTruthy();
     fireEvent.click(screen.getByText("Finalizar abertura"));
     view.unmount();
     session.username = null;
     app();
-    fireEvent.click(screen.getByText("Entrar na conta"));
+    fireEvent.click(await screen.findByText("Entrar na conta"));
     expect(screen.getByText("Finalizar abertura")).toBeTruthy();
   });
-  it("does not interrupt guest browsing", () => {
+  it("does not interrupt guest browsing", async () => {
     app();
-    fireEvent.click(screen.getByText("Visitar"));
+    fireEvent.click(await screen.findByText("Visitar"));
     expect(screen.queryByText("Finalizar abertura")).toBeNull();
     expect(
       screen.getByRole("heading", { name: "Biblioteca pronta" }),
