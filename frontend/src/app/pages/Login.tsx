@@ -1,12 +1,13 @@
 import { Brand } from "../components/Brand";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, ArrowRight, ArrowLeft, Check, X, Eye, EyeOff, ShieldAlert } from "lucide-react";
+import { Loader2, ArrowRight, ArrowLeft, Check, X, Eye, EyeOff, ShieldAlert, Sparkles, UserRound, LockKeyhole } from "lucide-react";
 import {
   login, register, resetPassword, sendEmailCode, verifyEmailCode, checkAvailability,
   loginWithGoogle, fetchServerConfig, type ServerConfig,
 } from "../lib/api";
 import { notifySessionChanged, saveSession } from "../lib/session";
 import { BOOK_GENRES, mergeCustomGenre } from "../lib/genres";
+import { waitForAuthHandoff } from "../lib/authTransition";
 
 interface LoginProps {
   onLoginSuccess: (name: string) => void;
@@ -33,13 +34,23 @@ function passwordChecks(pw: string) {
 
 export function Login({ onLoginSuccess, onGuest }: LoginProps) {
   const [config, setConfig] = useState<ServerConfig | null>(null);
+  const [authenticated, setAuthenticated] = useState(false);
 
   useEffect(() => {
     fetchServerConfig().then(setConfig).catch(() => setConfig({ googleClientId: null, emailDelivery: false }));
   }, []);
 
+  const finishLogin = async (username: string) => {
+    setAuthenticated(true);
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches || document.documentElement.dataset.reduceMotion === "true";
+    await waitForAuthHandoff(reducedMotion);
+    notifySessionChanged();
+    onLoginSuccess(username);
+  };
+
   return (
-    <div className="mb-auth-shell">
+    <div className={`mb-auth-shell ${authenticated ? "is-authenticated" : ""}`}>
+      <div className="mb-auth-ambient" aria-hidden="true"><span /><span /><span /></div>
       <header className="mb-auth-top"><a href="/" aria-label="myBooks, início"><Brand /></a><span>SUA BIBLIOTECA, EM BOA COMPANHIA.</span></header>
       <main className="mb-auth-layout">
         <section className="mb-auth-story" aria-label="Bem-vindo ao myBooks">
@@ -55,7 +66,7 @@ export function Login({ onLoginSuccess, onGuest }: LoginProps) {
           <p className="mb-auth-note">Uma boa história fica ainda melhor quando compartilhada.</p>
         </section>
         <section className="mb-auth-panel" aria-label="Acesse sua biblioteca">
-          <div className="mb-auth-card"><AuthFlow config={config} onLoginSuccess={onLoginSuccess} onGuest={onGuest} /></div>
+          <div className="mb-auth-card"><div className="mb-auth-card-ornament" aria-hidden="true"><span /><Sparkles size={14} /><span /></div><div className="mb-auth-card-content"><AuthFlow config={config} onLoginSuccess={finishLogin} onGuest={onGuest} /></div><div className="mb-auth-success" aria-live="polite"><span><Check /></span><strong>Biblioteca aberta</strong><small>Preparando seu próximo capítulo…</small></div></div>
           <button onClick={onGuest} className="mb-auth-visit">Explorar a biblioteca sem conta <ArrowRight className="w-4 h-4" /></button>
           <p className="mb-auth-footnote">Feito para quem encontra um mundo em cada livro.</p>
         </section>
@@ -68,7 +79,6 @@ function AuthFlow({ config, onLoginSuccess, onGuest }: { config: ServerConfig | 
   const [mode, setMode] = useState<Mode>("login");
 
   const succeed = (username: string) => {
-    notifySessionChanged();
     onLoginSuccess(username);
   };
 
@@ -117,11 +127,11 @@ function LoginForm({
       <Header title="Bem-vindo de volta" subtitle="Entre para continuar lendo" emoji="📚" />
 
       <Field label="Usuário ou e-mail">
-        <input autoComplete="username" value={name} onChange={(e) => setName(e.target.value)} placeholder="Apelido ou e-mail" className="mb-auth-input" disabled={busy} />
+        <div className="mb-auth-input-wrap"><UserRound aria-hidden="true" /><input autoComplete="username" value={name} onChange={(e) => setName(e.target.value)} placeholder="Apelido ou e-mail" className="mb-auth-input" disabled={busy} /></div>
       </Field>
 
       <Field label="Senha">
-        <PasswordInput value={password} onChange={setPassword} show={showPw} onToggle={() => setShowPw((v) => !v)} disabled={busy} autoComplete="current-password" />
+        <div className="mb-auth-input-wrap"><LockKeyhole aria-hidden="true" /><PasswordInput value={password} onChange={setPassword} show={showPw} onToggle={() => setShowPw((v) => !v)} disabled={busy} autoComplete="current-password" /></div>
       </Field>
 
       <div className="text-right -mt-1">
