@@ -199,14 +199,16 @@ export function UserProfile() {
               <Link
                 key={review.id}
                 to={`/book/${review.bookId}#avaliar`}
-                className="mb-card mb-card-hover p-4 flex gap-3"
+                className="mb-card mb-card-hover p-4 flex items-start gap-4"
               >
                 {review.book && (
-                  <div className="w-12 aspect-[2/3] rounded-md overflow-hidden flex-shrink-0 shadow-[var(--shadow-1)] bg-[var(--surface-2)]">
+                  <div className="w-16 aspect-[2/3] rounded-lg overflow-hidden flex-shrink-0 self-start shadow-[var(--shadow-book)] bg-[var(--surface-2)]">
                     {review.book.coverImagePath ? (
                       <img src={getFullUrl(review.book.coverImagePath)!} alt="" loading="lazy" className="w-full h-full object-cover" />
                     ) : (
-                      <div className={`w-full h-full bg-gradient-to-br ${getCoverGradient({ id: review.book.id, coverColor: review.book.coverColor })}`} />
+                      <div className={`w-full h-full bg-gradient-to-br ${getCoverGradient({ id: review.book.id, coverColor: review.book.coverColor })} flex items-center justify-center p-1.5`}>
+                        <span className="text-[9px] font-bold text-black/45 text-center line-clamp-3">{review.book.title}</span>
+                      </div>
                     )}
                   </div>
                 )}
