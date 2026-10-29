@@ -13,6 +13,8 @@ import type {
   Note, Notifications, ReadingProgress, Review, ReviewComment, Stats, UserProfile, CharacterAvatar, CharacterCatalog, ChatConversation, ProgressionSummary,
 } from "./types";
 import { dispatchProgressionResult, type ProgressionResult } from "./progressionEvents";
+import { clearSession } from "./session";
+import { AUTH_GATE_EVENT } from "./authGate";
 
 // ─── Cache + deduplicação ─────────────────────────────────────────────────────
 
@@ -59,7 +61,13 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   });
 
   if (res.status === 404) return null as T;
-  if (!res.ok) throw new Error(await readError(res));
+  if (!res.ok) {
+    if (res.status === 401 && !path.startsWith("/auth/")) {
+      clearSession();
+      window.dispatchEvent(new CustomEvent(AUTH_GATE_EVENT, { detail: { reason: "continuar" } }));
+    }
+    throw new Error(await readError(res));
+  }
   if (res.status === 204) return null as T;
   return res.json() as Promise<T>;
 }
@@ -96,7 +104,13 @@ async function upload<T>(method: string, path: string, form: FormData): Promise<
     credentials: "include",
     body: form,
   });
-  if (!res.ok) throw new Error(await readError(res));
+  if (!res.ok) {
+    if (res.status === 401 && !path.startsWith("/auth/")) {
+      clearSession();
+      window.dispatchEvent(new CustomEvent(AUTH_GATE_EVENT, { detail: { reason: "continuar" } }));
+    }
+    throw new Error(await readError(res));
+  }
   return res.json() as Promise<T>;
 }
 

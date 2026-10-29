@@ -47,6 +47,8 @@ test("requireUser returns 401 without a server session", () => {
 test("cross-site cookies require HTTPS while local cookies stay Lax", () => {
   assert.deepEqual(cookieOptionsFromEnv({ NODE_ENV: "development" }), { secure: false, sameSite: "lax", maxAgeSeconds: 2592000 });
   assert.deepEqual(cookieOptionsFromEnv({ NODE_ENV: "production", SESSION_COOKIE_SAMESITE: "none" }), { secure: true, sameSite: "none", maxAgeSeconds: 2592000 });
+  assert.deepEqual(cookieOptionsFromEnv({ NODE_ENV: "production" }), { secure: true, sameSite: "none", maxAgeSeconds: 2592000 });
+  assert.deepEqual(cookieOptionsFromEnv({ NODE_ENV: "production", SESSION_COOKIE_SAMESITE: "lax" }), { secure: true, sameSite: "lax", maxAgeSeconds: 2592000 });
   assert.throws(
     () => cookieOptionsFromEnv({ NODE_ENV: "production", SESSION_COOKIE_SAMESITE: "none", SESSION_COOKIE_SECURE: "false" }),
     /requires Secure/,

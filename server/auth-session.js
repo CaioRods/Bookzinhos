@@ -101,7 +101,9 @@ function cookieOptionsFromEnv(env = process.env) {
   const secure = explicitSecure == null
     ? env.NODE_ENV === "production"
     : String(explicitSecure).toLowerCase() === "true";
-  const sameSite = String(env.SESSION_COOKIE_SAMESITE || "lax").toLowerCase();
+  const sameSite = String(
+    env.SESSION_COOKIE_SAMESITE || (env.NODE_ENV === "production" ? "none" : "lax")
+  ).toLowerCase();
   if (sameSite === "none" && !secure) throw new Error("SameSite=None requires Secure");
   const days = Math.max(1, Number(env.SESSION_TTL_DAYS) || 30);
   return { secure, sameSite, maxAgeSeconds: Math.floor(days * 86400) };
