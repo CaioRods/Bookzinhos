@@ -135,6 +135,9 @@ const community = require("./community")({ app, db, sql, upload, uploadFileToClo
 const characters = require("./characters")({ app, db, sql, upload, uploadFileToCloud, requireAdmin });
 const progression = require("./progression-service").createProgressionService({ db, sql });
 const activity = require("./activity")({ app, db, sql, currentUser, progression });
+const badges = require("./badges").createBadgeService({ db, sql });
+const progressionEvents = require("./progression-events").createProgressionEvents({ progression });
+require("./progression-routes")({ app, db, sql, currentUser, requireAdmin, progression, badges });
 async function seriesFields(body) {
   if (!body.seriesId) return { id: null, name: null, order: null };
   const [series] = await db.query(sql`SELECT * FROM book_series WHERE id = ${body.seriesId}`);
@@ -475,8 +478,8 @@ app.post("/books", upload.fields([{ name: "pdf", maxCount: 1 }, { name: "cover",
     }
 
     await db.query(sql`
-      INSERT INTO books (id,title,author,description,genre,publisher,published_year,rating,review_count,is_public,cover_color,added_at,pdf_path,cover_image_path,is_user_book)
-      VALUES (${id},${title},${author || ""},${description || ""},${genre || "Outros"},${publisher || ""},${publishedYear || ""},0,0,${isPublic === "false" ? 0 : 1},${coverColor || "lavender-mint"},${Date.now()},${pdfUrl},${coverUrl},1)
+      INSERT INTO books (id,title,author,description,genre,publisher,published_year,rating,review_count,is_public,cover_color,added_at,pdf_path,cover_image_path,is_user_book,uploaded_by)
+      VALUES (${id},${title},${author || ""},${description || ""},${genre || "Outros"},${publisher || ""},${publishedYear || ""},0,0,${isPublic === "false" ? 0 : 1},${coverColor || "lavender-mint"},${Date.now()},${pdfUrl},${coverUrl},1,${currentUser(req) || ""})
     `);
 
     if (series) await db.query(sql`UPDATE books SET series_id=${series.id}, series_name=${series.name}, series_order=${series.order} WHERE id=${id}`);
@@ -484,6 +487,7 @@ app.post("/books", upload.fields([{ name: "pdf", maxCount: 1 }, { name: "cover",
     const book = rowToBook(bookRow);
     book.reviews = [];
     book.pages = [];
+    if (currentUser(req)) await progressionEvents.rewardForAction({ type: "book_publish", actor: currentUser(req), beneficiary: currentUser(req), entityType: "book", entityId: id, idempotencyKey: `book_publish:${id}` });
     res.status(201).json(book);
   } catch (err) {
     console.error("Upload error:", err);
@@ -1110,6 +1114,7 @@ app.post("/books/:id/reviews", async (req, res) => {
     }
 
     const stats = await refreshBookRating(bookId);
+    await progressionEvents.rewardForAction({ type: "review", actor: me, beneficiary: me, entityType: "book", entityId: bookId, idempotencyKey: `review:${String(me).toLowerCase()}:${bookId}` });
     const reviews = await loadReviews({ bookId, me });
     res.status(201).json({ ...stats, reviews });
   } catch (err) {
@@ -1184,6 +1189,9 @@ app.post("/reviews/:reviewId/comments", async (req, res) => {
     if (!review) return res.status(404).json({ error: "Resenha não encontrada" });
 
     await db.query(sql`INSERT INTO review_comments (review_id, username, content, created_at) VALUES (${id}, ${me}, ${content}, ${Date.now()})`);
+    const dayStart = new Date(); dayStart.setHours(0, 0, 0, 0);
+    const [dailyComments] = await db.query(sql`SELECT COUNT(*) AS n FROM review_comments WHERE username=${me} COLLATE NOCASE AND created_at>=${dayStart.getTime()}`);
+    await progressionEvents.rewardForAction({ type: "comment", actor: me, beneficiary: me, dailyCount: Math.max(0, Number(dailyComments.n) - 1), entityType: "review", entityId: String(id), idempotencyKey: `comment:${String(me).toLowerCase()}:${id}:${Date.now()}` });
 
     const [owner] = await db.query(sql`SELECT username, book_id FROM book_reviews WHERE id = ${id}`);
     if (owner) {
@@ -1743,6 +1751,12 @@ app.post("/chat/:otherUser", async (req, res) => {
     const { content, sharedBookId } = req.body;
 
     await db.query(sql`INSERT INTO chat_messages (sender, receiver, content, shared_book_id, created_at) VALUES (${me}, ${other}, ${content}, ${sharedBookId || null}, ${Date.now()})`);
+    if (String(content || '').trim().replace(/[^\p{L}\p{N}]/gu, '').length >= 8) {
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const [sent] = await db.query(sql`SELECT COUNT(*) AS n FROM chat_messages WHERE sender=${me} COLLATE NOCASE AND created_at>=${today.getTime()} AND LENGTH(content)>=8`);
+      const block = Math.floor(Number(sent.n) / 10);
+      if (block > 0) await progressionEvents.rewardForAction({ type: 'chat_block', actor: me, beneficiary: me, dailyCount: block - 1, entityType: 'chat', entityId: today.toISOString().slice(0,10), idempotencyKey: `chat_block:${String(me).toLowerCase()}:${today.toISOString().slice(0,10)}:${block}` });
+    }
 
     if (sharedBookId) {
       await db.query(sql`INSERT INTO book_recommendations (sender, receiver, book_id) VALUES (${me}, ${other}, ${sharedBookId})`);
@@ -1979,6 +1993,8 @@ app.post("/saved/:bookId", async (req, res) => {
   try {
     const username = currentUser(req) || "Caio";
     await db.query(sql`INSERT OR IGNORE INTO saved_books (username,book_id,saved_at) VALUES (${username},${req.params.bookId},${Date.now()})`);
+    const [uploaded] = await db.query(sql`SELECT uploaded_by FROM books WHERE id=${req.params.bookId}`);
+    if (uploaded?.uploaded_by) await progressionEvents.rewardForAction({ type: 'book_save', actor: username, beneficiary: uploaded.uploaded_by, entityType: 'book', entityId: req.params.bookId, idempotencyKey: `book_save:${String(username).toLowerCase()}:${req.params.bookId}` });
     res.json({ saved: true });
   } catch (err) {
     res.status(500).json({ error: err.message });

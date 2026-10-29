@@ -7,10 +7,37 @@ const DEFINITIONS = [
 ];
 
 function badgeCodesForStats(stats) {
-  return DEFINITIONS.filter(([, , , field, threshold]) => {
-    if (field === 'pioneer') return Number(stats.registrationOrder || Infinity) <= threshold;
-    return Number(stats[field] || 0) >= threshold;
-  }).map(([code]) => code);
+  return DEFINITIONS.filter(([, , , field, threshold]) => field === 'pioneer'
+    ? Number(stats.registrationOrder || Infinity) <= threshold
+    : Number(stats[field] || 0) >= threshold).map(([code]) => code);
 }
 
-module.exports = { DEFINITIONS, badgeCodesForStats };
+function createBadgeService({ db, sql, now = Date.now }) {
+  const ready = async () => {
+    for (const [code, description, name, category, threshold] of DEFINITIONS) {
+      await db.query(sql`INSERT OR IGNORE INTO badge_definitions(code,name,description,category,threshold) VALUES(${code},${name},${description},${category},${threshold})`);
+    }
+  };
+  const evaluateBadges = async (username) => {
+    await ready();
+    let [user] = await db.query(sql`SELECT registration_order,created_at FROM users WHERE username=${username} COLLATE NOCASE`);
+    if (!user) return [];
+    if (!Number(user.registration_order)) {
+      const [order] = await db.query(sql`SELECT COUNT(*) AS n FROM users WHERE created_at<${user.created_at} OR (created_at=${user.created_at} AND username<=${username} COLLATE NOCASE)`);
+      await db.query(sql`UPDATE users SET registration_order=${Number(order.n)} WHERE username=${username} COLLATE NOCASE`);
+      user.registration_order = Number(order.n);
+    }
+    const [[finished], [published], [progress], [themes]] = await Promise.all([
+      db.query(sql`SELECT COUNT(*) AS n FROM reading_sessions WHERE username=${username} COLLATE NOCASE AND rewarded=1`),
+      db.query(sql`SELECT COUNT(*) AS n FROM books WHERE uploaded_by=${username} COLLATE NOCASE`),
+      db.query(sql`SELECT level FROM user_progression WHERE username=${username} COLLATE NOCASE`),
+      db.query(sql`SELECT COUNT(*) AS n FROM xp_events WHERE username=${username} COLLATE NOCASE AND type='theme_approved'`),
+    ]);
+    const codes = badgeCodesForStats({ registrationOrder: user.registration_order, finished: finished.n, published: published.n, level: progress?.level, approvedThemes: themes.n });
+    for (const code of codes) await db.query(sql`INSERT OR IGNORE INTO user_badges(username,badge_code,earned_at) VALUES(${username},${code},${now()})`);
+    return db.query(sql`SELECT d.code,d.name,d.description,d.category,d.threshold,b.earned_at AS earnedAt FROM user_badges b JOIN badge_definitions d ON d.code=b.badge_code WHERE b.username=${username} COLLATE NOCASE ORDER BY b.earned_at`);
+  };
+  return { ready, evaluateBadges };
+}
+
+module.exports = { DEFINITIONS, badgeCodesForStats, createBadgeService };

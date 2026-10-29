@@ -412,12 +412,14 @@ async function initDB() {
   await ensureColumn("users", "instagram_handle", "TEXT NOT NULL DEFAULT ''");
   await ensureColumn("users", "tiktok_handle", "TEXT NOT NULL DEFAULT ''");
   await ensureColumn("users", "profile_theme_id", "TEXT NOT NULL DEFAULT 'lilac'");
+  await ensureColumn("users", "registration_order", "INTEGER NOT NULL DEFAULT 0");
   await ensureColumn("books", "publisher", "TEXT NOT NULL DEFAULT ''");
   await ensureColumn("books", "published_year", "TEXT NOT NULL DEFAULT ''");
   await ensureColumn("books", "appearance_json", "TEXT");
   await ensureColumn("books", "series_id", "TEXT");
   await ensureColumn("books", "series_name", "TEXT");
   await ensureColumn("books", "series_order", "REAL");
+  await ensureColumn("books", "uploaded_by", "TEXT NOT NULL DEFAULT ''");
   await ensureColumn("home_posts", "series_id", "TEXT");
   // Patrocínio: quem pagou pelo espaço e por quanto tempo ele fica no ar.
   // `starts_at`/`ends_at` em 0 significam "sem limite" — é o caso dos banners
