@@ -1,11 +1,13 @@
+import { useProfileBannerSize } from "../lib/useProfileBannerSize";
 import { useRef } from "react";
 import { ThemeImage, sourceSize } from "./ThemeImage";
 import type { ImageCrop, SceneTheme } from "../lib/appearance";
 const clamp = (value: number) => Math.max(0, Math.min(100, value));
 export function CropEditor({ theme, value, onChange, label, surface = "profile", opacity = 1 }: { theme: SceneTheme; value: ImageCrop; onChange: (value: ImageCrop) => void; label: string; surface?: "profile" | "sidebar" | "book" | "banner"; opacity?: number }) {
+  const bannerSize = useProfileBannerSize(surface === "profile");
   const drag = useRef<{ x: number; y: number; crop: ImageCrop; travelX: number; travelY: number } | null>(null);
-  return <fieldset className="mb-crop-editor"><legend>{label}</legend><p>Arraste a imagem ou ajuste posição e zoom.</p>
-    <div className={`mb-crop-frame is-${surface}`} tabIndex={0} role="img" aria-label={`Prévia interativa: ${label}`} style={{ touchAction: "none" }}
+  return <fieldset className="mb-crop-editor"><legend>{label}</legend><p>{bannerSize ? `Mesmo enquadramento do banner exibido: ${Math.round(bannerSize.width)} × ${Math.round(bannerSize.height)} px. Arraste a imagem ou ajuste posição e zoom.` : "Arraste a imagem ou ajuste posição e zoom."}</p>
+    <div className={`mb-crop-frame is-${surface}`} tabIndex={0} role="img" aria-label={`Prévia interativa: ${label}`} style={{ touchAction: "none", ...(bannerSize ? { aspectRatio: `${bannerSize.width} / ${bannerSize.height}`, minHeight: 0 } : {}) }}
       onPointerDown={event => { const bounds = event.currentTarget.getBoundingClientRect(), source = sourceSize(theme); const scale = Math.max(bounds.width / source.width, bounds.height / source.height) * value.zoom; drag.current = { x: event.clientX, y: event.clientY, crop: value, travelX: source.width * scale - bounds.width, travelY: source.height * scale - bounds.height }; event.currentTarget.setPointerCapture(event.pointerId); }}
       onPointerMove={event => { const start = drag.current; if (!start) return; onChange({ ...value, x: start.travelX > 1 ? clamp(start.crop.x - (event.clientX - start.x) / start.travelX * 100) : value.x, y: start.travelY > 1 ? clamp(start.crop.y - (event.clientY - start.y) / start.travelY * 100) : value.y }); }}
       onPointerUp={() => { drag.current = null; }} onPointerCancel={() => { drag.current = null; }}

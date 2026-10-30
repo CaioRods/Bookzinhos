@@ -20,3 +20,9 @@ npm run build --prefix frontend
 Resultado: TypeScript e build passaram; 61 testes passaram. Chromium, com API simulada: edição e salvamento do perfil, seguir leitor, expansão da personalização, privacidade de XP, estatísticas e ausência de transbordamento nas larguras 1789, 1440, 1280, 1024, 768, 390 e 320 px.
 
 Adicionado `@types/node` ao ambiente de desenvolvimento para compilar os testes com `node:fs` trazidos pelo pull. Atualização somente do frontend; não há migração de banco de dados.
+
+## Recorte exato do banner
+
+A prévia do editor acompanha as dimensões reais de `[data-profile-banner]` usando `ResizeObserver`, em vez das proporções fixas do perfil antigo. A largura e a altura responsivas, inclusive alterações causadas pelo conteúdo, são refletidas antes da pintura da prévia. Perfil e editor usam o mesmo renderizador `ThemeImage`. O recorte do menu permanece independente.
+
+Verificado no Chromium: proporção em quatro larguras, comparação do `viewBox` antes e depois de salvar, imagem recém-enviada, zoom/posição e alternância entre perfil e menu. TypeScript e build passaram; a suíte passou com 63 testes.

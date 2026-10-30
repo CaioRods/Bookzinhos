@@ -36,6 +36,7 @@ export function ProfilePortrait({
   const illustrated = theme.id !== "none" && !!theme.imageUrl;
   return (
     <header
+      data-profile-banner
       className={`mb-profile-portrait ${illustrated ? "has-scenery" : "is-neutral"}`}
     >
       {illustrated && (

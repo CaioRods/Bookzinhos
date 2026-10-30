@@ -31,7 +31,7 @@
   .mb-crop-editor > p { font-size: 11px; color: var(--text-3); margin-bottom: 14px; }
   .mb-crop-frame { position: relative; overflow: hidden; background: var(--background-tint); cursor: grab; border-radius: 12px; isolation: isolate; user-select: none; }
   .mb-crop-frame:active { cursor: grabbing; }
-  .mb-crop-frame.is-profile { aspect-ratio: 6.5; min-height: 80px; }
+  .mb-crop-frame.is-profile { aspect-ratio: 3.5; }
   .mb-crop-frame.is-sidebar { width: 180px; height: 340px; max-width: 100%; margin-inline: auto; }
   .mb-crop-frame.is-book { aspect-ratio: 4/3; max-height: 300px; }
   .mb-crop-frame > div { position: absolute; inset: 0; pointer-events: none; }
@@ -102,7 +102,6 @@
     .mb-personalization-panel { padding: 14px; border-radius: 16px; }
     .mb-book-picker-grid { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 15px; }
     .mb-theme-form-row { grid-template-columns: minmax(0,1fr) 85px; gap: 12px; }
-    .mb-crop-frame.is-profile { aspect-ratio: 2.5; }
     .mb-theme-tile > footer { flex-wrap: wrap; }
     .mb-theme-tile > footer > span { flex-basis: 100%; }
     .mb-notes .mb-notes-scroll { max-height: 200px; }
