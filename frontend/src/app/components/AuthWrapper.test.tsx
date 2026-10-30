@@ -7,6 +7,7 @@ import { AuthWrapper } from "./AuthWrapper";
 const session = vi.hoisted(() => ({
   username: null as string | null,
   guest: false,
+  privacyAcceptedVersion: "2026-10-30",
 }));
 vi.mock("../lib/session", () => ({
   getUsername: () => session.username,
@@ -14,11 +15,18 @@ vi.mock("../lib/session", () => ({
   enterGuestMode: () => {
     session.guest = true;
   },
-  saveSession: (profile: { username: string }) => { session.username = profile.username; window.dispatchEvent(new Event("mybooks:session")); },
+  saveSession: (profile: { username: string; privacyAcceptedVersion?: string }) => {
+    session.username = profile.username;
+    session.privacyAcceptedVersion = profile.privacyAcceptedVersion || "";
+    window.dispatchEvent(new Event("mybooks:session"));
+  },
   clearSession: () => { session.username = null; window.dispatchEvent(new Event("mybooks:session")); },
+  getPrivacyAcceptedVersion: () => session.privacyAcceptedVersion,
+  savePrivacyAcceptedVersion: (version: string) => { session.privacyAcceptedVersion = version; window.dispatchEvent(new Event("mybooks:session")); },
 }));
 vi.mock("../lib/api", () => ({
-  getAuthenticatedSession: async () => session.username ? { username: session.username } : null,
+  getAuthenticatedSession: async () => session.username ? { username: session.username, privacyAcceptedVersion: session.privacyAcceptedVersion } : null,
+  acceptPrivacyPolicy: async () => ({ version: "2026-10-30", acceptedAt: Date.now() }),
 }));
 vi.mock("../pages/Login", () => ({
   Login: ({
@@ -60,6 +68,7 @@ const app = () =>
 beforeEach(() => {
   session.username = null;
   session.guest = false;
+  session.privacyAcceptedVersion = "2026-10-30";
   sessionStorage.clear();
 });
 afterEach(cleanup);
@@ -82,13 +91,13 @@ describe("authenticated opening", () => {
   it("plays after a successful login and replays after logging in again", async () => {
     const view = app();
     fireEvent.click(await screen.findByText("Entrar na conta"));
-    expect(screen.getByText("Finalizar abertura")).toBeTruthy();
+    expect(await screen.findByText("Finalizar abertura")).toBeTruthy();
     fireEvent.click(screen.getByText("Finalizar abertura"));
     view.unmount();
     session.username = null;
     app();
     fireEvent.click(await screen.findByText("Entrar na conta"));
-    expect(screen.getByText("Finalizar abertura")).toBeTruthy();
+    expect(await screen.findByText("Finalizar abertura")).toBeTruthy();
   });
   it("does not interrupt guest browsing", async () => {
     app();
@@ -97,5 +106,29 @@ describe("authenticated opening", () => {
     expect(
       screen.getByRole("heading", { name: "Biblioteca pronta" }),
     ).toBeTruthy();
+  });
+  it("blocks a new account until the current privacy policy is read and accepted", async () => {
+    session.username = "NewReader";
+    session.privacyAcceptedVersion = "";
+    app();
+
+    expect(await screen.findByRole("dialog", { name: "Política de Privacidade" })).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "Biblioteca pronta", hidden: true })).toBeTruthy();
+    expect(document.querySelector(".mb-authenticated-app")?.getAttribute("aria-hidden")).toBe("true");
+
+    const accept = screen.getByRole("button", { name: "Li e aceito" }) as HTMLButtonElement;
+    expect(accept.disabled).toBe(true);
+    const documentReader = screen.getByTestId("privacy-document");
+    Object.defineProperties(documentReader, {
+      scrollHeight: { configurable: true, value: 1200 },
+      clientHeight: { configurable: true, value: 400 },
+      scrollTop: { configurable: true, value: 800, writable: true },
+    });
+    fireEvent.scroll(documentReader);
+    expect(accept.disabled).toBe(false);
+    fireEvent.click(accept);
+
+    expect(await screen.findByText("Finalizar abertura")).toBeTruthy();
+    expect(screen.queryByRole("dialog", { name: "Política de Privacidade" })).toBeNull();
   });
 });

@@ -12,6 +12,7 @@ const { loadUploadedBookCount } = require("./profile-stats");
 const { summarizeConversations } = require("./chat-summary");
 const { securityHeaders, createCorsOptions, parseList, resolveFrontendOrigins } = require("./security");
 const { createRateLimiter } = require("./rate-limit");
+const { registerPrivacySupportRoutes, createPrivacyAcceptanceGate } = require("./privacy-support");
 const {
   createSessionStore,
   createSessionMiddleware,
@@ -168,6 +169,7 @@ app.use((_req, res, next) => {
   startup.then(() => next()).catch(() => res.status(503).json({ error: "O servidor ainda não conseguiu inicializar o banco de dados." }));
 });
 app.use(createSessionMiddleware({ store: sessionStore }));
+app.use(createPrivacyAcceptanceGate());
 
 app.get("/", (_req, res) => {
   res.send(`
@@ -182,6 +184,7 @@ app.get("/health", (_req, res) => res.json({ ok: true, ts: Date.now() }));
 const appearance = require("./appearance")({ app, db, sql, upload, uploadFileToCloud, currentUser, requireAdmin });
 const community = require("./community")({ app, db, sql, upload, uploadFileToCloud, currentUser, requireAdmin });
 const characters = require("./characters")({ app, db, sql, upload, uploadFileToCloud, requireAdmin });
+const privacySupport = registerPrivacySupportRoutes({ app, db, sql, currentUser, requireAdmin });
 const progression = require("./progression-service").createProgressionService({ db, sql });
 const activity = require("./activity")({ app, db, sql, currentUser, progression });
 const badges = require("./badges").createBadgeService({ db, sql });
@@ -728,6 +731,8 @@ function publicUser(user) {
     shelf: user.shelf ? safeParse(user.shelf) : [],
     pandinhas: Number(user.pandinhas) || 0,
     isAdmin: !!Number(user.is_admin),
+    privacyAcceptedVersion: user.privacy_version || "",
+    privacyAcceptedAt: Number(user.privacy_accepted_at) || 0,
   };
 }
 
@@ -930,7 +935,8 @@ app.post("/auth/register", authRateLimit, async (req, res) => {
     await db.query(sql`DELETE FROM email_codes WHERE email = ${email} COLLATE NOCASE`);
 
     await issueSession(req, res, username);
-    res.status(201).json({ username, bio, avatar, shelf: [], pandinhas: 0, isAdmin: false, themeId: 'none' });
+    const [created] = await db.query(sql`SELECT * FROM users WHERE username = ${username} COLLATE NOCASE`);
+    res.status(201).json(publicUser(created));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -2208,6 +2214,7 @@ async function start() {
   await initDB();
   await appearance.ready();
   await community.ready();
+  await privacySupport.ready();
   if (!process.env.VERCEL) {
     const { initWatcher } = require("./watcher");
     initWatcher(db, sql, PORT, uploadFileToCloud);

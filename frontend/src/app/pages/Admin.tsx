@@ -4,11 +4,13 @@ import { Link, Navigate } from "react-router";
 import {
   Image as ImageIcon, Megaphone, BookOpen, Users, LayoutDashboard, Plus, Trash2,
   Pencil, Eye, EyeOff, Pin, Loader2, Search, BarChart3, MousePointerClick, CalendarClock,
+  HeartHandshake,
 } from "lucide-react";
 import {
   createBanner, createPost, deleteBanner, deleteBook, deletePost, fetchAdminOverview,
   fetchAllUsers, fetchAdminProgression, fetchBannerReport, fetchBanners, fetchBooks, fetchPosts,
   adjustUserXp, fetchBadgeDefinitions, grantUserBadge, revokeUserBadge, setUserLevel, updateBanner, updatePost,
+  fetchSupportConfig, updateSupportConfig,
 } from "../lib/api";
 import { isAdmin as isAdminUser } from "../lib/session";
 import { getFullUrl, timeAgo } from "../lib/types";
@@ -18,10 +20,11 @@ import { EditBookModal } from "../components/EditBookModal";
 import { CharacterAdmin } from "../components/CharacterAdmin";
 import { ThemeReviewQueue } from "../components/ThemeReviewQueue";
 
-type Tab = "overview" | "banners" | "posts" | "books" | "characters" | "themes" | "users";
+type Tab = "overview" | "support" | "banners" | "posts" | "books" | "characters" | "themes" | "users";
 
 const TABS: { key: Tab; label: string; icon: typeof LayoutDashboard }[] = [
   { key: "overview", label: "Visão geral", icon: LayoutDashboard },
+  { key: "support", label: "Apoio", icon: HeartHandshake },
   { key: "banners", label: "Banners", icon: ImageIcon },
   { key: "posts", label: "Postagens", icon: Megaphone },
   { key: "books", label: "Livros", icon: BookOpen },
@@ -68,6 +71,7 @@ export function Admin() {
       </div>
 
       {tab === "overview" && <OverviewTab onNavigate={setTab} />}
+      {tab === "support" && <SupportTab />}
       {tab === "banners" && <BannersTab />}
       {tab === "posts" && <PostsTab />}
       {tab === "books" && <BooksTab />}
@@ -76,6 +80,36 @@ export function Admin() {
       {tab === "users" && <UsersTab />}
     </div>
   );
+}
+
+function SupportTab() {
+  const [pixKey, setPixKey] = useState("");
+  const [recipient, setRecipient] = useState("");
+  const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { fetchSupportConfig().then((value) => { setPixKey(value.pixKey); setRecipient(value.recipient); setMessage(value.message); }).catch(() => {}); }, []);
+  const save = async () => {
+    setBusy(true);
+    try {
+      const value = await updateSupportConfig({ pixKey, recipient, message });
+      setPixKey(value.pixKey); setRecipient(value.recipient); setMessage(value.message);
+      toast(value.pixKey ? "Chave Pix publicada para a comunidade." : "Área de apoio foi ocultada.");
+    } catch (error) { toast(error instanceof Error ? error.message : "Não foi possível salvar.", "error"); }
+    finally { setBusy(false); }
+  };
+  return <section className="mb-support-admin">
+    <div className="mb-card p-5 sm:p-6">
+      <span className="mb-support-admin-icon"><HeartHandshake /></span>
+      <h2>Apoio voluntário</h2>
+      <p>Cadastre uma chave Pix para quem quiser contribuir com a manutenção do myBooks. Nenhuma funcionalidade será bloqueada para quem não doar.</p>
+      <div className="mb-support-admin-form">
+        <label><span>Chave Pix</span><input className="mb-input" value={pixKey} onChange={(event) => setPixKey(event.target.value)} maxLength={140} placeholder="E-mail, telefone, CPF/CNPJ ou chave aleatória" /></label>
+        <label><span>Nome do beneficiário</span><input className="mb-input" value={recipient} onChange={(event) => setRecipient(event.target.value)} maxLength={100} placeholder="Nome que aparecerá antes da transferência" /></label>
+        <label><span>Mensagem para a comunidade</span><textarea className="mb-input" value={message} onChange={(event) => setMessage(event.target.value)} maxLength={280} rows={4} placeholder="Explique de forma simples como a contribuição ajuda o projeto." /></label>
+      </div>
+      <div className="mb-support-admin-actions"><small>Deixe a chave vazia para ocultar a opção de apoio.</small><button className="mb-btn mb-btn-primary" disabled={busy} onClick={save}>{busy && <Loader2 className="animate-spin" />} Salvar apoio</button></div>
+    </div>
+  </section>;
 }
 
 // ─── Visão geral ──────────────────────────────────────────────────────────────

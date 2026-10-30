@@ -6,11 +6,15 @@ import { completeOpening, needsOpening } from "../lib/opening";
 import { getUsername, isGuest, enterGuestMode } from "../lib/session";
 import { clearSession, saveSession } from "../lib/session";
 import { getAuthenticatedSession } from "../lib/api";
+import { PrivacyConsent } from "./PrivacyConsent";
+import { PRIVACY_POLICY_VERSION } from "../lib/privacyPolicy";
 
 export function AuthWrapper() {
   const [user, setUser] = useState<string | null>(null);
   const [guest, setGuest] = useState<boolean>(isGuest);
   const [restoring, setRestoring] = useState(true);
+  const [privacyAcceptedVersion, setPrivacyAcceptedVersion] = useState<string | null>(null);
+  const [restoreError, setRestoreError] = useState("");
   const [openingFor, setOpeningFor] = useState<string | null>(() => {
     const username = getUsername();
     return needsOpening(username) ? username : null;
@@ -18,16 +22,49 @@ export function AuthWrapper() {
   const previousUser = useRef(user);
   const content = useRef<HTMLDivElement>(null);
 
+  const restoreSession = useCallback(async () => {
+    setRestoring(true);
+    setRestoreError("");
+    try {
+      const profile = await getAuthenticatedSession();
+      if (profile) {
+        saveSession(profile);
+        setPrivacyAcceptedVersion(profile.privacyAcceptedVersion || "");
+        setUser(profile.username);
+      } else if (!isGuest()) {
+        clearSession();
+        setUser(null);
+        setPrivacyAcceptedVersion(null);
+      }
+      setRestoring(false);
+      return profile;
+    } catch {
+      setRestoreError("Não foi possível confirmar sua sessão com segurança.");
+      setRestoring(false);
+      return null;
+    }
+  }, []);
+
   useEffect(() => {
     let active = true;
     getAuthenticatedSession()
       .then((profile) => {
         if (!active) return;
-        if (profile) saveSession(profile);
-        else if (!isGuest()) clearSession();
+        if (profile) {
+          saveSession(profile);
+          setPrivacyAcceptedVersion(profile.privacyAcceptedVersion || "");
+          setUser(profile.username);
+        } else if (!isGuest()) {
+          clearSession();
+          setPrivacyAcceptedVersion(null);
+        }
+        setRestoring(false);
       })
-      .catch(() => { /* falha temporária: mantém a entrada disponível */ })
-      .finally(() => { if (active) setRestoring(false); });
+      .catch(() => {
+        if (!active) return;
+        setRestoreError("Não foi possível confirmar sua sessão com segurança.");
+        setRestoring(false);
+      });
     return () => { active = false; };
   }, []);
 
@@ -53,11 +90,12 @@ export function AuthWrapper() {
   useEffect(() => {
     const element = content.current;
     if (!element) return;
-    element.inert = !!openingFor;
+    const blocked = !!openingFor || (!!user && privacyAcceptedVersion !== PRIVACY_POLICY_VERSION);
+    element.inert = blocked;
     return () => {
       element.inert = false;
     };
-  }, [openingFor, user, guest]);
+  }, [openingFor, user, guest, privacyAcceptedVersion]);
 
   const finishOpening = useCallback(() => {
     if (openingFor) completeOpening(openingFor);
@@ -66,29 +104,34 @@ export function AuthWrapper() {
 
   if (restoring) return <div className="mb-auth-restoring" role="status" aria-label="Restaurando sessão" />;
 
+  if (restoreError) return <main className="mb-auth-session-error"><h1>Sessão não confirmada</h1><p>{restoreError}</p><button className="mb-btn mb-btn-primary" onClick={restoreSession}>Tentar novamente</button></main>;
+
+  const privacyRequired = !!user && privacyAcceptedVersion !== PRIVACY_POLICY_VERSION;
+
   if (user || guest)
     return (
       <>
         <div
           ref={content}
           className="mb-authenticated-app"
-          aria-hidden={openingFor ? true : undefined}
+          aria-hidden={openingFor || privacyRequired ? true : undefined}
         >
           <Outlet />
         </div>
-        {user && openingFor && (
+        {user && openingFor && !privacyRequired && (
           <BookOpening key={openingFor} onComplete={finishOpening} />
         )}
+        {privacyRequired && <PrivacyConsent onAccepted={(version) => setPrivacyAcceptedVersion(version)} />}
       </>
     );
 
   return (
     <Login
-      onLoginSuccess={(username) => {
+      onLoginSuccess={async (username) => {
         previousUser.current = username;
-        setUser(username);
         setGuest(false);
-        setOpeningFor(username);
+        const profile = await restoreSession();
+        if (profile) setOpeningFor(username);
       }}
       onGuest={() => {
         enterGuestMode();

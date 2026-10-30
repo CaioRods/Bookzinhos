@@ -334,6 +334,21 @@ export function fetchServerConfig(): Promise<ServerConfig> {
   return request<ServerConfig>("GET", "/config");
 }
 
+export function acceptPrivacyPolicy(): Promise<{ version: string; acceptedAt: number }> {
+  return request("POST", "/privacy/accept");
+}
+
+export interface SupportConfig { pixKey: string; recipient: string; message: string }
+export function fetchSupportConfig(): Promise<SupportConfig> {
+  return cachedGet<SupportConfig>("/support", 60000);
+}
+export async function updateSupportConfig(config: SupportConfig): Promise<SupportConfig> {
+  const result = await request<SupportConfig>("PUT", "/admin/support", config);
+  invalidate("/support");
+  window.dispatchEvent(new CustomEvent("mybooks:support", { detail: result }));
+  return result;
+}
+
 export interface Availability {
   nickname?: { ok: boolean; reason: string | null };
   email?: { ok: boolean; reason: string | null };

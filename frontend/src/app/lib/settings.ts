@@ -39,7 +39,7 @@ export const NOTIFICATION_LABELS: Record<NotificationKind, string> = {
 const KEY = "mybooks-settings";
 
 const DEFAULTS: Settings = {
-  theme: "sistema",
+  theme: "claro",
   scene: DEFAULT_SCENE,
   notificationsOn: true,
   desktopNotifications: false,

@@ -62,6 +62,7 @@ test("stores only a hash and resolves a fresh opaque token", async () => {
     id: session.id,
     username: "Jude",
     expiresAt: 1_700_000_060_000,
+    privacyAcceptedVersion: "",
   });
 });
 

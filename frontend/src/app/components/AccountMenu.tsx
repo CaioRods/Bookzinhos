@@ -1,15 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router";
-import { LogOut, Settings, Shield, UserRound } from "lucide-react";
+import { HeartHandshake, LogOut, Settings, Shield, UserRound } from "lucide-react";
 import type { ProgressionSummary } from "../lib/types";
 import { Avatar } from "./Ui";
 import { ProfileProgressAvatar } from "./ProfileProgressAvatar";
+import { SupportDonation, usePublicSupport } from "./SupportDonation";
 
 export function AccountMenu({ avatar, username, admin, progression, onLogout }: {
   avatar: string; username: string; admin: boolean;
   progression?: ProgressionSummary | null; onLogout: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [supportOpen, setSupportOpen] = useState(false);
+  const support = usePublicSupport();
   const root = useRef<HTMLDivElement>(null);
   const location = useLocation();
   useEffect(() => setOpen(false), [location.pathname]);
@@ -26,8 +29,10 @@ export function AccountMenu({ avatar, username, admin, progression, onLogout }: 
       {progression && <div className="mb-account-xp"><i style={{ width: `${progress}%` }} /></div>}
       <Link role="menuitem" to="/profile"><UserRound /> Perfil</Link>
       <Link role="menuitem" to="/settings"><Settings /> Configurações</Link>
+      {support?.pixKey && <button role="menuitem" onClick={() => { setOpen(false); setSupportOpen(true); }}><HeartHandshake /> Apoiar o myBooks</button>}
       {admin && <Link role="menuitem" to="/admin"><Shield /> Administrador</Link>}
       <button role="menuitem" onClick={onLogout}><LogOut /> Sair</button>
     </div>}
+    {supportOpen && support?.pixKey && <SupportDonation support={support} onClose={() => setSupportOpen(false)} />}
   </div>;
 }

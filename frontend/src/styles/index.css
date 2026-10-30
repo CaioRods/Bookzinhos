@@ -10,6 +10,7 @@
 @import './opening.css';
 @import './profile-portrait.css';
 @import './auth-polish.css';
+@import './privacy-support.css';
 
 @layer base {
   * {

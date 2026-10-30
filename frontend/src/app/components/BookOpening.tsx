@@ -43,15 +43,18 @@ export function BookOpening({ onComplete }: { onComplete: () => void }) {
       skip.current?.focus({ preventScroll: true }),
     );
     // Safety net for blocked CSS, canceled animations or backgrounded tabs.
-    const timeout = window.setTimeout(finish, 5400);
+    const timeout = window.setTimeout(finish, 3600);
+    const onVisibility = () => { if (document.hidden) finish(); };
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") finish();
     };
     window.addEventListener("keydown", onKey);
+    document.addEventListener("visibilitychange", onVisibility);
     return () => {
       window.clearTimeout(timeout);
       cancelAnimationFrame(frame);
       window.removeEventListener("keydown", onKey);
+      document.removeEventListener("visibilitychange", onVisibility);
       if (previous?.isConnected) previous.focus({ preventScroll: true });
     };
   }, []);

@@ -14,6 +14,7 @@ const KEYS = {
   avatar: "books-avatar",
   admin: "books-is-admin",
   shelf: "profile-shelf",
+  privacyAcceptedVersion: "books-privacy-version",
 } as const;
 
 /** Flag de "entrar sem conta": navega e vê tudo, mas não age. */
@@ -66,6 +67,15 @@ export function getShelf(): string[] {
   }
 }
 
+export function getPrivacyAcceptedVersion(): string {
+  return localStorage.getItem(KEYS.privacyAcceptedVersion) || "";
+}
+
+export function savePrivacyAcceptedVersion(version: string): void {
+  localStorage.setItem(KEYS.privacyAcceptedVersion, version);
+  notifySessionChanged();
+}
+
 export function saveSession(user: Partial<UserProfile> & { username: string }): void {
   localStorage.removeItem(GUEST_KEY); // entrar de verdade encerra o modo visitante
   localStorage.setItem(KEYS.username, user.username);
@@ -74,6 +84,7 @@ export function saveSession(user: Partial<UserProfile> & { username: string }): 
   if (user.avatar != null) localStorage.setItem(KEYS.avatar, user.avatar);
   localStorage.setItem(KEYS.admin, String(!!user.isAdmin));
   if (user.shelf) localStorage.setItem(KEYS.shelf, JSON.stringify(user.shelf));
+  if (user.privacyAcceptedVersion !== undefined) localStorage.setItem(KEYS.privacyAcceptedVersion, user.privacyAcceptedVersion);
   if (user.themeId !== undefined) {
     try {
       const settings = JSON.parse(localStorage.getItem("mybooks-settings") || "{}");

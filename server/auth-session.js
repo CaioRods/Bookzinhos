@@ -24,15 +24,17 @@ function createSessionStore({ db, clock = Date.now, randomBytes = crypto.randomB
     },
     async resolve(rawToken) {
       if (typeof rawToken !== "string" || rawToken.length < 16 || rawToken.length > 256) return null;
-      const rows = await db.query(query(`SELECT id, username, expires_at, last_used_at, revoked_at
-        FROM auth_sessions WHERE token_hash = ? LIMIT 1`, [hashToken(rawToken)]));
+      const rows = await db.query(query(`SELECT s.id, s.username, s.expires_at, s.last_used_at, s.revoked_at,
+          COALESCE(u.privacy_version, '') AS privacy_version
+        FROM auth_sessions s LEFT JOIN users u ON u.username = s.username COLLATE NOCASE
+        WHERE s.token_hash = ? LIMIT 1`, [hashToken(rawToken)]));
       const row = rows[0];
       const now = clock();
       if (!row || row.revoked_at != null || Number(row.expires_at) <= now) return null;
       if (now - Number(row.last_used_at || 0) >= TOUCH_INTERVAL_MS) {
         await db.query(query("UPDATE auth_sessions SET last_used_at = ? WHERE id = ?", [now, row.id]));
       }
-      return { id: row.id, username: row.username, expiresAt: Number(row.expires_at) };
+      return { id: row.id, username: row.username, expiresAt: Number(row.expires_at), privacyAcceptedVersion: row.privacy_version || "" };
     },
     async touch(sessionId) {
       await db.query(query("UPDATE auth_sessions SET last_used_at = ? WHERE id = ?", [clock(), sessionId]));
@@ -83,7 +85,12 @@ function createSessionMiddleware({ store }) {
     try {
       const rawToken = readSessionCookie(req);
       const session = rawToken ? await store.resolve(rawToken) : null;
-      req.auth = session ? { username: session.username, sessionId: session.id, expiresAt: session.expiresAt } : null;
+      req.auth = session ? {
+        username: session.username,
+        sessionId: session.id,
+        expiresAt: session.expiresAt,
+        ...(session.privacyAcceptedVersion !== undefined ? { privacyAcceptedVersion: session.privacyAcceptedVersion } : {}),
+      } : null;
       next();
     } catch (error) {
       next(error);
