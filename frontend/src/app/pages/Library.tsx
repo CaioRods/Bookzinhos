@@ -49,36 +49,39 @@ export function Library() {
     () => (localStorage.getItem("library-view") as View) || "grid"
   );
 
-  const { data, isLoading, setData } = useLiveData<{
-    books: Book[];
-    savedIds: string[];
-    progress: ReadingProgress[];
-  }>(
-    async (force) => {
-      const [books, savedIds, progress] = await Promise.all([
-        fetchBooks(force),
-        fetchSavedIds(force).catch(() => [] as string[]),
-        fetchAllProgress(force).catch(() => [] as ReadingProgress[]),
-      ]);
-      return { books: books || [], savedIds: savedIds || [], progress: progress || [] };
-    },
+  // O catálogo vem primeiro (normalmente direto do cache persistente). Favoritos
+  // e progresso são complementares e não podem segurar a pintura das capas.
+  const {
+    data: booksData,
+    isLoading,
+    setData: setBooks,
+  } = useLiveData<Book[]>(
+    (force) => fetchBooks(force),
     [],
-    { intervalMs: 45000 }
+    { intervalMs: 300000, focusThrottleMs: 300000 }
+  );
+  const { data: savedData, setData: setSavedIds } = useLiveData<string[]>(
+    (force) => fetchSavedIds(force),
+    [],
+    { intervalMs: 120000 }
+  );
+  const { data: progressData } = useLiveData<ReadingProgress[]>(
+    (force) => fetchAllProgress(force),
+    [],
+    { intervalMs: 120000 }
   );
 
-  const books = data?.books ?? [];
-  const savedIds = data?.savedIds ?? [];
-  const progress = data?.progress ?? [];
+  const books = booksData ?? [];
+  const savedIds = savedData ?? [];
+  const progress = progressData ?? [];
 
   // Gera capas em segundo plano para livros que chegaram sem imagem.
   useEffect(() => {
     if (books.length === 0) return;
     triggerBackgroundCoverGeneration(books, (updated) => {
-      setData((prev) =>
-        prev ? { ...prev, books: prev.books.map((b) => (b.id === updated.id ? updated : b)) } : prev
-      );
+      setBooks((prev) => prev?.map((b) => (b.id === updated.id ? updated : b)) ?? prev);
     });
-  }, [books.length, setData]);
+  }, [books.length, setBooks]);
 
   useEffect(() => {
     if (params.get("focus") === "search") {
@@ -155,20 +158,18 @@ export function Library() {
   );
 
   const handleRemoved = (id: string) =>
-    setData((prev) => (prev ? { ...prev, books: prev.books.filter((b) => b.id !== id) } : prev));
+    setBooks((prev) => prev?.filter((b) => b.id !== id) ?? prev);
 
   const handleEdited = (updated: Book) =>
-    setData((prev) =>
-      prev ? { ...prev, books: prev.books.map((b) => (b.id === updated.id ? { ...b, ...updated } : b)) } : prev
-    );
+    setBooks((prev) => prev?.map((b) => (b.id === updated.id ? { ...b, ...updated } : b)) ?? prev);
 
   const handleSavedChange = (bookId: string, saved: boolean) =>
-    setData((prev) => prev ? {
-      ...prev,
-      savedIds: saved
-        ? [bookId, ...prev.savedIds.filter((id) => id !== bookId)]
-        : prev.savedIds.filter((id) => id !== bookId),
-    } : prev);
+    setSavedIds((prev) => {
+      const current = prev ?? [];
+      return saved
+        ? [bookId, ...current.filter((id) => id !== bookId)]
+        : current.filter((id) => id !== bookId);
+    });
 
   return (
     <div className="mb-screen mb-library mb-library-reference">

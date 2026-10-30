@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { Dispatch, SetStateAction } from "react";
 
 /**
  * Carrega dados do servidor e os mantém frescos.
@@ -10,11 +11,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 export function useLiveData<T>(
   loader: (force: boolean) => Promise<T>,
   deps: unknown[] = [],
-  options: { intervalMs?: number; enabled?: boolean } = {}
+  options: { intervalMs?: number; focusThrottleMs?: number; enabled?: boolean } = {}
 ) {
-  const { intervalMs = 30000, enabled = true } = options;
+  const { intervalMs = 30000, focusThrottleMs = 5000, enabled = true } = options;
 
-  const [data, setData] = useState<T | null>(null);
+  const [data, setStoredData] = useState<T | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -22,14 +23,24 @@ export function useLiveData<T>(
   loaderRef.current = loader;
   const mountedRef = useRef(true);
   const lastLoadRef = useRef(0);
+  const mutationVersionRef = useRef(0);
+
+  // Uma mutação otimista invalida respostas de recargas iniciadas antes dela;
+  // assim uma resposta atrasada nunca desfaz editar, excluir ou favoritar.
+  const setData = useCallback<Dispatch<SetStateAction<T | null>>>((next) => {
+    mutationVersionRef.current += 1;
+    setStoredData(next);
+  }, []);
 
   const load = useCallback(async (force = false) => {
     if (!enabled) return;
     lastLoadRef.current = Date.now();
+    const versionAtStart = mutationVersionRef.current;
     try {
       const result = await loaderRef.current(force);
       if (!mountedRef.current) return;
-      setData(result);
+      if (versionAtStart !== mutationVersionRef.current) return;
+      setStoredData(result);
       setError(null);
     } catch (err) {
       if (!mountedRef.current) return;
@@ -56,7 +67,7 @@ export function useLiveData<T>(
     // Ao voltar para a aba, revalida — mas só se já passou tempo suficiente.
     const onVisible = () => {
       if (document.visibilityState !== "visible") return;
-      if (Date.now() - lastLoadRef.current < 5000) return;
+      if (Date.now() - lastLoadRef.current < focusThrottleMs) return;
       load(true);
     };
     document.addEventListener("visibilitychange", onVisible);
