@@ -76,7 +76,7 @@ describe("shared profile portrait", () => {
   it("shows all six real reading and community statistics", () => {
     render(
       <ProfileMetrics
-        catalog={56}
+        addedBooks={5}
         reading={4}
         finished={12}
         favorites={7}
@@ -85,7 +85,7 @@ describe("shared profile portrait", () => {
       />,
     );
     for (const label of [
-      "Livros na biblioteca",
+      "Livros adicionados",
       "Lendo no momento",
       "Livros concluídos",
       "Favoritos",
@@ -93,6 +93,6 @@ describe("shared profile portrait", () => {
       "Seguindo",
     ])
       expect(screen.getByText(label)).toBeTruthy();
-    expect(screen.getByText("56")).toBeTruthy();
+    expect(screen.getByText("5")).toBeTruthy();
   });
 });

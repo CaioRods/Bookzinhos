@@ -134,14 +134,14 @@ export function ProfilePortrait({
   );
 }
 export function ProfileMetrics({
-  catalog,
+  addedBooks,
   reading,
   finished,
   favorites,
   followers,
   following,
 }: {
-  catalog: number;
+  addedBooks: number;
   reading: number;
   finished: number;
   favorites: number;
@@ -149,7 +149,7 @@ export function ProfileMetrics({
   following: number;
 }) {
   const items = [
-    { label: "Livros na biblioteca", value: catalog, icon: BookOpen },
+    { label: "Livros adicionados", value: addedBooks, icon: BookOpen },
     { label: "Lendo no momento", value: reading, icon: Clock3 },
     { label: "Livros concluídos", value: finished, icon: Check },
     { label: "Favoritos", value: favorites, icon: Heart },

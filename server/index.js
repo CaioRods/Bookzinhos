@@ -8,6 +8,7 @@ const multer = require("multer");
 const { createClient } = require("@supabase/supabase-js");
 const { db, sql, initDB } = require("./db");
 const { HANDLE_CHANGE_DAYS, normalizeHandle, canChangeHandle, normalizeGenres, normalizeSocialHandle } = require("./profile-rules");
+const { loadUploadedBookCount } = require("./profile-stats");
 const { summarizeConversations } = require("./chat-summary");
 const { securityHeaders, createCorsOptions, parseList, resolveFrontendOrigins } = require("./security");
 const { createRateLimiter } = require("./rate-limit");
@@ -1099,13 +1100,14 @@ app.get("/users/:username", async (req, res) => {
     const [row] = await db.query(sql`SELECT * FROM users WHERE username = ${target} COLLATE NOCASE`);
     if (!row) return res.status(404).json({ error: "Usuário não encontrado" });
 
-    const [followerRows, followingRows, reviews, progressRows, savedRows, meFollows] = await Promise.all([
+    const [followerRows, followingRows, reviews, progressRows, savedRows, meFollows, uploaded] = await Promise.all([
       db.query(sql`SELECT follower FROM follows WHERE following = ${target} COLLATE NOCASE`),
       db.query(sql`SELECT following FROM follows WHERE follower = ${target} COLLATE NOCASE`),
       loadReviews({ username: target, me, limit: 30 }),
       db.query(sql`SELECT book_id, status, progress, last_read_at FROM reading_progress WHERE username = ${target} COLLATE NOCASE`),
       db.query(sql`SELECT book_id FROM saved_books WHERE username = ${target} COLLATE NOCASE ORDER BY saved_at DESC`),
       me ? db.query(sql`SELECT 1 FROM follows WHERE follower = ${me} COLLATE NOCASE AND following = ${target} COLLATE NOCASE`) : Promise.resolve([]),
+      loadUploadedBookCount({ db, sql, username: target }),
     ]);
 
     const profile = publicUser(row);
@@ -1119,6 +1121,7 @@ app.get("/users/:username", async (req, res) => {
     profile.reading = progressRows.filter((p) => p.status === "lendo").map((p) => p.book_id);
     profile.finishedIds = progressRows.filter((p) => p.status === "finalizado").map((p) => p.book_id);
     profile.stats = {
+      uploaded,
       finished: profile.finishedIds.length,
       reading: profile.reading.length,
       reviews: reviews.length,

@@ -164,7 +164,7 @@ export function Profile() {
         onChangeScene={()=>{document.getElementById("profile-scenery")?.scrollIntoView({behavior:settings.reduceMotion?"instant":"smooth",block:"start"});window.dispatchEvent(new Event("mybooks:open-personalization"));}}
         actions={<button onClick={()=>setIsEditing(true)} className="mb-btn"><Pencil size={16}/>Editar perfil</button>} />
       <div className="mb-profile-cinematic-body">
-      <ProfileMetrics catalog={books.length} reading={stats?.reading ?? profile.stats?.reading ?? 0} finished={stats?.finished ?? profile.stats?.finished ?? 0} favorites={profile.savedIds?.length ?? profile.stats?.saved ?? 0} followers={profile.followers ?? stats?.followers ?? 0} following={profile.following ?? stats?.following ?? 0}/>
+      <ProfileMetrics addedBooks={profile.stats?.uploaded ?? progression?.stats?.published ?? 0} reading={stats?.reading ?? profile.stats?.reading ?? 0} finished={stats?.finished ?? profile.stats?.finished ?? 0} favorites={profile.savedIds?.length ?? profile.stats?.saved ?? 0} followers={profile.followers ?? stats?.followers ?? 0} following={profile.following ?? stats?.following ?? 0}/>
       <ScenePicker />
 
       {progression && progression.badges.length>0 && <BadgeGallery badges={progression.badges}/>}

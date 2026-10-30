@@ -121,7 +121,7 @@ export function UserProfile() {
       <ProfilePortrait profile={profile} theme={profileTheme} progression={progression} own={isMe}
         actions={isMe ? <Link to="/profile" className="mb-btn">Editar meu perfil</Link> : <><button onClick={toggleFollow} aria-pressed={!!profile.isFollowedByMe} className="mb-btn">{profile.isFollowedByMe ? <><UserCheck size={17}/>Seguindo</> : <><UserPlus size={17}/>Seguir</>}</button><Link to={`/chat/${encodeURIComponent(profile.username)}`} state={{chatOrigin:`/user/${encodeURIComponent(profile.username)}`}} className="mb-btn"><MessageCircle size={17}/>Conversar</Link></>} />
       <div className="mb-profile-cinematic-body">
-      <ProfileMetrics catalog={books.length} reading={profile.stats?.reading ?? profile.reading?.length ?? 0} finished={profile.stats?.finished ?? finishedBooks.length} favorites={profile.stats?.saved ?? savedBooks.length} followers={profile.followers ?? 0} following={profile.following ?? 0}/>
+      <ProfileMetrics addedBooks={profile.stats?.uploaded ?? 0} reading={profile.stats?.reading ?? profile.reading?.length ?? 0} finished={profile.stats?.finished ?? finishedBooks.length} favorites={profile.stats?.saved ?? savedBooks.length} followers={profile.followers ?? 0} following={profile.following ?? 0}/>
       <button onClick={()=>navigate(-1)} className="mb-profile-back mb-btn mb-btn-ghost mb-btn-sm"><ArrowLeft size={15}/> Voltar</button>
       {progression && <div className="mb-public-progression-grid mb-public-progression-grid--badges"><BadgeGallery badges={progression.badges} /></div>}
 

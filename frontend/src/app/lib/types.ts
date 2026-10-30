@@ -115,7 +115,7 @@ export interface UserProfile {
   savedIds?: string[];
   reading?: string[];
   finishedIds?: string[];
-  stats?: { finished: number; reading: number; reviews: number; saved: number };
+  stats?: { uploaded?: number; finished: number; reading: number; reviews: number; saved: number };
 }
 
 export interface CharacterAvatar {
