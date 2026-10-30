@@ -30,6 +30,7 @@ export function PrivacyConsent({ onAccepted }: { onAccepted: (version: string) =
     setBusy(true); setError("");
     try {
       const result = await acceptPrivacyPolicy();
+      window.dispatchEvent(new Event("mybooks:privacy-accepted"));
       onAccepted(result.version);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Não foi possível registrar o aceite.");

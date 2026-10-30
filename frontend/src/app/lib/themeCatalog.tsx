@@ -24,6 +24,11 @@ export function ThemeCatalogProvider({ children }: { children: ReactNode }) {
   }, []);
   useEffect(() => { const sync = () => setUsername(getUsername()); window.addEventListener("mybooks:session", sync); window.addEventListener("storage", sync); return () => { window.removeEventListener("mybooks:session", sync); window.removeEventListener("storage", sync); }; }, []);
   useEffect(() => {
+    const unlocked = () => { void refresh(); };
+    window.addEventListener("mybooks:privacy-accepted", unlocked);
+    return () => window.removeEventListener("mybooks:privacy-accepted", unlocked);
+  }, [refresh]);
+  useEffect(() => {
     let alive = true; setLoading(true); setThemes(DEFAULT_THEMES);
     fetchThemes().then(records => { if (alive) { setThemes(merged(records)); setError(""); } }).catch(error => { if (alive) setError(error.message); }).finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
