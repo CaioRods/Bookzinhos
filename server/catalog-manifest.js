@@ -9,11 +9,13 @@ function loadCuratedManifest() {
       author: String(entry.author || '').trim(),
       genre: String(entry.genre || '').trim(),
       detailUrl: String(entry.detailUrl || '').trim(),
+      pdfUrl: String(entry.pdfUrl || '').trim(),
       licenseStatus: String(entry.licenseStatus || '').trim(),
       ipr: Number(entry.ipr),
     };
     assertAllowedSource(book.detailUrl);
-    if (!book.title || !book.author || !book.genre || book.licenseStatus !== 'dominio-publico' || !Number.isInteger(book.ipr) || book.ipr < 10 || book.ipr > 29) {
+    assertAllowedSource(book.pdfUrl);
+    if (!book.title || !book.author || !book.genre || !book.pdfUrl || book.licenseStatus !== 'dominio-publico' || !Number.isInteger(book.ipr) || book.ipr < 10 || book.ipr > 29) {
       throw new Error('Manifesto inválido');
     }
     const key = `${book.title}|${book.author}`.toLocaleLowerCase('pt-BR');

@@ -38,6 +38,19 @@ async function resolveMecBook(candidate, { fetchImpl = fetch, timeoutMs = 15000 
     throw new Error('Acesso controlado não permitido');
   }
   const detailUrl = assertAllowedSource(candidate.detailUrl);
+  if (candidate.pdfUrl) {
+    return Object.freeze({
+      title: candidate.title,
+      author: candidate.author,
+      genre: candidate.genre,
+      description: candidate.description || '',
+      pdfUrl: assertAllowedSource(candidate.pdfUrl).href,
+      coverUrl: candidate.coverUrl || '',
+      sourceUrl: detailUrl.href,
+      licenseStatus: candidate.licenseStatus,
+      ipr: candidate.ipr,
+    });
+  }
   const response = await fetchImpl(detailUrl, {
     redirect: 'follow',
     signal: AbortSignal.timeout(timeoutMs),
