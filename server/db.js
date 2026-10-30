@@ -2,6 +2,7 @@ require("dotenv").config();
 const path = require("path");
 const fs = require("fs");
 const crypto = require("crypto");
+const { ensureCatalogImportSchema } = require("./catalog-schema");
 
 function sql(strings, ...values) {
   return {
@@ -191,6 +192,8 @@ async function initDB() {
       cover_image_path TEXT
     )
   `);
+
+  await ensureCatalogImportSchema({ db, sql });
 
   await db.query(sql`
     CREATE TABLE IF NOT EXISTS book_reviews (
