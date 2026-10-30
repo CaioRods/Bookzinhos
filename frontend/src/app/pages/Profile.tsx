@@ -1,14 +1,17 @@
-import { Scenery, ScenePicker } from "../components/Scenery";
+import { ProfilePortrait, ProfileMetrics } from "../components/ProfilePortrait";
+import { useThemeCatalog, NO_THEME } from "../lib/themeCatalog";
+import { BadgeGallery } from "../components/BadgeGallery";
+import { ScenePicker } from "../components/Scenery";
 import { useSettings } from "../lib/settings";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
 import {
-  Camera, Clock3, Heart, UserPlus, BookOpen, Check, LogOut, Pencil, Smartphone, ExternalLink, Star, Users, Loader2, SlidersHorizontal,
+  Camera, BookOpen, Check, LogOut, Pencil, Smartphone, Star, Users, Loader2, SlidersHorizontal,
 } from "lucide-react";
-import { fetchBooks, fetchStats, fetchUserProfile, logout, updateProfile } from "../lib/api";
+import { fetchBooks, fetchStats, fetchProgression, fetchUserProfile, logout, updateProfile } from "../lib/api";
 import { clearSession, getUsername, notifySessionChanged, saveSession } from "../lib/session";
 import { getCoverGradient, getFullUrl } from "../lib/types";
-import type { Book, Stats, UserProfile as UserProfileType } from "../lib/types";
+import type { Book, Stats, ProgressionSummary, UserProfile as UserProfileType } from "../lib/types";
 import { getSavedReaderMode, setSavedReaderMode, type ReaderMode } from "../lib/readerChoice";
 import { Avatar, ConfirmDialog, EmptyState, Modal, SectionHeader, Skeleton, toast } from "../components/Ui";
 import { CharacterPicker } from "../components/CharacterPicker";
@@ -21,6 +24,9 @@ const MAX_SHELF = 12;
 export function Profile() {
   const username = getUsername();
   const [settings] = useSettings();
+  const { themes } = useThemeCatalog();
+  const profileTheme = themes.find(theme=>theme.id === settings.scene) || NO_THEME;
+  const [progression,setProgression] = useState<ProgressionSummary|null>(null);
 
   const [profile, setProfile] = useState<UserProfileType | null>(null);
   const [books, setBooks] = useState<Book[]>([]);
@@ -50,11 +56,15 @@ export function Profile() {
       setIsLoading(false);
       return;
     }
+    let active = true;
     Promise.all([
       fetchUserProfile(username, true).catch(() => null),
       fetchBooks().catch(() => [] as Book[]),
       fetchStats().catch(() => null),
-    ]).then(([p, b, s]) => {
+      fetchProgression(username).catch(()=>null),
+    ]).then(([p, b, s, level]) => {
+      if (!active) return;
+      setProgression(level);
       setProfile(p);
       setBooks(b || []);
       setStats(s);
@@ -72,7 +82,10 @@ export function Profile() {
       }
       setIsLoading(false);
     });
+    return () => { active = false; };
   }, [username]);
+
+  useEffect(()=>{const refresh=(event:Event)=>{if((event as CustomEvent<{username:string}>).detail?.username?.toLowerCase()===username?.toLowerCase() && username) fetchProgression(username,true).then(setProgression).catch(()=>{});};window.addEventListener("mybooks:progression-updated",refresh);return()=>window.removeEventListener("mybooks:progression-updated",refresh);},[username]);
 
   useEffect(() => {
     if (username) saveProfileTheme(settings.scene).catch(() => {});
@@ -143,35 +156,18 @@ export function Profile() {
     );
   }
 
-  const statCards = [
-    { label: "Livros na biblioteca", value: books.length, icon: BookOpen },
-    { label: "Lendo no momento", value: stats?.reading ?? 0, icon: Clock3 },
-    { label: "Livros concluídos", value: stats?.finished ?? 0, icon: Check },
-    { label: "Favoritos", value: profile.savedIds?.length ?? profile.stats?.saved ?? 0, icon: Heart },
-    { label: "Seguidores", value: profile.followers ?? stats?.followers ?? 0, icon: Users },
-    { label: "Seguindo", value: profile.following ?? stats?.following ?? 0, icon: UserPlus },
-  ];
 
   return (
-    <div className="mb-screen mb-screen--narrow mb-profile space-y-6">
-      <p className="mb-eyebrow mb-profile-kicker">MEU PERFIL</p>
-      <header className="mb-reference-profile">
-        <Avatar emoji={profile.avatar} size="hero" username={profile.username} link={false} />
-        <div className="min-w-0">
-          <div className="mb-profile-name-row"><h1>{profile.displayName || profile.username}</h1><button onClick={() => setIsEditing(true)} className="mb-btn mb-btn-soft"><Pencil size={16} /> Editar perfil</button></div>
-          <p className="mb-profile-handle">@{profile.handle || profile.username.toLowerCase()}</p>
-          <p className="mb-profile-bio">{profile.bio || "Lendo um capítulo de cada vez."}</p>
-          {(profile.instagram || profile.tiktok) && <div className="flex gap-2 mt-2">{profile.instagram && <a className="mb-chip" href={`https://instagram.com/${profile.instagram}`} target="_blank" rel="noreferrer">Instagram · @{profile.instagram}</a>}{profile.tiktok && <a className="mb-chip" href={`https://tiktok.com/@${profile.tiktok}`} target="_blank" rel="noreferrer">TikTok · @{profile.tiktok}</a>}</div>}
-        </div>
-      </header>
-      {settings.scene !== "none" && <div className="mb-profile-landscape">
-        <Scenery scene={settings.scene} />
-        <blockquote>“Boas histórias<br />nos levam mais longe.”<span /></blockquote>
-        <button className="mb-btn" onClick={() => document.getElementById("profile-scenery")?.scrollIntoView({ behavior: settings.reduceMotion ? "instant" : "smooth", block: "center" })}><Camera size={17} /> Alterar cenário</button>
-      </div>}
-      <div className="mb-profile-metrics">{statCards.map(({ label, value, icon: Icon }) => <div key={label}><Icon size={25} /><span><strong>{value}</strong><small>{label}</small></span></div>)}</div>
+    <div className="mb-profile mb-profile-cinematic">
+      <ProfilePortrait profile={profile} theme={profileTheme} progression={progression} own
+        onEdit={()=>setIsEditing(true)}
+        onChangeScene={()=>{document.getElementById("profile-scenery")?.scrollIntoView({behavior:settings.reduceMotion?"instant":"smooth",block:"start"});window.dispatchEvent(new Event("mybooks:open-personalization"));}}
+        actions={<button onClick={()=>setIsEditing(true)} className="mb-btn"><Pencil size={16}/>Editar perfil</button>} />
+      <div className="mb-profile-cinematic-body">
+      <ProfileMetrics catalog={books.length} reading={stats?.reading ?? profile.stats?.reading ?? 0} finished={stats?.finished ?? profile.stats?.finished ?? 0} favorites={profile.savedIds?.length ?? profile.stats?.saved ?? 0} followers={profile.followers ?? stats?.followers ?? 0} following={profile.following ?? stats?.following ?? 0}/>
       <ScenePicker />
 
+      {progression && progression.badges.length>0 && <BadgeGallery badges={progression.badges}/>}
       {/* ── Estante em destaque ────────────────────────────────────────────── */}
       <section>
         <SectionHeader
@@ -273,6 +269,7 @@ export function Profile() {
         </div>
       </section>
 
+      </div>
       {/* ── Editar perfil ──────────────────────────────────────────────────── */}
       <Modal
         open={isEditing}

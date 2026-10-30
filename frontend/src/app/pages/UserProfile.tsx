@@ -1,3 +1,5 @@
+import { ProfilePortrait, ProfileMetrics } from "../components/ProfilePortrait";
+import { usePublicProfileScene } from "../lib/profileScene";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useParams, useNavigate, Link } from "react-router";
 import { ArrowLeft, MessageCircle, UserPlus, UserCheck, Star } from "lucide-react";
@@ -11,9 +13,7 @@ import { Avatar, EmptyState, Skeleton, Stars, toast } from "../components/Ui";
 import { fetchProfileTheme } from "../lib/appearanceApi";
 import { DEFAULT_THEMES, NO_THEME } from "../lib/themeCatalog";
 import { accentVariables, type SceneTheme } from "../lib/appearance";
-import { ThemeImage } from "../components/ThemeImage";
 import { BadgeGallery } from "../components/BadgeGallery";
-import { ProfileProgressAvatar } from "../components/ProfileProgressAvatar";
 
 type Tab = "resenhas" | "estante" | "lidos" | "favoritos";
 
@@ -50,6 +50,7 @@ export function UserProfile() {
   const books = data?.books ?? [];
   const profileTheme = data?.profileTheme || NO_THEME;
   const progression = data?.progression || null;
+  usePublicProfileScene(data?.profileTheme || null);
   const isMe = profile?.username.toLowerCase() === me?.toLowerCase();
 
   const byId = useMemo(() => new Map(books.map((b) => [b.id, b])), [books]);
@@ -108,13 +109,6 @@ export function UserProfile() {
     );
   }
 
-  const stats = [
-    { label: "Seguidores", value: profile.followers ?? 0 },
-    { label: "Seguindo", value: profile.following ?? 0 },
-    { label: "Resenhas", value: profile.stats?.reviews ?? 0 },
-    { label: "Lidos", value: profile.stats?.finished ?? 0 },
-  ];
-
   const tabs: { key: Tab; label: string; count: number }[] = [
     { key: "resenhas", label: "Resenhas", count: profile.reviews?.length ?? 0 },
     { key: "estante", label: "Estante", count: shelfBooks.length },
@@ -123,58 +117,12 @@ export function UserProfile() {
   ];
 
   return (
-    <div className="mb-screen mb-screen--narrow mb-userprofile space-y-6" style={accentVariables(profileTheme.mainColor, document.documentElement.classList.contains("dark")) as CSSProperties}>
-      <button onClick={() => navigate(-1)} className="mb-btn mb-btn-outline mb-btn-sm">
-        <ArrowLeft className="w-4 h-4" /> Voltar
-      </button>
-
-      {/* ── Cabeçalho do perfil ────────────────────────────────────────────── */}
-      {profileTheme.id !== "none" && <div className="mb-public-profile-banner" style={{ backgroundColor: profileTheme.mainColor }}><ThemeImage theme={profileTheme} crop={profileTheme.profile} /><span>{profileTheme.name}</span></div>}
-      <header className="mb-profile-hero mb-card p-5 sm:p-6"><p className="mb-eyebrow mb-6">UM LEITOR, MUITAS HISTÓRIAS</p>
-        <div className="flex items-start gap-4">
-          {progression ? <ProfileProgressAvatar avatar={profile.avatar} level={progression.level} title={progression.title} totalXp={progression.totalXp} currentLevelXp={progression.currentLevelXp} nextLevelXp={progression.nextLevelXp} /> : <Avatar emoji={profile.avatar} size="xl" />}
-          <div className="flex-1 min-w-0 pt-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-xl font-bold text-foreground truncate">{profile.displayName || profile.username}</h1>
-              {profile.isAdmin && <span className="mb-chip mb-chip-primary">🐶 Admin</span>}
-              {!!profile.pandinhas && <span className="mb-chip">🐼 {profile.pandinhas}</span>}
-            </div>
-            <p className="text-xs text-[var(--text-3)] mt-0.5">@{profile.handle || profile.username.toLowerCase()}</p>
-            {(profile.instagram || profile.tiktok) && <div className="flex flex-wrap gap-2 mt-2">{profile.instagram && <a className="mb-chip" href={`https://instagram.com/${profile.instagram}`} target="_blank" rel="noreferrer">Instagram · @{profile.instagram}</a>}{profile.tiktok && <a className="mb-chip" href={`https://tiktok.com/@${profile.tiktok}`} target="_blank" rel="noreferrer">TikTok · @{profile.tiktok}</a>}</div>}
-            <p className="text-[13.5px] text-[var(--text-2)] leading-relaxed mt-1.5">
-              {profile.bio || "Ainda escrevendo a própria história…"}
-            </p>
-          </div>
-        </div>
-
-        <div className="mb-profile-stats grid grid-cols-4 gap-2 mt-5">
-          {stats.map((s) => (
-            <div key={s.label} className="text-center py-2 rounded-xl bg-[var(--surface-2)]">
-              <div className="text-[17px] font-bold text-foreground leading-none">{s.value}</div>
-              <div className="text-[11px] text-[var(--text-3)] mt-1">{s.label}</div>
-            </div>
-          ))}
-        </div>
-
-        {!isMe ? (
-          <div className="flex gap-2 mt-4">
-            <button
-              onClick={toggleFollow}
-              className={`mb-btn flex-1 ${profile.isFollowedByMe ? "mb-btn-outline" : "mb-btn-primary"}`}
-            >
-              {profile.isFollowedByMe
-                ? <><UserCheck className="w-4 h-4" /> Seguindo</>
-                : <><UserPlus className="w-4 h-4" /> Seguir</>}
-            </button>
-            <Link to={`/chat/${encodeURIComponent(profile.username)}`} state={{ chatOrigin: `/user/${encodeURIComponent(profile.username)}` }} className="mb-btn mb-btn-outline flex-1">
-              <MessageCircle className="w-4 h-4" /> Conversar
-            </Link>
-          </div>
-        ) : (
-          <Link to="/profile" className="mb-btn mb-btn-outline w-full mt-4">Editar meu perfil</Link>
-        )}
-      </header>
-
+    <div className="mb-userprofile mb-profile-cinematic" style={accentVariables(profileTheme.mainColor, document.documentElement.classList.contains("dark")) as CSSProperties}>
+      <ProfilePortrait profile={profile} theme={profileTheme} progression={progression} own={isMe}
+        actions={isMe ? <Link to="/profile" className="mb-btn">Editar meu perfil</Link> : <><button onClick={toggleFollow} aria-pressed={!!profile.isFollowedByMe} className="mb-btn">{profile.isFollowedByMe ? <><UserCheck size={17}/>Seguindo</> : <><UserPlus size={17}/>Seguir</>}</button><Link to={`/chat/${encodeURIComponent(profile.username)}`} state={{chatOrigin:`/user/${encodeURIComponent(profile.username)}`}} className="mb-btn"><MessageCircle size={17}/>Conversar</Link></>} />
+      <div className="mb-profile-cinematic-body">
+      <ProfileMetrics catalog={books.length} reading={profile.stats?.reading ?? profile.reading?.length ?? 0} finished={profile.stats?.finished ?? finishedBooks.length} favorites={profile.stats?.saved ?? savedBooks.length} followers={profile.followers ?? 0} following={profile.following ?? 0}/>
+      <button onClick={()=>navigate(-1)} className="mb-profile-back mb-btn mb-btn-ghost mb-btn-sm"><ArrowLeft size={15}/> Voltar</button>
       {progression && <div className="mb-public-progression-grid mb-public-progression-grid--badges"><BadgeGallery badges={progression.badges} /></div>}
 
       {/* ── Abas ───────────────────────────────────────────────────────────── */}
@@ -237,6 +185,7 @@ export function UserProfile() {
       {tab === "estante" && <BookGrid books={shelfBooks} emptyLabel="A estante está vazia." />}
       {tab === "lidos" && <BookGrid books={finishedBooks} emptyLabel="Nenhum livro concluído ainda." />}
       {tab === "favoritos" && <BookGrid books={savedBooks} emptyLabel="Nenhum favorito por aqui." />}
+      </div>
     </div>
   );
 }

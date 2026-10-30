@@ -21,7 +21,8 @@ export function Scenery({ scene, className = "", surface = "profile" }: { scene:
 }
 export function ScenePicker() {
   const [settings, update] = useSettings();
-  const [books, setBooks] = useState<Book[]>([]), [open, setOpen] = useState(false);
+  useEffect(()=>{const open=()=>setOpen(true);window.addEventListener("mybooks:open-personalization",open);return()=>window.removeEventListener("mybooks:open-personalization",open)},[]);
+  const [books, setBooks] = useState<Book[]>([]), [open, setOpen] = useState(true);
   useEffect(() => { let alive = true; fetchBooks().then(value => { if (alive) setBooks(value); }).catch(() => {}); return () => { alive = false; }; }, []);
   const { themes, error, upsert, remove } = useThemeCatalog();
   const [editing, setEditing] = useState<SceneTheme | null | undefined>(undefined), [deleting, setDeleting] = useState<SceneTheme | null>(null), [busy, setBusy] = useState(false);

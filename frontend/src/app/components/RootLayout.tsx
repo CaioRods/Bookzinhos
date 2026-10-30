@@ -1,7 +1,8 @@
+import { useProfileScene } from "../lib/profileScene";
+import { ThemeImage } from "./ThemeImage";
 import { useThemeCatalog, DEFAULT_THEMES } from "../lib/themeCatalog";
 import { accentVariables } from "../lib/appearance";
 import { SceneAtmosphere } from "./SceneAtmosphere";
-import { Scenery } from "./Scenery";
 import { GlobalSearch } from "./GlobalSearch";
 import { Brand } from "./Brand";
 import { Outlet, useLocation, useNavigation, Link, NavLink } from "react-router";
@@ -44,7 +45,8 @@ export function RootLayout() {
   useEffect(() => { if (!location.hash) { document.getElementById("main-content")?.scrollTo({ top: 0, behavior: "instant" }); window.scrollTo({ top: 0, behavior: "instant" }); } }, [location.pathname]);
   const [settings] = useSettings();
   const { themes } = useThemeCatalog();
-  const selectedTheme = themes.find(theme => theme.id === settings.scene) || DEFAULT_THEMES[0];
+  const { scene: profileScene } = useProfileScene();
+  const selectedTheme = profileScene || themes.find(theme => theme.id === settings.scene) || DEFAULT_THEMES[0];
   useEffect(() => {
     const apply = () => { const root = document.documentElement; Object.entries(accentVariables(selectedTheme.mainColor, root.classList.contains("dark"))).forEach(([key, value]) => root.style.setProperty(key, value)); };
     apply(); const media = window.matchMedia("(prefers-color-scheme: dark)"); media.addEventListener("change", apply);
@@ -182,7 +184,7 @@ export function RootLayout() {
       <div className="mb-app-window bg-background">
         {/* ── Barra lateral (desktop) ─────────────────────────────────────── */}
         <aside className="mb-sidebar hidden lg:flex flex-col overflow-hidden">
-          <div className="mb-sidebar-art" style={{ opacity: selectedTheme.sidebarOpacity }}><Scenery scene={settings.scene} surface="sidebar" /></div>
+          <div className="mb-sidebar-art" style={{ opacity: selectedTheme.sidebarOpacity }}>{selectedTheme.id !== "none" && <ThemeImage theme={selectedTheme} crop={selectedTheme.sidebar} />}</div>
           <Link to="/" className="flex items-center gap-3 px-6 h-[96px] flex-shrink-0">
             <Brand />
           </Link>
