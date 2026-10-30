@@ -94,6 +94,31 @@ async function uploadFileToCloud(buffer, filename, mimetype) {
   return `http://localhost:${PORT}/uploads/${safeFilename}`;
 }
 
+function catalogAssetPublicUrl(key) {
+  if (s3Client) {
+    return process.env.S3_PUBLIC_URL_PREFIX
+      ? `${process.env.S3_PUBLIC_URL_PREFIX}/${key}`
+      : `${process.env.S3_ENDPOINT}/${BUCKET}/${key}`;
+  }
+  if (supabase) return supabase.storage.from(BUCKET).getPublicUrl(key).data.publicUrl;
+  return `http://localhost:${PORT}/uploads/${key.replace(/\//g, "-")}`;
+}
+
+async function removeCatalogAsset(key) {
+  if (s3Client) {
+    const { DeleteObjectCommand } = require("@aws-sdk/client-s3");
+    await s3Client.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: key }));
+    return;
+  }
+  if (supabase) {
+    const { error } = await supabase.storage.from(BUCKET).remove([key]);
+    if (error) throw new Error("Erro ao remover arquivo do Supabase: " + error.message);
+    return;
+  }
+  const localPath = path.join(__dirname, "uploads", key.replace(/\//g, "-"));
+  if (fs.existsSync(localPath)) fs.unlinkSync(localPath);
+}
+
 // ─── MIDDLEWARE ───────────────────────────────────────────────────────────────
 const frontendOrigins = resolveFrontendOrigins(process.env);
 app.use(securityHeaders({
@@ -2203,3 +2228,6 @@ startup.catch((err) => {
 });
 
 module.exports = app;
+module.exports.uploadCatalogAsset = (key, bytes, contentType = "application/pdf") => uploadFileToCloud(bytes, key, contentType);
+module.exports.catalogAssetPublicUrl = catalogAssetPublicUrl;
+module.exports.removeCatalogAsset = removeCatalogAsset;
