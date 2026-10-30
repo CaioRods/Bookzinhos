@@ -14,14 +14,13 @@ test('accepts only HTTPS URLs on the two official MEC hosts', () => {
 
 test('rejects a redirect from MEC to a foreign host', async () => {
   const { downloadOfficialPdf } = require('../catalog-source');
-  const fetchImpl = async () => ({
-    ok: true,
-    status: 200,
-    url: 'https://evil.example/book.pdf',
-    headers: new Headers({ 'content-type': 'application/pdf' }),
-    arrayBuffer: async () => Buffer.from('%PDF-1.7 valid'),
-  });
+  let requests = 0;
+  const fetchImpl = async () => {
+    requests += 1;
+    return new Response(null, { status: 302, headers: { location: 'https://evil.example/book.pdf' } });
+  };
   await assert.rejects(downloadOfficialPdf({ url: OFFICIAL_PDF, fetchImpl }), /Fonte não permitida/);
+  assert.equal(requests, 1);
 });
 
 test('rejects HTML returned as PDF', async () => {

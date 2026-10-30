@@ -43,7 +43,15 @@ function createStorage(env = process.env) {
       forcePathStyle: true,
     });
     return {
-      upload: (key, bytes, contentType) => client.send(new PutObjectCommand({ Bucket: BUCKET, Key: key, Body: bytes, ContentType: contentType, CacheControl: 'public, max-age=31536000, immutable' })),
+      upload: async (key, bytes, contentType) => {
+        try {
+          await client.send(new PutObjectCommand({ Bucket: BUCKET, Key: key, Body: bytes, ContentType: contentType, CacheControl: 'public, max-age=31536000, immutable', IfNoneMatch: '*' }));
+          return { created: true };
+        } catch (error) {
+          if (error?.$metadata?.httpStatusCode === 412 || error?.name === 'PreconditionFailed') return { created: false };
+          throw error;
+        }
+      },
       remove: (key) => client.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: key })),
       publicUrl: (key) => env.S3_PUBLIC_URL_PREFIX ? `${env.S3_PUBLIC_URL_PREFIX}/${key}` : `${env.S3_ENDPOINT}/${BUCKET}/${key}`,
     };
@@ -52,8 +60,10 @@ function createStorage(env = process.env) {
     const client = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_KEY || env.SUPABASE_KEY);
     return {
       upload: async (key, bytes, contentType) => {
-        const { error } = await client.storage.from(BUCKET).upload(key, bytes, { contentType, cacheControl: '31536000', upsert: true });
+        const { error } = await client.storage.from(BUCKET).upload(key, bytes, { contentType, cacheControl: '31536000', upsert: false });
+        if (error && (String(error.statusCode) === '409' || /duplicate|already exists/i.test(error.message))) return { created: false };
         if (error) throw new Error(`Erro no upload para o Supabase: ${error.message}`);
+        return { created: true };
       },
       remove: async (key) => {
         const { error } = await client.storage.from(BUCKET).remove([key]);

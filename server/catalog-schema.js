@@ -8,13 +8,22 @@ async function ensureCatalogImportSchema({ db }) {
     ['imported_at', 'INTEGER'],
   ];
   let columns = await db.query('PRAGMA table_info(books)');
+  let addedIpr = false;
   for (const [name, definition] of definitions) {
     if (!columns.some((column) => column.name === name)) {
-      await db.query({ text: `ALTER TABLE books ADD COLUMN ${name} ${definition}`, values: [] });
-      columns = [...columns, { name }];
+      try {
+        await db.query({ text: `ALTER TABLE books ADD COLUMN ${name} ${definition}`, values: [] });
+        if (name === 'ipr') addedIpr = true;
+      } catch (error) {
+        const refreshed = await db.query('PRAGMA table_info(books)');
+        if (!refreshed.some((column) => column.name === name)) throw error;
+      }
+      columns = await db.query('PRAGMA table_info(books)');
     }
   }
-  await db.query({ text: "UPDATE books SET ipr = 80 + (ABS(LENGTH(title) * 7 + LENGTH(author) * 3) % 21) WHERE imported_at IS NULL", values: [] });
+  if (addedIpr) {
+    await db.query({ text: "UPDATE books SET ipr = 80 + (ABS(LENGTH(title) * 7 + LENGTH(author) * 3) % 21) WHERE imported_at IS NULL", values: [] });
+  }
   await db.query({ text: "CREATE UNIQUE INDEX IF NOT EXISTS idx_books_pdf_sha256 ON books(pdf_sha256) WHERE pdf_sha256 <> ''", values: [] });
 }
 

@@ -14,7 +14,8 @@ function loadCuratedManifest() {
       ipr: Number(entry.ipr),
     };
     assertAllowedSource(book.detailUrl);
-    assertAllowedSource(book.pdfUrl);
+    const pdfUrl = assertAllowedSource(book.pdfUrl);
+    if (!/^\/download\/texto\/[a-z0-9]+\.pdf$/i.test(pdfUrl.pathname)) throw new Error('PDF oficial inválido no manifesto');
     if (!book.title || !book.author || !book.genre || !book.pdfUrl || book.licenseStatus !== 'dominio-publico' || !Number.isInteger(book.ipr) || book.ipr < 10 || book.ipr > 29) {
       throw new Error('Manifesto inválido');
     }

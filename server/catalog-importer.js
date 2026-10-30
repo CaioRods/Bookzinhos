@@ -26,7 +26,8 @@ async function importCatalogBook(candidate, deps) {
   if (hashMatch) return { status: 'duplicate', bookId: hashMatch.id };
 
   const key = `catalog/${pdf.sha256}.pdf`;
-  await deps.upload(key, pdf.bytes, 'application/pdf');
+  const uploadResult = await deps.upload(key, pdf.bytes, 'application/pdf');
+  const ownsUploadedObject = uploadResult?.created !== false;
   try {
     const bookId = await deps.insert({
       ...resolved,
@@ -36,7 +37,7 @@ async function importCatalogBook(candidate, deps) {
     return { status: 'imported', bookId };
   } catch (error) {
     try {
-      await deps.remove(key);
+      if (ownsUploadedObject) await deps.remove(key);
     } catch (cleanupError) {
       error.cleanupError = cleanupError;
     }

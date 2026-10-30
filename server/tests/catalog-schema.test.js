@@ -33,3 +33,16 @@ test('imported books keep their curated low IPR during a replay', async () => {
   assert.equal(book.ipr, 22);
   await close();
 });
+
+test('later IPR updates on existing books survive migration replays', async () => {
+  const { ensureCatalogImportSchema } = require('../catalog-schema');
+  const { db, close } = database();
+  await db.query('CREATE TABLE books(id TEXT PRIMARY KEY,title TEXT,author TEXT,added_at INTEGER)');
+  await db.query("INSERT INTO books VALUES ('a','Dom Casmurro','Machado de Assis',1)");
+  await ensureCatalogImportSchema({ db, sql });
+  await db.query("UPDATE books SET ipr=99 WHERE id='a'");
+  await ensureCatalogImportSchema({ db, sql });
+  const [book] = await db.query("SELECT ipr FROM books WHERE id='a'");
+  assert.equal(book.ipr, 99);
+  await close();
+});

@@ -31,6 +31,15 @@ test('dry-run validates every candidate without upload or insertion', async () =
   assert.equal(deps.insertCalls, 0);
 });
 
+test('dry-run reports a duplicate without double-counting it as validated', async () => {
+  const { runCatalogImport } = require('../catalog-report');
+  const deps = fakeDeps();
+  deps.findByMetadata = async () => ({ id: 'existing' });
+  const result = await runCatalogImport({ dryRun: true, manifest: [pending], deps });
+  assert.equal(result.validated, 0);
+  assert.equal(result.duplicates, 1);
+});
+
 test('resume skips completed IDs and continues pending work', async () => {
   const { candidateId, runCatalogImport } = require('../catalog-report');
   const deps = fakeDeps();

@@ -48,7 +48,7 @@ async function runCatalogImport({ dryRun = false, resume = false, manifest = [],
       const result = dryRun
         ? await validateCandidate(candidate, deps)
         : await importCatalogBook(candidate, deps);
-      if (dryRun) report.validated += 1;
+      if (dryRun && result.status === 'validated') report.validated += 1;
       if (result.status === 'imported') report.imported += 1;
       if (result.status === 'duplicate') report.duplicates += 1;
       completed.add(id);

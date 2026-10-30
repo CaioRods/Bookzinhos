@@ -25,7 +25,10 @@ function fakeDeps(options = {}) {
       events.push('hash-check');
       return options.hashMatch || null;
     },
-    upload: async () => events.push('upload-pdf'),
+    upload: async () => {
+      events.push('upload-pdf');
+      return { created: options.assetAlreadyExists !== true };
+    },
     publicUrl: (key) => `https://storage.example/${key}`,
     insert: async (book) => {
       events.push('insert-book');
@@ -65,6 +68,13 @@ test('removes an uploaded object when database insertion fails', async () => {
   await assert.rejects(importCatalogBook(candidate, deps), /db offline/);
   assert.deepEqual(deps.deletedKeys, ['catalog/abc123.pdf']);
   assert.equal(deps.events.at(-1), 'remove-pdf');
+});
+
+test('does not delete a pre-existing hash object when insertion loses a race', async () => {
+  const { importCatalogBook } = require('../catalog-importer');
+  const deps = fakeDeps({ assetAlreadyExists: true, insertError: new Error('unique constraint') });
+  await assert.rejects(importCatalogBook(candidate, deps), /unique constraint/);
+  assert.deepEqual(deps.deletedKeys, []);
 });
 
 test('rejects incomplete dependency contracts without writing', async () => {
