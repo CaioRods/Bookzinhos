@@ -79,9 +79,6 @@ export function HomeSkeleton() {
             <Skeleton className="w-full md:w-[360px] h-12 rounded-[14px] flex-shrink-0" />
           </header>
 
-          {/* Destaque da semana */}
-          <Skeleton className="w-full h-[300px] rounded-[22px]" />
-
           {/* Continue lendo */}
           <section>
             <RowHeaderSkeleton width="w-40" />

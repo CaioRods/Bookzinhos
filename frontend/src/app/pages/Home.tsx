@@ -1,17 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import {
-  ChevronLeft, ChevronRight, Search, ArrowRight, Star, Megaphone, Heart, MessageCircle, Edit3, Send, Pin,
+  Search, ArrowRight, Star, Megaphone, Heart, MessageCircle, Edit3, Send, Pin,
   Plus, BookOpen, Sparkles, TrendingUp, PenSquare,
 } from "lucide-react";
-import { getEditorialFeature } from "../lib/homeEditorial";
 import { fetchFeed, fetchHome, togglePostLike, updateGlobalStatus } from "../lib/api";
 import { useLiveData } from "../lib/useLiveData";
 import { getCoverGradient, getFullUrl, timeAgo } from "../lib/types";
 import type { Book, FeedItem, HomeData, HomePost, ReadingProgress } from "../lib/types";
 import { getDisplayName, isAdmin as isAdminUser } from "../lib/session";
 import { requireAuth } from "../lib/authGate";
-import { Book3D } from "../components/Book3D";
 import { BookCard } from "../components/BookCard";
 import { BookGrid } from "../components/BookGrid";
 import { BannerCarousel } from "../components/BannerCarousel";
@@ -21,7 +19,6 @@ import { useOpenBook } from "../lib/readerChoice";
 const EMOTES = ["📚", "☕", "✨", "📖", "🌿", "🤍", "🌸", "🔖", "🎧", "🐶"];
 
 export function Home() {
-  const navigate = useNavigate();
   const openBook = useOpenBook();
   const [userName, setUserName] = useState(getDisplayName);
   const admin = isAdminUser();
@@ -37,7 +34,6 @@ export function Home() {
     window.addEventListener("mybooks:session", syncName);
     return () => window.removeEventListener("mybooks:session", syncName);
   }, []);
-  const [heroIndex, setHeroIndex] = useState(0);
   const searchRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     const focusSearch = (event: KeyboardEvent) => {
@@ -73,33 +69,6 @@ export function Home() {
       (b) => b.title.toLowerCase().includes(term) || (b.author || "").toLowerCase().includes(term)
     );
   }, [search, books]);
-
-  const trilogy = useMemo(() => {
-    const normalize = (title: string) => title.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
-    const entries = ["o principe cruel", "o rei perverso", "a rainha do nada"].map(title => books.find(book => normalize(book.title) === title));
-    return entries.every(Boolean) ? entries as Book[] : [];
-  }, [books]);
-
-  /** Até três livros de destaque: os mais bem avaliados, senão os mais lidos. */
-  const featured = useMemo(() => {
-    const pool = [...trilogy.slice(0, 1), ...(data?.topRated ?? []), ...(data?.mostRead ?? []), ...books];
-    const seen = new Set<string>();
-    return pool.filter((b) => (seen.has(b.id) ? false : seen.add(b.id))).slice(0, 3);
-  }, [data, books, trilogy]);
-
-  const hero = featured.length > 0 ? featured[heroIndex % featured.length] : null;
-
-  /** Leitores reais do livro em destaque — a prova social do cartão. */
-  const heroReaders = useMemo(() => {
-    if (!hero || !feed) return [];
-    const seen = new Map<string, string>();
-    for (const item of feed) {
-      if (item.book?.id !== hero.id || !item.username) continue;
-      if (!seen.has(item.username)) seen.set(item.username, item.avatar || "🐼");
-      if (seen.size >= 3) break;
-    }
-    return [...seen].map(([username, avatar]) => ({ username, avatar }));
-  }, [hero, feed]);
 
   const reading = useMemo(
     () =>
@@ -199,21 +168,6 @@ export function Home() {
             <>
               {/* Banners do Admin */}
               {data && data.banners.length > 0 && <BannerCarousel banners={data.banners} />}
-
-              {/* Destaque da semana */}
-              {isLoading ? (
-                <Skeleton className="w-full h-[300px] rounded-[22px]" />
-              ) : hero ? (
-                <HeroFeature
-                  book={hero}
-                  collection={trilogy.some(entry => entry.id === hero.id) ? trilogy : books.filter(b => b.author && b.author === hero.author).slice(0, 3)}
-                  readers={heroReaders}
-                  count={featured.length}
-                  index={heroIndex}
-                  onSelect={setHeroIndex}
-                  onOpen={() => navigate(`/book/${hero.id}`)}
-                />
-              ) : null}
 
               {/* Continue lendo */}
               <section>
@@ -401,20 +355,6 @@ function Chip({
       {children}
     </button>
   );
-}
-
-function HeroFeature({ book, collection, count, index, onSelect, onOpen }: {
-  book: Book; collection: Book[]; readers: { username: string; avatar: string }[]; count: number; index: number; onSelect: (i: number) => void; onOpen: () => void;
-}) {
-  const navigate = useNavigate();
-  const feature = getEditorialFeature(book, collection);
-  const displayed = feature.books;
-  const multiple = displayed.length > 1;
-  return <section className="mb-editorial-feature" aria-label="Livros em destaque" aria-roledescription="carrossel">
-    <div className="mb-editorial-copy"><p className="mb-eyebrow">{feature.eyebrow}</p><h2>{feature.title.split("\n").map((line, lineIndex) => <span key={line}>{line}{lineIndex === 0 && feature.title.includes("\n") ? <br /> : null}</span>)}</h2><p>{feature.description}</p><button className="mb-btn mb-btn-primary" onClick={onOpen}>{feature.actionLabel}<ArrowRight size={17} /></button></div>
-    <div className={`mb-editorial-books ${multiple ? "is-collection" : ""}`}>{displayed.map((entry, i) => <button key={entry.id} onClick={() => navigate(`/book/${entry.id}`)} aria-label={`Ver ${entry.title}`} style={{ "--book-index": i } as React.CSSProperties}><Book3D book={entry} width={132} pose={{ ry: -12, rx: 0, rz: i === 1 ? 0 : i === 0 ? -2 : 2 }} still /></button>)}</div>
-    {count > 1 && <div className="mb-editorial-controls"><div className="mb-editorial-dots">{Array.from({ length: count }, (_, i) => <button key={i} onClick={() => onSelect(i)} aria-label={`Destaque ${i + 1} de ${count}`} aria-current={i === index % count ? "true" : undefined}><span /></button>)}</div><button aria-label="Destaque anterior" onClick={() => onSelect((index - 1 + count) % count)}><ChevronLeft size={18} /></button><button aria-label="Próximo destaque" onClick={() => onSelect((index + 1) % count)}><ChevronRight size={18} /></button></div>}
-  </section>;
 }
 
 function ReadingCard({
