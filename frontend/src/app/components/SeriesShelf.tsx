@@ -1,3 +1,4 @@
+import { AnimatedBookLink } from "./BookTransition";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router";
 import { ArrowUp, ArrowDown, ChevronRight, Library } from "lucide-react";
@@ -81,7 +82,7 @@ export function SeriesShelf({
             key={entry.id}
             className={entry.id === book.id ? "is-current" : ""}
           >
-            <Link to={"/book/" + entry.id}>
+            <AnimatedBookLink book={entry}>
               {entry.coverImagePath ? (
                 <img
                   src={getFullUrl(entry.coverImagePath)!}
@@ -94,7 +95,7 @@ export function SeriesShelf({
               )}
               <small>VOL. {editing ? i + 1 : entry.seriesOrder}</small>
               <strong>{entry.title}</strong>
-            </Link>
+            </AnimatedBookLink>
             {editing && (
               <div className="mb-series-move">
                 <button
@@ -169,7 +170,7 @@ export function SeriesPage() {
       ) : (
         <div className="mb-series-page-grid">
           {books.map((book) => (
-            <Link key={book.id} to={"/book/" + book.id}>
+            <AnimatedBookLink key={book.id} book={book}>
               {book.coverImagePath && (
                 <img
                   src={getFullUrl(book.coverImagePath)!}
@@ -184,7 +185,7 @@ export function SeriesPage() {
                   ? "★ " + book.rating.toFixed(1)
                   : "Sem avaliações"}
               </span>
-            </Link>
+            </AnimatedBookLink>
           ))}
         </div>
       )}

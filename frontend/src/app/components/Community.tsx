@@ -1,3 +1,4 @@
+import { ReaderName } from "./ReaderName";
 import { useEffect, useRef, useState } from "react";
 import { Link, useParams, useNavigate } from "react-router";
 import {
@@ -424,7 +425,7 @@ function SharePost({
               onClick={() => send(u.username)}
             >
               <Avatar size="sm" emoji={u.avatar} username={u.username} link={false} />
-              {u.username}
+              <ReaderName username={u.username}/>
               <Send size={16} />
             </button>
           ))}
@@ -487,7 +488,7 @@ export function CommunityPost({
       <div>
         <Avatar size="sm" emoji={item.avatar} username={item.username} />
         <div>
-          <strong>{item.username}</strong>
+          <strong><ReaderName username={item.username}/></strong>
           <p>{item.content}</p>
           <footer>
             <ReactionButton target={item} onChange={onChange} />
@@ -515,7 +516,7 @@ export function CommunityPost({
       <header>
         <Avatar emoji={post.avatar} username={post.username} size="sm" />
         <Link to={"/user/" + encodeURIComponent(post.username)}>
-          <strong>{post.username}</strong>
+          <strong><ReaderName username={post.username}/></strong>
           <time>
             {new Date(post.created_at).toLocaleString("pt-BR", {
               dateStyle: "medium",
@@ -982,7 +983,7 @@ export function BookGallery({ book }: { book: Book }) {
                 }
                 loading="lazy"
               />
-              <span>{post.username}</span>
+              <span><ReaderName username={post.username}/></span>
             </button>
           )),
         )}

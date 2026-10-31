@@ -12,4 +12,11 @@ describe("session display name", () => {
     expect(getDisplayName()).toBe("Ana Nova");
     expect(listener).toHaveBeenCalledOnce();
   });
+  it("keeps the edited display name when a partial session refresh omits it", () => {
+    saveSession({ username: "ana", displayName: "Ana Nova" });
+    saveSession({ username: "ana", avatar: "🐼" });
+    expect(getDisplayName()).toBe("Ana Nova");
+    saveSession({ username: "outra" });
+    expect(getDisplayName()).toBe("outra");
+  });
 });

@@ -19,7 +19,7 @@ export function ThemeImage({ theme, crop, className = "", continuationAnchor }: 
   const cropY = Math.max(0, source.height - reference.height / scale) * crop.y / 100;
   const x = cropX - (continuationAnchor?.x || 0) / scale;
   const y = cropY - (continuationAnchor?.y || 0) / scale;
-  return <svg ref={ref} aria-hidden="true" className={`mb-scenery ${className}`} viewBox={`${x} ${y} ${width} ${height}`} preserveAspectRatio="none">
+  return <svg data-banner-src={theme.imageUrl} data-banner-name={theme.name} ref={ref} aria-hidden="true" className={`mb-scenery ${className}`} viewBox={`${x} ${y} ${width} ${height}`} preserveAspectRatio="none">
     <image href={theme.imageUrl.startsWith("/scenery/") ? theme.imageUrl : getFullUrl(theme.imageUrl) || ""} x={theme.atlas ? -theme.atlas.column * 768 : 0} y={theme.atlas ? -theme.atlas.row * 1024 / 3 : 0} width={theme.atlas ? 1536 : source.width} height={theme.atlas ? 1024 : source.height} />
   </svg>;
 }

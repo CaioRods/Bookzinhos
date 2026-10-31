@@ -6,8 +6,8 @@ import { Avatar } from "./Ui";
 import { ProfileProgressAvatar } from "./ProfileProgressAvatar";
 import { SupportDonation, usePublicSupport } from "./SupportDonation";
 
-export function AccountMenu({ avatar, username, admin, progression, onLogout }: {
-  avatar: string; username: string; admin: boolean;
+export function AccountMenu({ avatar, username, displayName, admin, progression, onLogout }: {
+  avatar: string; username: string; displayName?: string; admin: boolean;
   progression?: ProgressionSummary | null; onLogout: () => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -23,9 +23,9 @@ export function AccountMenu({ avatar, username, admin, progression, onLogout }: 
   }, []);
   const progress = progression ? Math.min(100, Math.max(0, (progression.totalXp - progression.currentLevelXp) / Math.max(1, progression.nextLevelXp - progression.currentLevelXp) * 100)) : 0;
   return <div className="mb-account-menu" ref={root}>
-    <button type="button" aria-label={`Conta de ${username}`} aria-expanded={open} onClick={() => setOpen((value) => !value)}>{progression ? <ProfileProgressAvatar compact avatar={avatar} level={progression.level} title={progression.title} totalXp={progression.totalXp} currentLevelXp={progression.currentLevelXp} nextLevelXp={progression.nextLevelXp} /> : <Avatar emoji={avatar} size="sm" />}</button>
+    <button type="button" aria-label={`Conta de ${displayName || username}`} aria-expanded={open} onClick={() => setOpen((value) => !value)}>{progression ? <ProfileProgressAvatar compact avatar={avatar} level={progression.level} title={progression.title} totalXp={progression.totalXp} currentLevelXp={progression.currentLevelXp} nextLevelXp={progression.nextLevelXp} /> : <Avatar emoji={avatar} size="sm" />}</button>
     {open && <div className="mb-account-popover" role="menu">
-      <header><Avatar emoji={avatar} size="md" username={username} link={false} /><span><strong>{username}</strong><small>{progression ? `Nível ${progression.level} · ${progression.title}` : "Meu perfil literário"}</small></span></header>
+      <header><Avatar emoji={avatar} size="md" username={username} link={false} /><span><strong>{displayName || username}</strong><small>{progression ? `Nível ${progression.level} · ${progression.title}` : "Meu perfil literário"}</small></span></header>
       {progression && <div className="mb-account-xp"><i style={{ width: `${progress}%` }} /></div>}
       <Link role="menuitem" to="/profile"><UserRound /> Perfil</Link>
       <Link role="menuitem" to="/settings"><Settings /> Configurações</Link>

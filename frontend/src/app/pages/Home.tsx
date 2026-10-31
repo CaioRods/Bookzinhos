@@ -1,3 +1,4 @@
+import { ReaderName } from "../components/ReaderName";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import {
@@ -257,7 +258,7 @@ export function Home() {
               className="w-full flex items-center gap-2.5 px-4 py-3 rounded-[14px] bg-[var(--surface)] border border-[var(--line)] hover:border-[var(--primary)]/30 transition-colors text-left group"
             >
               <span className="text-lg select-none">{data.status.emote}</span>
-              <span className="text-[13px] font-semibold text-foreground">{data.status.username}</span>
+              <span className="text-[13px] font-semibold text-foreground"><ReaderName username={data.status.username}/></span>
               <span className="text-[13px] text-[var(--text-3)] truncate flex-1">{data.status.content}</span>
               <Edit3 className="w-3.5 h-3.5 text-[var(--text-3)] group-hover:text-[var(--primary)] transition-colors flex-shrink-0" />
             </button>
@@ -407,7 +408,7 @@ function ActivityCard({ feed }: { feed: FeedItem[] | null }) {
                 <p className="text-[13px] leading-snug">
                   {item.username && (
                     <Link to={`/user/${encodeURIComponent(item.username)}`} className="font-semibold text-foreground hover:text-[var(--primary)]">
-                      {item.username}
+                      <ReaderName username={item.username}/>
                     </Link>
                   )}{" "}
                   <span className="text-[var(--text-3)]">
@@ -467,7 +468,7 @@ function CommunityCard({ data, admin }: { data: HomeData | null; admin: boolean 
                 <Avatar emoji={review.avatar} size="xs" username={review.username} />
                 <div className="min-w-0 flex-1">
                   <Link to={`/user/${encodeURIComponent(review.username)}`} className="block text-[13px] font-semibold text-foreground hover:text-[var(--primary)] truncate">
-                    {review.username}
+                    <ReaderName username={review.username}/>
                   </Link>
                   <span className="block text-[11.5px] text-[var(--text-3)] truncate">@{review.username.toLowerCase()}</span>
                 </div>
@@ -515,7 +516,7 @@ function PostCard({ post, books, onLike }: { post: HomePost; books: Book[]; onLi
       <div className="p-4">
         <div className="flex items-center gap-2.5">
           <Avatar emoji={post.avatar} size="xs" username={post.author} />
-          <span className="text-[13px] font-semibold text-foreground">{post.author}</span>
+          <span className="text-[13px] font-semibold text-foreground"><ReaderName username={post.author}/></span>
           <span className="mb-chip mb-chip-primary">Admin</span>
           {post.isPinned && <span className="mb-chip"><Pin className="w-3 h-3" /> Fixado</span>}
           <span className="text-[11.5px] text-[var(--text-3)] ml-auto">{timeAgo(post.createdAt)}</span>

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router";
+import { AnimatedBookLink } from "./BookTransition";
 import { BookOpen } from "lucide-react";
 import { getFullUrl, type Book } from "../lib/types";
 import { pickDistinctBooks } from "../lib/randomBooks";
@@ -12,6 +12,7 @@ export function LibraryBanner({ books }: { books: Book[] }) {
 
   return (
     <section
+      data-banner-src="/scenery/golden-branches.webp" data-banner-name="Entre páginas, novos mundos"
       className="mb-library-banner"
       aria-labelledby="library-banner-title"
     >
@@ -29,9 +30,9 @@ export function LibraryBanner({ books }: { books: Book[] }) {
       </div>
       <div className="mb-library-banner-books">
         {featured.map((book) => (
-          <Link
+          <AnimatedBookLink
             key={book.id}
-            to={`/book/${book.id}`}
+            book={book}
             aria-label={`Conhecer ${book.title}`}
           >
             <img
@@ -40,7 +41,7 @@ export function LibraryBanner({ books }: { books: Book[] }) {
               decoding="async"
             />
             <span aria-hidden="true" />
-          </Link>
+          </AnimatedBookLink>
         ))}
         {!featured.length && (
           <BookOpen

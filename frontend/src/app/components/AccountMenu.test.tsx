@@ -17,6 +17,15 @@ describe("AccountMenu", () => {
     expect(screen.queryByRole("menuitem", { name: "Administrador" })).not.toBeInTheDocument();
   });
 
+  it("updates the visible name while preserving the account identifier", () => {
+    const { rerender } = render(<MemoryRouter><AccountMenu avatar="🐼" username="ana.antiga" displayName="Ana" admin={false} onLogout={() => {}} /></MemoryRouter>);
+    fireEvent.click(screen.getByRole("button", { name: "Conta de Ana" }));
+    rerender(<MemoryRouter><AccountMenu avatar="🐼" username="ana.antiga" displayName="Ana Nova" admin={false} onLogout={() => {}} /></MemoryRouter>);
+    expect(screen.getByRole("button", { name: "Conta de Ana Nova" })).toBeInTheDocument();
+    expect(screen.getByText("Ana Nova")).toBeInTheDocument();
+    expect(screen.queryByText("ana.antiga")).not.toBeInTheDocument();
+  });
+
   it("shows admin and invokes logout", () => {
     const logout = vi.fn();
     render(<MemoryRouter><AccountMenu avatar="🐶" username="Admin" admin progression={progression} onLogout={logout} /></MemoryRouter>);

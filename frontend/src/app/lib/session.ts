@@ -78,8 +78,9 @@ export function savePrivacyAcceptedVersion(version: string): void {
 
 export function saveSession(user: Partial<UserProfile> & { username: string }): void {
   localStorage.removeItem(GUEST_KEY); // entrar de verdade encerra o modo visitante
+  const previousUsername = getUsername();
   localStorage.setItem(KEYS.username, user.username);
-  localStorage.setItem(KEYS.displayName, user.displayName || user.username);
+  if (user.displayName !== undefined || previousUsername !== user.username || !localStorage.getItem(KEYS.displayName)) localStorage.setItem(KEYS.displayName, user.displayName || user.username);
   if (user.bio != null) localStorage.setItem(KEYS.bio, user.bio);
   if (user.avatar != null) localStorage.setItem(KEYS.avatar, user.avatar);
   localStorage.setItem(KEYS.admin, String(!!user.isAdmin));

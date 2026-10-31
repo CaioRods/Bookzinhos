@@ -1,0 +1,37 @@
+@layer components {
+  html, body, #root { user-select: none; -webkit-user-select: none; }
+  input, textarea, [contenteditable="true"] { user-select: text; -webkit-user-select: text; }
+  img, a, button { -webkit-user-drag: none; }
+  .mb-theme-library { padding: 4px; }
+  .mb-theme-toolbar { display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:28px; }
+  .mb-theme-toolbar small { opacity:.65; margin-left:6px; }
+  .mb-theme-book-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:28px 22px; }
+  .mb-theme-book-card { text-align:left; display:flex; flex-direction:column; gap:7px; cursor:pointer; min-width:0; }
+  .mb-theme-book-art { display:flex; align-items:center; justify-content:center; aspect-ratio:2/3; border-radius:12px; background:var(--surface-2); overflow:hidden; width:100%; color:var(--primary); box-shadow:0 8px 20px #24122518; transition:transform .35s ease, box-shadow .35s ease; }
+  .mb-theme-book-art img { width:100%; height:100%; object-fit:cover; }
+  .mb-theme-book-card:hover .mb-theme-book-art { transform:translateY(-5px); box-shadow:0 14px 25px #24122525; }
+  .mb-theme-book-card strong { font-size:14px; line-height:1.4; }
+  .mb-theme-book-card small,.mb-theme-banner-card footer small { color:var(--text-3); font-size:12px; }
+  .mb-theme-back { margin-bottom:10px; }
+  .mb-theme-group-title { font:600 26px var(--font-editorial,Georgia,serif); margin-bottom:22px; }
+  .mb-theme-banner-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:24px; }
+  .mb-theme-banner { width:100%; display:block; position:relative; aspect-ratio:3/1; overflow:hidden; border-radius:14px; cursor:pointer; border:2px solid transparent; }
+  .mb-theme-banner[aria-pressed="true"] { border-color:var(--primary); box-shadow:0 0 0 3px var(--primary-soft); }
+  .mb-theme-banner > svg { width:100%; height:100%; position:absolute; inset:0; }
+  .mb-theme-check { position:absolute; bottom:9px; right:9px; padding:5px 9px; border-radius:20px; background:var(--primary); color:var(--primary-foreground); display:flex; gap:5px; align-items:center; font-size:11px; }
+  .mb-theme-banner-card h4 { margin:12px 0 6px; font-size:15px; font-weight:600; }
+  .mb-theme-banner-card footer { display:flex; align-items:center; gap:5px; }
+  .mb-theme-banner-card footer small { margin-right:auto; }
+  .mb-book-flight { position:fixed; inset:0; z-index:9998; perspective:1200px; }
+  .mb-book-flight-backdrop { position:absolute; inset:0; backdrop-filter:blur(14px); background:#2117264d; animation:mb-flight-blur .6s ease both; }
+  .mb-book-flight-cover { position:absolute; overflow:hidden; border-radius:7px; box-shadow:0 24px 70px #0004; will-change:left,top,width,height,transform; }
+  .mb-book-flight-cover > img { width:100%; height:100%; object-fit:cover; }
+  .mb-book-waves { position:absolute; inset:0; display:grid; place-items:center; pointer-events:none; }
+  .mb-book-waves i { position:absolute; width:min(42vw,350px); aspect-ratio:1; border:1px solid #fff5; border-radius:50%; animation:mb-flight-wave 1.9s ease-out both; }
+  .mb-book-waves i:nth-child(2) { animation-delay:.2s; }
+  .mb-book-waves i:nth-child(3) { animation-delay:.4s; }
+  @media(max-width:600px) { .mb-theme-banner-grid { grid-template-columns:1fr; } .mb-theme-book-grid { gap:20px 16px; grid-template-columns:repeat(2,minmax(0,1fr)); } }
+  @media(prefers-reduced-motion:reduce) { .mb-theme-book-art { transition:none; } }
+}
+@keyframes mb-flight-wave { from { transform:scale(.6); opacity:0; } 25% { opacity:.65; } to { transform:scale(2.1); opacity:0; } }
+@keyframes mb-flight-blur { from { backdrop-filter:blur(0); opacity:0; } to { backdrop-filter:blur(14px); opacity:1; } }

@@ -80,6 +80,7 @@ export function BannerCarousel({ banners }: { banners: Banner[] }) {
             return (
               <div
                 key={banner.id}
+                data-banner-src={image || undefined} data-banner-name={banner.title || "banner"}
                 onClick={() => clickable && openBanner(banner)}
                 role={clickable ? "button" : undefined}
                 tabIndex={clickable ? 0 : undefined}

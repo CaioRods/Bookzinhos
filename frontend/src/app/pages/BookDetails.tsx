@@ -1,3 +1,4 @@
+import { AnimatedBookLink } from "../components/BookTransition";
 import { SeriesShelf } from "../components/SeriesShelf";
 import { BookGallery } from "../components/Community";
 import { EditBookModal } from "../components/EditBookModal";
@@ -9,7 +10,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, useParams, useNavigate } from "react-router";
 import {
   ArrowLeft, BookOpen, Play, Share2, CheckCircle, Users, FileText,
-  Bookmark, ChevronDown, ChevronRight, Calendar, Star, Palette,
+  Download, Loader2, Bookmark, ChevronDown, ChevronRight, Calendar, Star, Palette,
 } from "lucide-react";
 import {
   fetchAllUsers, fetchBooks, fetchBook, fetchProgress, fetchSavedIds, saveProgress, sendMessage, toggleSaved,
@@ -23,7 +24,10 @@ import { ReviewSection } from "../components/ReviewSection";
 import { Book3D, useSpineColor } from "../components/Book3D";
 import { Avatar, Modal, Skeleton, Stars, toast } from "../components/Ui";
 
+import { downloadRemoteFile, safeFileName } from "../lib/download";
+
 export function BookDetails() {
+  const [downloading, setDownloading] = useState(false);
   const { id } = useParams();
   const navigate = useNavigate();
   const openBook = useOpenBook();
@@ -162,17 +166,17 @@ export function BookDetails() {
     <div className="mb-book-details mb-reference-details mb-book-personalized" style={pageColors as React.CSSProperties}>
 
       <nav className="mb-book-breadcrumb" aria-label="Caminho de navegação"><button aria-label="Voltar" onClick={() => navigate(-1)}><ArrowLeft size={20} /></button><Link to="/library">Biblioteca</Link><ChevronRight size={15} /><span>{book.title}</span>{isAdmin() && <button className="mb-book-appearance-trigger" aria-label="Personalizar aparência do livro" onClick={() => setAppearanceEditor(true)}><Palette size={17} /> Aparência</button>}</nav>
-      <section className="mb-book-banner" style={{backgroundColor: appearance.mainColor || autoColor}}><div style={{ filter: `blur(${appearance.blur}px)`, opacity: appearance.opacity }}><ThemeImage theme={artwork} crop={appearance.crop}/></div><span className="mb-book-banner-label">{book.seriesName || "CADA LIVRO, UM NOVO UNIVERSO"}</span>{isAdmin()&&<button className="mb-btn" onClick={()=>setAppearanceEditor(true)}><Palette size={16}/> Editar banner</button>}</section>
+      <section data-banner-src={artwork.imageUrl} data-banner-name={book.title} className="mb-book-banner" style={{backgroundColor: appearance.mainColor || autoColor}}><div style={{ filter: `blur(${appearance.blur}px)`, opacity: appearance.opacity }}><ThemeImage theme={artwork} crop={appearance.crop}/></div><span className="mb-book-banner-label">{book.seriesName || "CADA LIVRO, UM NOVO UNIVERSO"}</span>{isAdmin()&&<button className="mb-btn" onClick={()=>setAppearanceEditor(true)}><Palette size={16}/> Editar banner</button>}</section>
       <div className="mb-detail-columns"><div className="min-w-0">
         <section className="mb-reference-book-hero">
-          <div className="mb-reference-book-cover">{cover ? <img src={cover} alt={`Capa de ${book.title}`} /> : <Book3D book={book} width={240} still />}</div>
+          <div className="mb-reference-book-cover" data-book-cover={book.id}>{cover ? <img src={cover} alt={`Capa de ${book.title}`} /> : <Book3D book={book} width={240} still />}</div>
           <div className="mb-reference-book-copy">
             <p className="mb-eyebrow">{book.genre}{book.seriesName && ` · ${book.seriesName} · Vol. ${book.seriesOrder}`}</p><h1>{book.title}</h1><p className="mb-detail-author">{book.author || "Autor desconhecido"}</p>
             <div className="mb-detail-rating"><Stars value={book.rating} /><strong>{book.rating > 0 ? book.rating.toFixed(1) : "Sem nota"}</strong><span>({book.reviewCount} {book.reviewCount === 1 ? "avaliação" : "avaliações"})</span></div>
             <div className="mb-detail-facts">{!!book.pageCount && <span><FileText size={16} />{book.pageCount} páginas</span>}{book.publishedYear && <span><Calendar size={16} />{book.publishedYear}</span>}<span><Users size={16} />{book.readers || 0} leitores</span></div>
             <p className={`mb-detail-description ${expanded ? "is-expanded" : ""}`}>{book.description || "Uma nova história para descobrir. A sinopse deste livro ainda não foi adicionada."}</p>
             {book.description.length > 260 && <button className="mb-detail-expand" aria-expanded={expanded} onClick={() => setExpanded(v => !v)}>{expanded ? "Ler menos" : "Ler mais"}<ChevronDown size={15} /></button>}
-            <div className="mb-detail-actions">{isAdmin()&&<button className="mb-btn mb-btn-outline" onClick={()=>setEditingBook(true)}>Editar livro</button>}{hasContent ? <button className="mb-btn mb-btn-primary" onClick={() => openBook(book)}><Play size={17} />{progress && progress.progress > 0 && !isFinished ? "Continuar lendo" : "Começar leitura"}</button> : <span className="mb-detail-unavailable">Conteúdo ainda não disponível</span>}<button className="mb-btn mb-btn-outline mb-btn-icon" onClick={handleToggleSave} aria-pressed={isSaved} aria-label={isSaved ? "Remover dos favoritos" : "Guardar nos favoritos"}><Bookmark size={19} className={isSaved ? "fill-current" : ""} /></button><button className="mb-btn mb-btn-outline mb-btn-icon" aria-label="Indicar este livro" onClick={() => setShowShare(true)}><Share2 size={18} /></button></div>
+            <div className="mb-detail-actions">{book.pdfPath && <button className="mb-btn mb-btn-outline" disabled={downloading} onClick={async () => { if (!requireAuth("baixar livros")) return; setDownloading(true); try { await downloadRemoteFile(getFullUrl(book.pdfPath)!, safeFileName(book.title, "pdf")); } catch { toast("Não foi possível baixar o livro.", "error"); } finally { setDownloading(false); } }}>{downloading ? <Loader2 size={17} className="animate-spin"/> : <Download size={17}/>} Baixar PDF</button>}{isAdmin()&&<button className="mb-btn mb-btn-outline" onClick={()=>setEditingBook(true)}>Editar livro</button>}{hasContent ? <button className="mb-btn mb-btn-primary" onClick={() => openBook(book)}><Play size={17} />{progress && progress.progress > 0 && !isFinished ? "Continuar lendo" : "Começar leitura"}</button> : <span className="mb-detail-unavailable">Conteúdo ainda não disponível</span>}<button className="mb-btn mb-btn-outline mb-btn-icon" onClick={handleToggleSave} aria-pressed={isSaved} aria-label={isSaved ? "Remover dos favoritos" : "Guardar nos favoritos"}><Bookmark size={19} className={isSaved ? "fill-current" : ""} /></button><button className="mb-btn mb-btn-outline mb-btn-icon" aria-label="Indicar este livro" onClick={() => setShowShare(true)}><Share2 size={18} /></button></div>
             {progress && <div className="mb-detail-progress"><span>Seu progresso</span><div className="mb-inline-progress"><span role="progressbar" aria-label="Seu progresso de leitura" aria-valuenow={Math.min(100, Math.max(0, progress.progress))} aria-valuemin={0} aria-valuemax={100}><i style={{ width: `${Math.min(100, Math.max(0, progress.progress))}%` }} /></span><strong>{Math.round(progress.progress)}%</strong></div><small>Página {progress.currentPage + 1} de {progress.totalPages}</small></div>}
           </div>
         </section>
@@ -183,7 +187,7 @@ export function BookDetails() {
         </section>
       </div><aside className="mb-book-related-rail">
         <section className="mb-card"><header><h2>Sua leitura</h2><Link to="/library?filter=lendo">Ver tudo</Link></header><button className="mb-current-reading" onClick={() => hasContent && openBook(book)} disabled={!hasContent}>{cover && <img src={cover} alt="" />}<span><strong>{book.title}</strong><small>{book.author}</small><span className="mb-inline-progress"><span><i style={{ width: `${Math.min(100, Math.max(0, progress?.progress || 0))}%` }} /></span><small>{Math.round(progress?.progress || 0)}%</small></span><small>{progress ? `Página ${progress.currentPage + 1} de ${progress.totalPages}` : "Comece seu próximo capítulo"}</small></span><ChevronRight size={17} /></button></section>
-        {related.length > 0 && <section className="mb-card"><header><h2>Livros relacionados</h2><Link to={`/library?q=${encodeURIComponent(book.author || book.genre)}`}>Ver todos</Link></header>{related.map(entry => <Link className="mb-related-book" key={entry.id} to={`/book/${entry.id}`}><span>{entry.coverImagePath ? <img src={getFullUrl(entry.coverImagePath)!} alt="" loading="lazy" /> : <BookOpen size={22} />}</span><div><strong>{entry.title}</strong><small>{entry.author}</small>{entry.rating > 0 && <small className="mb-related-rating"><Star size={13} fill="currentColor" />{entry.rating.toFixed(1)}</small>}</div><ChevronRight size={17} /></Link>)}</section>}
+        {related.length > 0 && <section className="mb-card"><header><h2>Livros relacionados</h2><Link to={`/library?q=${encodeURIComponent(book.author || book.genre)}`}>Ver todos</Link></header>{related.map(entry => <AnimatedBookLink className="mb-related-book" key={entry.id} book={entry}><span>{entry.coverImagePath ? <img src={getFullUrl(entry.coverImagePath)!} alt="" loading="lazy" /> : <BookOpen size={22} />}</span><div><strong>{entry.title}</strong><small>{entry.author}</small>{entry.rating > 0 && <small className="mb-related-rating"><Star size={13} fill="currentColor" />{entry.rating.toFixed(1)}</small>}</div><ChevronRight size={17} /></AnimatedBookLink>)}</section>}
       </aside></div>
 
       <SeriesShelf book={book} onOrderSaved={seriesOrder=>setBook({...book,seriesOrder})}/>

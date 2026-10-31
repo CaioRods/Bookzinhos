@@ -1,136 +1,82 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { useNavigate } from "react-router";
+import { Link, useNavigate, type LinkProps } from "react-router";
 import { Book3D } from "./Book3D";
-import type { Book } from "../lib/types";
+import { getFullUrl, type Book } from "../lib/types";
 
-interface Flight {
-  book: Book;
-  /** Retângulo do livro na estante, no momento do clique */
-  rect: { left: number; top: number; width: number };
-  coverWidth: number;
-  /** Ângulo em que o livro estava: 90° se guardado de lombada */
-  startAngle: number;
-}
-
+interface Flight { book: Book; rect: { left: number; top: number; width: number }; coverWidth: number; startAngle: number }
 type Launcher = (flight: Flight) => void;
+const BookFlightContext = createContext<{ launch: Launcher | null; flyingId: string | null }>({ launch: null, flyingId: null });
+export const useBookFlight = () => useContext(BookFlightContext).launch;
+export const useFlyingBookId = () => useContext(BookFlightContext).flyingId;
 
-interface FlightContext {
-  launch: Launcher | null;
-  /** Id do livro em voo — quem estiver na estante se esconde enquanto isso. */
-  flyingId: string | null;
-}
-
-const BookFlightContext = createContext<FlightContext>({ launch: null, flyingId: null });
-
-/** Abre um livro com a animação de voo; sem provedor, o chamador navega direto. */
-export function useBookFlight(): Launcher | null {
-  return useContext(BookFlightContext).launch;
-}
-
-/** O livro que está voando agora, para a estante não mostrar dois iguais. */
-export function useFlyingBookId(): string | null {
-  return useContext(BookFlightContext).flyingId;
-}
-
-const FLY_MS = 620;
-const FADE_MS = 180;
-const NAVIGATE_MS = 110;
-
-/**
- * Animação de abertura de um livro.
- *
- * O livro clicado se solta da estante, atravessa a tela girando e cresce no
- * centro enquanto a página de detalhes carrega por baixo. Quem voa é uma cópia
- * em camada própria — a original se esconde no mesmo instante, então em tela
- * existe sempre um livro só. O provedor fica acima do roteador de propósito:
- * assim a animação sobrevive à navegação e não é cortada no meio.
- */
 export function BookTransitionProvider({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const [flight, setFlight] = useState<Flight | null>(null);
-  const [fading, setFading] = useState(false);
-
-  const launch = useCallback<Launcher>((next) => {
-    setFading(false);
-    setFlight(next);
-  }, []);
-
-  useEffect(() => {
-    if (!flight) return;
-
-    const toPage = window.setTimeout(() => {
-      navigate(`/book/${flight.book.id}`);
-    }, NAVIGATE_MS);
-    const beginFade = window.setTimeout(() => setFading(true), FLY_MS - 80);
-    const cleanup = window.setTimeout(() => setFlight(null), FLY_MS + FADE_MS);
-
-    return () => {
-      window.clearTimeout(toPage);
-      window.clearTimeout(beginFade);
-      window.clearTimeout(cleanup);
-    };
-  }, [flight, navigate]);
-
-  // Quem prefere menos movimento vai direto para a página.
-  const reducedMotion =
-    typeof window !== "undefined" && (window.matchMedia("(prefers-reduced-motion: reduce)").matches || document.documentElement.dataset.reduceMotion === "true");
-
-  const value = useMemo<FlightContext>(
-    () => ({ launch: reducedMotion ? null : launch, flyingId: flight?.book.id ?? null }),
-    [reducedMotion, launch, flight]
-  );
-
-  return (
-    <BookFlightContext.Provider value={value}>
-      {children}
-      {flight && <FlyingBook flight={flight} fading={fading} />}
-    </BookFlightContext.Provider>
-  );
+  const launch = useCallback<Launcher>(next => setFlight(current => current || next), []);
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches || document.documentElement.dataset.reduceMotion === "true";
+  const value = useMemo(() => ({ launch: reduced ? null : launch, flyingId: flight?.book.id || null }), [reduced, launch, flight]);
+  return <BookFlightContext.Provider value={value}>{children}{flight && <FlyingBook flight={flight} navigate={() => navigate(`/book/${encodeURIComponent(flight.book.id)}`)} done={() => setFlight(null)}/>}</BookFlightContext.Provider>;
 }
 
-function FlyingBook({ flight, fading }: { flight: Flight; fading: boolean }) {
-  const { book, rect, coverWidth, startAngle } = flight;
-
-  const height = Math.round(coverWidth * 1.5);
-  // O livro voa a partir do centro da vaga que ocupava na estante.
-  const startLeft = rect.left + rect.width / 2 - coverWidth / 2;
-  const startTop = rect.top;
-
-  const targetHeight = Math.min(window.innerHeight * 0.62, 460);
-  const scale = targetHeight / height;
-
-  // A origem da transformação é o centro, então basta mover o centro.
-  const dx = window.innerWidth / 2 - (startLeft + coverWidth / 2);
-  const dy = window.innerHeight / 2 - (startTop + height / 2);
-
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[9998] pointer-events-none"
-      style={{ opacity: fading ? 0 : 1, transition: `opacity ${FADE_MS}ms ease` }}
-    >
-      <div
-        className="absolute inset-0 bg-black/45 backdrop-blur-[2px]"
-        style={{ animation: "fade-in 0.45s ease both" }}
-      />
-      <div
-        className="mb-flying"
-        style={
-          {
-            left: startLeft,
-            top: startTop,
-            width: coverWidth,
-            height,
-            "--dx": `${dx}px`,
-            "--dy": `${dy}px`,
-            "--s": scale,
-            "--a0": `${startAngle}deg`,
-          } as React.CSSProperties
+function FlyingBook({ flight, navigate, done }: { flight: Flight; navigate: () => void; done: () => void }) {
+  const layer = useRef<HTMLDivElement>(null), cover = useRef<HTMLDivElement>(null);
+  const callbacks = useRef({ navigate, done }); callbacks.current = { navigate, done };
+  useEffect(() => {
+    let cancelled = false, target: HTMLElement | null = null, observer: MutationObserver | undefined;
+    let observerTimer: number | undefined;
+    const animations: Animation[] = [];
+    const animate = (element: HTMLElement, frames: Keyframe[], duration: number) => {
+      const animation = element.animate(frames, { duration, easing: "cubic-bezier(.22,1,.36,1)", fill: "forwards" }); animations.push(animation); return animation.finished;
+    };
+    const findTarget = () => Array.from(document.querySelectorAll<HTMLElement>("[data-book-cover]")).find(element => element.dataset.bookCover === flight.book.id) || null;
+    const waitForTarget = () => new Promise<HTMLElement | null>(resolve => {
+      const existing = findTarget(); if (existing) { resolve(existing); return; }
+      observer = new MutationObserver(() => { const found = findTarget(); if (found) { observer?.disconnect(); clearTimeout(observerTimer); resolve(found); } });
+      observer.observe(document.body, { childList: true, subtree: true });
+      observerTimer = window.setTimeout(() => { observer?.disconnect(); resolve(null); }, 3500);
+    });
+    const run = async () => {
+      const element = cover.current, backdrop = layer.current;
+      if (!element || !backdrop) return;
+      const width = Math.min(280, window.innerWidth * .48, window.innerHeight * .36), height = width * 1.5;
+      const center = { left: `${(window.innerWidth-width)/2}px`, top: `${(window.innerHeight-height)/2}px`, width: `${width}px`, height: `${height}px`, transform: "rotateY(0deg)" };
+      try {
+        const first = animate(element, [{ left: `${flight.rect.left + flight.rect.width/2-flight.coverWidth/2}px`, top: `${flight.rect.top}px`, width: `${flight.coverWidth}px`, height: `${flight.coverWidth*1.5}px`, transform: `rotateY(${flight.startAngle}deg)` }, center], 720);
+        callbacks.current.navigate();
+        const destination = waitForTarget();
+        await first;
+        if (cancelled) return;
+        target = await destination;
+        if (cancelled) return;
+        if (target) {
+          const bounds = target.getBoundingClientRect();
+          target.style.visibility = "hidden";
+          await animate(element, [center, { left: `${bounds.left}px`, top: `${bounds.top}px`, width: `${bounds.width}px`, height: `${bounds.height}px`, transform: "rotateY(0deg)" }], 650);
+          if (cancelled) return;
+          target.style.visibility = "";
         }
-      >
-        <Book3D book={book} width={coverWidth} display="cover" still />
-      </div>
-    </div>,
-    document.body
-  );
+        await animate(backdrop, [{ opacity: 1 }, { opacity: 0 }], 220);
+      } catch { /* Cancelamento de animação: a navegação continua disponível. */ }
+      if (!cancelled) callbacks.current.done();
+    };
+    void run();
+    return () => { cancelled = true; observer?.disconnect(); clearTimeout(observerTimer); animations.forEach(animation => animation.cancel()); if (target) target.style.visibility = ""; };
+  }, [flight]);
+  const image = getFullUrl(flight.book.coverImagePath);
+  return createPortal(<div ref={layer} className="mb-book-flight" aria-hidden="true"><div className="mb-book-flight-backdrop"/><div className="mb-book-waves"><i/><i/><i/></div><div className="mb-book-flight-cover" ref={cover}>{image ? <img src={image} alt=""/> : <Book3D book={flight.book} width={flight.coverWidth} still/>}</div></div>, document.body);
+}
+
+/** Reuses the same cover flight for editorial, related-book and saga links. */
+export function AnimatedBookLink({ book, onClick, ...props }: { book: Book } & Omit<LinkProps, "to">) {
+  const launch = useBookFlight();
+  return <Link {...props} to={`/book/${encodeURIComponent(book.id)}`} onClick={event => {
+    onClick?.(event);
+    if (event.defaultPrevented || !launch || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    const image = event.currentTarget.querySelector("img");
+    const bounds = image?.getBoundingClientRect();
+    if (!bounds?.width || !bounds.height) return;
+    event.preventDefault();
+    launch({ book, rect: { left: bounds.left, top: bounds.top, width: bounds.width }, coverWidth: bounds.width, startAngle: 0 });
+  }}/>;
 }

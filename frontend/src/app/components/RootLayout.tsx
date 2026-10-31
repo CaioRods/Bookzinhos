@@ -1,3 +1,4 @@
+import { ReaderNamesProvider } from "./ReaderName";
 import { useProfileScene } from "../lib/profileScene";
 import { ThemeImage } from "./ThemeImage";
 import { useThemeCatalog, DEFAULT_THEMES } from "../lib/themeCatalog";
@@ -11,7 +12,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState, useMemo, type ComponentType } from "react";
 import { fetchNotifications, fetchProgression, logout } from "../lib/api";
-import { clearSession, getAvatar, getUsername, isAdmin as isAdminUser, isGuest, leaveGuestMode } from "../lib/session";
+import { clearSession, getDisplayName, getAvatar, getUsername, isAdmin as isAdminUser, isGuest, leaveGuestMode } from "../lib/session";
 import type { ProgressionSummary } from "../lib/types";
 import { ReaderChoiceProvider } from "../lib/readerChoice";
 import { BookTransitionProvider } from "./BookTransition";
@@ -57,6 +58,7 @@ export function RootLayout() {
   const navigation = useNavigation();
   const pending = navigation.state === "loading" ? navigation.location.pathname : null;
   const [unreadCount, setUnreadCount] = useState(0);
+  const [displayName, setDisplayName] = useState(getDisplayName);
   const [avatar, setAvatar] = useState(getAvatar);
   const [username, setUsername] = useState(getUsername);
   const [admin, setAdmin] = useState(isAdminUser);
@@ -104,13 +106,15 @@ export function RootLayout() {
   useEffect(() => {
     const syncSession = () => {
       setAvatar(getAvatar());
+      setDisplayName(getDisplayName());
       setUsername(getUsername());
       setAdmin(isAdminUser());
       setGuest(isGuest());
     };
     syncSession();
     window.addEventListener("mybooks:session", syncSession);
-    return () => window.removeEventListener("mybooks:session", syncSession);
+    window.addEventListener("storage", syncSession);
+    return () => { window.removeEventListener("mybooks:session", syncSession); window.removeEventListener("storage", syncSession); };
   }, [location.pathname]);
 
   useEffect(() => {
@@ -176,7 +180,7 @@ export function RootLayout() {
   }
 
   return (
-    <BookTransitionProvider>
+    <ReaderNamesProvider><BookTransitionProvider>
       <AuthGateModal />
       <LevelUpOverlay />
       <a href="#main-content" className="mb-skip-link">Pular para o conteúdo</a>
@@ -243,7 +247,7 @@ export function RootLayout() {
         <div className="mb-desktop-actions hidden lg:flex items-center">
           <GlobalSearch />
           <NotificationsMenu />
-          {username && <AccountMenu avatar={avatar} username={username} admin={admin} progression={progression} onLogout={async () => { try { await logout(); } finally { clearSession(); window.location.href = "/"; } }} />}
+          {username && <AccountMenu displayName={displayName} avatar={avatar} username={username} admin={admin} progression={progression} onLogout={async () => { try { await logout(); } finally { clearSession(); window.location.href = "/"; } }} />}
         </div>
 
         {/* ── Cabeçalho (celular) ─────────────────────────────────────────── */}
@@ -253,7 +257,7 @@ export function RootLayout() {
           </Link>
           <div className="flex items-center gap-1">
             <NotificationsMenu />
-            {username && <AccountMenu avatar={avatar} username={username} admin={admin} progression={progression} onLogout={async () => { try { await logout(); } finally { clearSession(); window.location.href = "/"; } }} />}
+            {username && <AccountMenu displayName={displayName} avatar={avatar} username={username} admin={admin} progression={progression} onLogout={async () => { try { await logout(); } finally { clearSession(); window.location.href = "/"; } }} />}
           </div>
         </header>
 
@@ -296,7 +300,7 @@ export function RootLayout() {
           </div>
         </nav>
       </div>
-    </BookTransitionProvider>
+    </BookTransitionProvider></ReaderNamesProvider>
   );
 }
 

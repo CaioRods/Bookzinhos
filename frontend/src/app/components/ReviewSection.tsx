@@ -1,3 +1,4 @@
+import { ReaderName } from "./ReaderName";
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
 import { Heart, MessageCircle, Trash2, Eye, Pencil, Send, Loader2 } from "lucide-react";
@@ -337,7 +338,7 @@ function ReviewCard({
               to={`/user/${encodeURIComponent(review.username)}`}
               className="text-[13.5px] font-semibold text-foreground hover:text-[var(--primary)] transition-colors"
             >
-              {review.username}
+              <ReaderName username={review.username}/>
             </Link>
             {review.isAdmin && <span className="mb-chip mb-chip-primary">Admin</span>}
             {isMine && <span className="mb-chip">Você</span>}
@@ -403,7 +404,7 @@ function ReviewCard({
                     to={`/user/${encodeURIComponent(c.username)}`}
                     className="text-[12.5px] font-semibold text-foreground hover:text-[var(--primary)] transition-colors"
                   >
-                    {c.username}
+                    <ReaderName username={c.username}/>
                   </Link>
                   <span className="text-[11px] text-[var(--text-3)]">{timeAgo(c.createdAt)}</span>
                 </div>
