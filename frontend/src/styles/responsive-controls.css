@@ -1,0 +1,51 @@
+/* Controls must keep their labels readable rather than shrinking inside flex rows. */
+@layer components {
+  .mb-mobile-dock .mb-tab { height:calc(100% - 12px); margin:0 2px; border-radius:14px; min-width:0; }
+  .mb-reading-integrations { display:flex; gap:8px; flex-wrap:wrap; margin:16px 0; min-width:0; }
+  .mb-reading-integrations > .mb-btn { flex:0 0 auto; max-width:100%; }
+  .mb-detail-actions { flex-wrap:wrap; min-width:0; }
+  .mb-detail-actions > .mb-btn { flex-shrink:0; max-width:100%; }
+  .mb-detail-actions > .mb-btn-primary { flex:1 0 180px; }
+  .mb-detail-actions .mb-btn > svg,.mb-reading-integrations .mb-btn > svg { flex-shrink:0; }
+  .mb-mybooks-toolbar,.mb-mybooks-tabs { min-width:0; }
+  .mb-mybooks-tabs { padding-block:4px; scrollbar-width:thin; overscroll-behavior-x:contain; scroll-padding-inline:4px; }
+  .mb-mybooks-tabs > .mb-btn { flex:0 0 auto; }
+  .mb-mybooks-tabs .mb-chip { flex-shrink:0; }
+  .mb-booklist-hero > div:last-child { min-width:0; flex:1; }
+
+  @media(max-width:1023px) {
+    /* Opaque themed surface: readability does not depend on backdrop-filter support. */
+    .mb-mobile-header .mb-account-popover,
+    .mb-mobile-header .mb-notifications-panel {
+      background:var(--surface);
+      background-image:none;
+      color:var(--foreground);
+      border:1px solid var(--line);
+      box-shadow:0 16px 48px rgb(30 20 35 / 20%);
+      -webkit-backdrop-filter:blur(20px);
+      backdrop-filter:blur(20px);
+    }
+    .mb-mobile-header .mb-account-popover { width:min(280px,calc(100vw - 24px)); max-height:calc(100dvh - 160px); overflow-y:auto; overscroll-behavior:contain; }
+    .mb-booklist-hero { gap:24px; }
+    .mb-booklist-hero-art { width:clamp(145px,22vw,190px); }
+    .mb-booklist-hero .mb-btn { min-height:44px; height:auto; padding-block:12px; white-space:normal; line-height:1.4; text-align:center; max-width:100%; }
+    .mb-booklist-hero .mb-btn > svg { flex-shrink:0; }
+    .mb-booklist-hero h1 { letter-spacing:-.035em; }
+  }
+  @media(max-width:600px) {
+    .mb-booklist-room::before { inset-inline:-16px; }
+    .mb-detail-actions > .mb-btn-primary { flex-basis:100%; order:-1; }
+    .mb-detail-actions > .mb-btn:not(.mb-btn-icon) { min-height:44px; height:auto; padding-block:12px; white-space:normal; line-height:1.4; }
+    .mb-reading-integrations { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .mb-reading-integrations > .mb-btn { width:100%; min-width:0; height:auto; min-height:44px; padding:10px; font-size:12px; white-space:normal; line-height:1.4; }
+    .mb-reading-integrations > .mb-btn:last-child:nth-child(odd) { grid-column:1 / -1; }
+    .mb-booklist-hero { display:flex; flex-direction:column; align-items:stretch; gap:20px; padding:18px 0 24px; }
+    .mb-booklist-hero-art { width:150px; align-self:center; }
+    .mb-booklist-hero > div:last-child { width:100%; min-width:0; flex:auto; }
+    .mb-booklist-hero h1 { font-size:clamp(28px,8vw,38px); margin:8px 0 12px; }
+    .mb-booklist-hero .mb-reading-integrations { margin-block:16px; }
+    .mb-booklist-hero > div:last-child > .mb-btn { width:100%; }
+    .mb-booklist-download > .mb-btn-primary { flex:1 1 100%; }
+    .mb-reading-spotlight { gap:14px; padding:16px; }
+  }
+}

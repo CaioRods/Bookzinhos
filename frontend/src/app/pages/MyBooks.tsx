@@ -122,11 +122,12 @@ export function MyBooks() {
         </div>
       ) : null}
 
-      <div className="flex items-center gap-2 border-b border-[var(--line)] pb-2">
-        <div className="flex gap-1.5 overflow-x-auto no-scrollbar flex-1">
+      <div className="mb-mybooks-toolbar flex items-center gap-2 border-b border-[var(--line)] pb-2">
+        <div className="mb-mybooks-tabs flex gap-1.5 overflow-x-auto flex-1" role="group" aria-label="Filtrar meus livros">
           {TABS.map((t) => (
             <button
               key={t.key}
+              aria-pressed={tab === t.key}
               onClick={() => setTab(t.key)}
               className={`mb-btn mb-btn-sm ${tab === t.key ? "mb-btn-soft" : "mb-btn-ghost"}`}
             >

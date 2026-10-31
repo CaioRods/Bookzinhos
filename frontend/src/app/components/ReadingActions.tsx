@@ -9,7 +9,7 @@ export function ReadingActions({ title, books, notes = [], shareBook }: {title:s
   useEffect(()=>{setMode(null);setName('Leitura: '+title);setPrivateNotes(false);},[title]);
   const md=readingMarkdown(title,books,window.location.origin,description,notes,getUsername()||'',privateNotes);
   const open=(value:'calendar'|'markdown')=>{setError('');setPrivateNotes(false);setDescription(false);setMode(value);};
-  return <div className="mb-reading-integrations" style={{display:'flex',gap:8,flexWrap:'wrap',margin:'16px 0'}}>
+  return <div className="mb-reading-integrations">
     <button className="mb-btn mb-btn-outline" onClick={()=>open('calendar')}><CalendarDays size={16}/> Agendar leitura</button>
     <button className="mb-btn mb-btn-outline" onClick={()=>open('markdown')}><FileDown size={16}/> Exportar Markdown</button>
     {shareBook?.isPublic && <button className="mb-btn mb-btn-outline" onClick={async()=>{try{const result=await shareReading({title:shareBook.title,url:publicBookShareUrl(window.location.origin,shareBook)});if(result==='copied')toast('Link copiado.');}catch{toast('Não foi possível compartilhar.','error');}}}><Share2 size={16}/> Compartilhar link</button>}

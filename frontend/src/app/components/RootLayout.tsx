@@ -323,7 +323,7 @@ function MobileTab({
       onClick={soundTap}
       aria-label={label}
       className={({ isActive }) =>
-        `mb-tab flex-1 h-full flex flex-col items-center justify-center gap-1 transition-colors ${
+        `mb-tab flex-1 flex flex-col items-center justify-center gap-1 transition-colors ${
           isActive ? "text-[var(--primary)]" : "text-[var(--text-3)]"
         }`
       }
