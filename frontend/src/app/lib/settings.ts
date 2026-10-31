@@ -1,3 +1,4 @@
+import { rememberMotionPreference } from "./motionPreference";
 import { validScene, DEFAULT_SCENE, type SceneId } from "./scenery";
 import { useCallback, useEffect, useState } from "react";
 
@@ -59,6 +60,7 @@ export function loadSettings(): Settings {
 }
 
 export function saveSettings(next: Settings): void {
+  rememberMotionPreference(next.reduceMotion);
   localStorage.setItem(KEY, JSON.stringify(next));
   window.dispatchEvent(new CustomEvent("mybooks:settings"));
 }

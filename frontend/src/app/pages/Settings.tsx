@@ -1,3 +1,4 @@
+import { AppInstallation } from "../components/AppInstallation";
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import {
@@ -92,10 +93,10 @@ export function Settings() {
         </Field>
 
         <Toggle
-          label="Reduzir animações"
-          hint="Desliga as transições mais longas, como a virada das lombadas."
-          checked={settings.reduceMotion}
-          onChange={(v) => update({ reduceMotion: v })}
+          label="Animações da interface"
+          hint="Ative para ver as aberturas e transições animadas do app."
+          checked={!settings.reduceMotion}
+          onChange={(v) => update({ reduceMotion: !v })}
         />
 
         <Toggle
@@ -231,6 +232,8 @@ export function Settings() {
         Tema, animações e preferências de aviso ficam guardados neste aparelho — em outro
         navegador você escolhe de novo.
       </p>
+
+      <AppInstallation />
 
       <ConfirmDialog
         open={confirmLogout}

@@ -1,3 +1,4 @@
+import { restoreMotionPreference } from "./motionPreference";
 /**
  * Sessão local do usuário.
  *
@@ -93,6 +94,7 @@ export function saveSession(user: Partial<UserProfile> & { username: string }): 
       window.dispatchEvent(new CustomEvent("mybooks:settings"));
     } catch { /* preferências inválidas serão restauradas pela tela de configurações */ }
   }
+  try { restoreMotionPreference(user.username, user.animationsDefaultOff); } catch { /* Preferências locais inválidas não impedem entrar. */ }
   notifySessionChanged();
 }
 

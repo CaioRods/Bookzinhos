@@ -1,3 +1,4 @@
+import { installApp, useAppInstallation } from "../lib/installApp";
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { CloudOff, RefreshCw, Download, Wifi, X } from "lucide-react";
@@ -6,7 +7,8 @@ import { account, cancelOtherAccountInstalls, connectionLost, connectionRestored
 export function OfflineStatus() {
   const offline = useOffline(), location = useLocation(), navigate = useNavigate();
   const [pending, setPending] = useState(0), [, refresh] = useState(0);
-  const [installPrompt, setInstallPrompt] = useState<any>(null), [help, setHelp] = useState(false);
+  const { available, installed, busy } = useAppInstallation();
+  const [help, setHelp] = useState(false);
   useEffect(() => {
     let active = true;
     const update = () => { cancelOtherAccountInstalls(); const user = account(); void pendingMutations(user).then(items => { if (active && account() === user) { setPending(items.length); refresh(value => value+1); } }).catch(() => {}); };
@@ -16,10 +18,9 @@ export function OfflineStatus() {
       try { const response = await fetch(API_BASE_URL + "/health", { cache: "no-store", signal: controller.signal }); if (!response.ok) return; connectionRestored(); if ((await pendingMutations()).length) void synchronize(); } catch { connectionLost(); } finally { clearTimeout(timeout); }
     };
     const offlineEvent = () => connectionLost();
-    const beforeInstall = (event: Event) => { event.preventDefault(); setInstallPrompt(event); };
     update(); void probe(); const timer = setInterval(() => { if (document.visibilityState === "visible") void probe(); }, 15000);
-    window.addEventListener("online", probe); window.addEventListener("offline", offlineEvent); window.addEventListener(DEVICE_EVENT, update); window.addEventListener("mybooks:session", update); window.addEventListener("beforeinstallprompt", beforeInstall);
-    return () => { active = false; clearInterval(timer); window.removeEventListener("online", probe); window.removeEventListener("offline", offlineEvent); window.removeEventListener(DEVICE_EVENT, update); window.removeEventListener("mybooks:session", update); window.removeEventListener("beforeinstallprompt", beforeInstall); };
+    window.addEventListener("online", probe); window.addEventListener("offline", offlineEvent); window.addEventListener(DEVICE_EVENT, update); window.addEventListener("mybooks:session", update);
+    return () => { active = false; clearInterval(timer); window.removeEventListener("online", probe); window.removeEventListener("offline", offlineEvent); window.removeEventListener(DEVICE_EVENT, update); window.removeEventListener("mybooks:session", update); };
   }, []);
   useEffect(() => {
     if (offline && !/^\/(library|my-books|notes|book\/[^/]+|read\/[^/]+)\/?$/.test(location.pathname)) navigate("/library", { replace: true });
@@ -32,8 +33,8 @@ export function OfflineStatus() {
       <span><strong>{offline ? "Modo offline" : status.busy ? "Sincronizando" : "Sincronização pendente"}</strong><small>{status.error || (offline ? `Apenas livros instalados.${pending ? ` ${pending} alterações salvas neste aparelho.` : ""}` : `${pending} alterações aguardando envio.`)}</small></span>
       {!offline && !status.busy && <button onClick={() => void synchronize()} aria-label="Sincronizar agora"><Wifi size={17}/></button>}
     </div>}
-    {installPrompt && !offline && <button className="mb-install-app" onClick={async () => { await installPrompt.prompt(); setInstallPrompt(null); }}><Download size={16}/> Instalar myBooks</button>}
-    {!installPrompt && !offline && !window.matchMedia("(display-mode: standalone)").matches && <button className="mb-install-app" onClick={() => setHelp(!help)}><Download size={16}/> Instalar app</button>}
+    {available && !installed && !offline && <button className="mb-install-app" disabled={busy} onClick={() => void installApp()}><Download size={16}/> Instalar myBooks</button>}
+    {!available && !installed && !offline && <button className="mb-install-app" onClick={() => setHelp(!help)}><Download size={16}/> Instalar app</button>}
     {help && <div className="mb-install-help"><button aria-label="Fechar instruções" onClick={() => setHelp(false)}><X size={16}/></button><strong>Leve sua biblioteca com você</strong><p>No Android ou PC, use “Instalar aplicativo” no menu do navegador. No iPhone/iPad, abra no Safari, toque em Compartilhar e em “Adicionar à Tela de Início”.</p></div>}
   </>;
 }
