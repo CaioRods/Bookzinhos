@@ -22,7 +22,7 @@ export function ThemeEditor({ theme, onClose, onSaved }: { theme: SceneTheme | n
   useEffect(() => { if (!theme?.reference?.bookId) return; let alive = true; fetchBooks().then(books => { const book = books.find(book => book.id === theme.reference?.bookId); if (alive && book) setBookName(book.title); }).catch(() => {}); return () => { alive = false; }; }, [theme?.reference?.bookId]);
   const fileInput = useRef<HTMLInputElement>(null), url = useRef("");
   const { themes } = useThemeCatalog();
-  const atLimit = scope === "personal" && theme?.scope !== "personal" && themes.filter(entry => entry.scope === "personal").length >= 4;
+  const atLimit = !isAdmin() && scope === "personal" && theme?.scope !== "personal" && themes.filter(entry => entry.scope === "personal").length >= 40;
   useEffect(() => () => { if (url.current) URL.revokeObjectURL(url.current); }, []);
   const imageChange = async (candidate?: File) => {
     if (!candidate) return; setReading(true); setError("");
@@ -49,7 +49,7 @@ export function ThemeEditor({ theme, onClose, onSaved }: { theme: SceneTheme | n
       {draft.reference && <div className="mb-theme-reference-fields"><button className="mb-btn mb-btn-outline" onClick={() => setPicker(true)}>{draft.reference.bookId ? `Livro: ${bookName}` : "Pesquisar livro de referência"}</button><label>Nome da saga (opcional)<input className="mb-input" aria-label="Nome da saga" value={draft.reference.saga} maxLength={100} onChange={event => setDraft({ ...draft, reference: { ...draft.reference!, saga: event.target.value } })} placeholder="Ex.: O povo do ar" /></label></div>}
       {isAdmin() && <label className="mb-theme-checkbox mb-system-publish"><input type="checkbox" checked={scope === "system"} onChange={event => setScope(event.target.checked ? "system" : "personal")} />Disponível para todos (Admin)<small>Ativado: publica ou atualiza um tema do sistema. Desativado: salva uma cópia pessoal.</small></label>}
       {!isAdmin() && <label className="mb-theme-checkbox mb-system-publish"><input type="checkbox" checked={requestPublic} onChange={event => setRequestPublic(event.target.checked)} />Solicitar ao admin para liberar para todos<small>Seu tema continua pessoal enquanto aguarda análise.</small></label>}
-      {atLimit && <p role="alert">Você já tem quatro temas pessoais. Edite ou exclua um deles para criar outro.</p>}{error && <p role="alert" className="mb-editor-error">{error}</p>}
+      {atLimit && <p role="alert">Você já tem 40 temas pessoais. Edite ou exclua um deles para criar outro.</p>}{error && <p role="alert" className="mb-editor-error">{error}</p>}
     </div>
   </Modal>{picker && <BookPicker selectedId={draft.reference?.bookId || ""} title="Livro de referência do tema" onSelect={book => { setDraft(current => ({ ...current, reference: { bookId: book.id, saga: current.reference?.saga || "" } })); setBookName(book.title); }} onClose={() => setPicker(false)} />}</>;
 }

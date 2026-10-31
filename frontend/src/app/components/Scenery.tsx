@@ -33,7 +33,7 @@ export function ScenePicker() {
   return <>
     <Modal open={open} onClose={() => { setOpen(false); setSelectedGroup(null); }} title="Escolha seu cenário" description="Encontre um universo para chamar de seu." size="xl">
       <div className="mb-theme-library">
-        <div className="mb-theme-toolbar"><button className="mb-btn mb-btn-soft" aria-pressed={settings.scene === "none"} onClick={() => update({ scene: "none" })}>Sem tema · cores padrão</button><button className="mb-btn mb-btn-outline" onClick={() => setEditing(null)} disabled={!member || (mine.length >= 4 && !admin)}><Plus size={16} /> Criar tema <small>{mine.length}/4 pessoais</small></button></div>
+        <div className="mb-theme-toolbar"><button className="mb-btn mb-btn-soft" aria-pressed={settings.scene === "none"} onClick={() => update({ scene: "none" })}>Sem tema · cores padrão</button><button className="mb-btn mb-btn-outline" onClick={() => setEditing(null)} disabled={!member || (mine.length >= 40 && !admin)}><Plus size={16} /> Criar tema <small>{mine.length}{admin ? " pessoais · sem limite" : "/40 pessoais"}</small></button></div>
         {error && <p role="status" className="mb-editor-error">Não foi possível carregar os temas: {error}</p>}
         {group ? <>
           <button className="mb-btn mb-btn-ghost mb-theme-back" onClick={() => setSelectedGroup(null)}><ArrowLeft size={16}/> Todos os livros</button>
@@ -48,6 +48,6 @@ export function ScenePicker() {
       </div>
     </Modal>
     {editing !== undefined && <ThemeEditor theme={editing} onClose={() => setEditing(undefined)} onSaved={theme => { upsert(theme); update({ scene: theme.id as SceneId }); setEditing(undefined); }} />}
-    <ConfirmDialog open={!!deleting} title={deleting?.scope === "system" ? "Remover personalização do sistema?" : "Excluir tema pessoal?"} description={deleting?.scope === "system" ? "O tema deixará de ser publicado. Se for um dos seis originais, ele voltará ao padrão para todos." : "O tema será excluído da sua conta e liberará uma das quatro vagas."} confirmLabel={busy ? "Removendo…" : "Remover"} destructive onConfirm={() => { if (!busy) erase(); }} onCancel={() => { if (!busy) setDeleting(null); }} />
+    <ConfirmDialog open={!!deleting} title={deleting?.scope === "system" ? "Remover personalização do sistema?" : "Excluir tema pessoal?"} description={deleting?.scope === "system" ? "O tema deixará de ser publicado. Se for um dos seis originais, ele voltará ao padrão para todos." : "O tema será excluído da sua conta e liberará uma das 40 vagas."} confirmLabel={busy ? "Removendo…" : "Remover"} destructive onConfirm={() => { if (!busy) erase(); }} onCancel={() => { if (!busy) setDeleting(null); }} />
   </>;
 }

@@ -96,9 +96,9 @@ module.exports = function registerAppearance({ app, db, sql, upload, uploadFileT
       const [existing] = await db.query(sql`SELECT * FROM appearance_themes WHERE id = ${String(req.body.id || '')}`);
       const own = existing && existing.owner.toLowerCase() === owner.toLowerCase();
       // Check the personal limit before uploading a new binary.
-      if (!own && scope === 'personal') {
+      if (!own && scope === 'personal' && !Number(req.themeUser.is_admin)) {
         const [count] = await db.query(sql`SELECT COUNT(*) AS n FROM appearance_themes WHERE owner = ${owner} COLLATE NOCASE`);
-        if (Number(count.n) >= 4) return res.status(409).json({ error: 'Você já tem quatro temas pessoais. Edite ou exclua um deles.' });
+        if (Number(count.n) >= 40) return res.status(409).json({ error: 'Você já tem 40 temas pessoais. Edite ou exclua um deles.' });
       }
       const uploaded = await storeImage(req.file);
       if (uploaded) { config.imageUrl = uploaded; config.atlas = null; }
@@ -106,14 +106,14 @@ module.exports = function registerAppearance({ app, db, sql, upload, uploadFileT
       const id = own ? existing.id : scope === 'system' && BUILTINS.has(req.body.id) ? req.body.id : `theme-${crypto.randomUUID()}`;
       const data = JSON.stringify(config), now = Date.now();
       if (own) await db.query(sql`UPDATE appearance_themes SET data = ${data}, updated_at = ${now} WHERE id = ${id} AND owner = ${owner} COLLATE NOCASE`);
-      else if (scope === 'system') await db.query(sql`INSERT INTO appearance_themes(id, owner, slot, data, updated_at) VALUES (${id}, '', NULL, ${data}, ${now})`);
+      else if (scope === 'system' || Number(req.themeUser.is_admin)) await db.query(sql`INSERT INTO appearance_themes(id, owner, slot, data, updated_at) VALUES (${id}, ${owner}, NULL, ${data}, ${now})`);
       else {
         let inserted = false;
-        for (let slot = 1; slot <= 4 && !inserted; slot++) {
+        for (let slot = 1; slot <= 40 && !inserted; slot++) {
           try { await db.query(sql`INSERT INTO appearance_themes(id, owner, slot, data, updated_at) VALUES (${id}, ${owner}, ${slot}, ${data}, ${now})`); inserted = true; }
           catch (error) { if (!/unique/i.test(error.message)) throw error; }
         }
-        if (!inserted) return res.status(409).json({ error: 'Limite de quatro temas pessoais atingido.' });
+        if (!inserted) return res.status(409).json({ error: 'Limite de 40 temas pessoais atingido.' });
       }
       const [saved] = await db.query(sql`SELECT * FROM appearance_themes WHERE id = ${id}`);
       res.json(decode(saved));

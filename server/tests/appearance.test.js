@@ -30,13 +30,18 @@ test('theme ownership, concurrent limit, public overrides and book appearance pe
   const list = user => fetch(base + '/appearance/themes', { headers: user ? { 'x-user-id': user } : {} }).then(response => response.json());
   assert.equal((await save('Missing')).status, 401);
   assert.equal((await save('Reader', 'system')).status, 403);
-  const responses = await Promise.all(Array.from({ length: 8 }, () => save('Reader')));
-  assert.equal(responses.filter(response => response.status === 200).length, 4);
+  const responses = await Promise.all(Array.from({ length: 44 }, () => save('Reader')));
+  assert.equal(responses.filter(response => response.status === 200).length, 40);
   assert.equal(responses.filter(response => response.status === 409).length, 4);
   const personal = await list('Reader');
-  assert.equal(personal.length, 4);
+  assert.equal(personal.length, 40);
   assert.equal((await list('Other')).length, 0);
   assert.equal((await list()).length, 0);
+  const adminThemes = await Promise.all(Array.from({ length: 42 }, () => save('Admin')));
+  assert.equal(adminThemes.filter(response => response.status === 200).length, 42);
+  assert.equal((await list('Admin')).length, 42);
+  assert.equal((await list()).length, 0);
+
   const edited = await (await save('Reader', 'personal', personal[0].id, { ...config, profile: { x: 1, y: 2, zoom: 3 } })).json();
   assert.equal(edited.profile.x, 1);
   assert.equal(edited.sidebar.x, 80);
