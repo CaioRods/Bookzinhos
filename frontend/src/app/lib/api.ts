@@ -71,7 +71,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   try { res = await fetch(url, {
     method,
     credentials: "include",
-    headers: { "Content-Type": "application/json", ...(user && /^\/(progress|saved|notes)/.test(path) ? { "X-Offline-Account": user } : {}) },
+    headers: { "Content-Type": "application/json", ...(user && /^\/(progress|saved|notes|reader)/.test(path) ? { "X-Offline-Account": user } : {}) },
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
 
@@ -802,3 +802,5 @@ export async function deleteChapter(bookId: string, startPage: number) {
 }
 
 if (typeof window !== "undefined") window.addEventListener("mybooks:synced", () => invalidate());
+
+export function markReaderTutorialSeen() { return request<{ ok: true }>("POST", "/reader/tutorial-seen"); }

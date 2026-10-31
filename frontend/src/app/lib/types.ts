@@ -104,6 +104,7 @@ export interface UserProfile {
   shelf: string[];
   pandinhas: number;
   isAdmin?: boolean;
+  readerTutorialSeen?: boolean;
   animationsDefaultOff?: boolean;
   privacyRequired?: boolean;
   privacyAcceptedVersion?: string;

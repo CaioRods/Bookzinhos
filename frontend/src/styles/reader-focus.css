@@ -1,0 +1,40 @@
+@layer components {
+  .mb-reader-preset-frame { position:absolute; inset:0; transform-origin:center; will-change:transform; }
+  .mb-reader-chrome-toggle { position:absolute; z-index:35; bottom:calc(env(safe-area-inset-bottom) + 22px); right:22px; width:44px; height:44px; display:grid; place-items:center; border-radius:50%; color:var(--text-2); background:color-mix(in srgb,var(--surface) 82%,transparent); backdrop-filter:blur(20px); box-shadow:0 4px 20px #21152225; border:1px solid var(--line); cursor:pointer; }
+  .show-chrome .mb-reader-chrome-toggle { bottom:calc(env(safe-area-inset-bottom) + 140px); }
+  html[data-reader-chrome=hidden] .mb-offline-status.is-reader,
+  html[data-reader-chrome=hidden] .mb-install-app,
+  html[data-reader-chrome=hidden] .mb-install-help { display:none; }
+  .mb-reader-tutorial { display:grid; gap:22px; padding:8px 0; }
+  .mb-reader-tutorial p { display:flex; align-items:flex-start; gap:14px; font-size:12.5px; color:var(--text-3); line-height:1.65; }
+  .mb-reader-tutorial p > svg { flex-shrink:0; color:var(--primary); width:22px; margin-top:3px; }
+  .mb-reader-tutorial strong { display:block; font-size:14px; color:var(--foreground); margin-bottom:4px; }
+  .mb-reader-calibration { position:absolute; inset:0; z-index:100; overflow:hidden; background:inherit; }
+  .mb-calibration-preview { position:absolute; inset:0; touch-action:none; overflow:hidden; }
+  .mb-reader-calibration > header,.mb-reader-calibration > footer { position:absolute; z-index:3; left:12px; right:12px; max-width:700px; margin:auto; padding:16px 20px; border-radius:22px; border:1px solid var(--line); background:color-mix(in srgb,var(--surface) 85%,transparent); backdrop-filter:blur(24px); box-shadow:0 8px 30px #21152220; color:var(--foreground); }
+  .mb-reader-calibration > header { top:max(12px,env(safe-area-inset-top)); display:flex; justify-content:space-between; gap:12px; pointer-events:none; }
+  .mb-reader-calibration > header button { pointer-events:auto; align-self:flex-start; padding:4px; cursor:pointer; }
+  .mb-reader-calibration small { display:block; font-size:10px; color:var(--text-3); letter-spacing:1px; }
+  .mb-reader-calibration h2 { font-size:20px; font-weight:700; margin:5px 0; }
+  .mb-reader-calibration p { font-size:12px; color:var(--text-3); line-height:1.5; }
+  .mb-reader-calibration > footer { bottom:max(12px,env(safe-area-inset-bottom)); }
+  .mb-calibration-controls { display:flex; flex-wrap:wrap; align-items:center; gap:14px; }
+  .mb-calibration-controls label { display:flex; align-items:center; gap:8px; flex:1; font-size:12px; }
+  .mb-calibration-controls input { min-width:60px; width:100%; accent-color:var(--primary); }
+  .mb-calibration-actions { display:flex; justify-content:space-between; gap:12px; margin:12px 0 9px; }
+  .mb-reader-calibration footer > small { letter-spacing:0; }
+  .mb-calibration-crosshair { position:absolute; pointer-events:none; inset:48% 48%; border:1px solid #a3837b70; border-radius:50%; width:18px; height:18px; margin:auto; }
+  .mb-book-context { display:flex; flex-direction:column; height:min(480px,calc(100dvh - 24px)); }
+  .mb-book-context > div:first-child { flex-shrink:0; max-height:30dvh; overflow:hidden; }
+  .mb-context-scroll { overflow-y:auto; overscroll-behavior:contain; min-height:0; flex:1; scrollbar-width:thin; }
+  .mb-context-scroll > div { padding:8px 0; }
+  .mb-context-scroll .mb-offline-book { margin:3px 12px 7px; }
+  .mb-context-more { flex-shrink:0; display:flex; gap:7px; align-items:center; justify-content:center; padding:7px; color:var(--primary); font-size:11px; border-top:1px solid var(--line); background:var(--surface-2); cursor:pointer; }
+  .mb-context-more[hidden] { display:none; }
+  .mb-context-close { flex-shrink:0; min-height:38px; border-top:1px solid var(--line); font-size:12px; color:var(--text-3); cursor:pointer; }
+  .mb-add-booklist-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; }
+  .mb-add-booklist-grid > button { min-width:0; cursor:pointer; text-align:left; }
+  .mb-add-booklist-grid > button > span { display:flex; align-items:center; gap:6px; font-size:11px; margin-top:9px; color:var(--primary); }
+  .mb-add-booklist-grid .already-included { filter:grayscale(1); opacity:.4; cursor:not-allowed; }
+  @media(max-width:600px) { .mb-add-booklist-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .mb-reader-calibration > header,.mb-reader-calibration > footer { padding:13px; } }
+}

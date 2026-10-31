@@ -141,6 +141,7 @@ export async function queueMutation<T>(method: string, path: string, body?: any)
     const id = decodeURIComponent(path.slice(7));
     for (const row of await rows<Note[]>(prefix(user, "snapshot") + "/notes/book/")) snapshots.push({ key: row.key, value: row.value.filter(note => note.id !== id) });
     value = undefined;
+  } else if (method === "POST" && path === "/reader/tutorial-seen") { value = { ok: true };
   } else throw new Error("Esta ação precisa de conexão para validar suas permissões. Conecte-se e tente novamente.");
   const mutation: PendingMutation = { id: stable, revision: crypto.randomUUID(), user, method, path, body, at: Date.now() };
   await write([...snapshots, { key: deviceKey(user, "queue", stable), value: mutation }]); deviceChanged(); return value;

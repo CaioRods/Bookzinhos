@@ -22,3 +22,10 @@ export async function deleteBooklist(id: string) {
   const response = await fetch(API_BASE_URL + "/booklists/" + encodeURIComponent(id), { method: "DELETE", credentials: "include" });
   if (!response.ok) throw new Error("Não foi possível excluir a Booklist.");
 }
+
+export async function addBookToBooklist(id: string, bookId: string): Promise<Booklist> {
+  if (isOffline()) throw new Error("Conecte-se para adicionar livros à Booklist.");
+  const response=await fetch(API_BASE_URL+"/booklists/"+encodeURIComponent(id)+"/books",{method:"POST",credentials:"include",headers:{"Content-Type":"application/json","X-Offline-Account":account()},body:JSON.stringify({bookId})});
+  if(!response.ok) throw new Error((await response.json()).error||"Não foi possível adicionar o livro.");
+  return response.json();
+}

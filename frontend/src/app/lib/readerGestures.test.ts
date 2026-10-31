@@ -1,0 +1,12 @@
+// @vitest-environment jsdom
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { installReaderGestures } from "./readerGestures";
+const point=(identifier:number,x=100,y=100)=>({identifier,clientX:x,clientY:y});
+function touch(element:HTMLElement,type:string,touches:ReturnType<typeof point>[],changed=touches){const event=new Event(type,{bubbles:true,cancelable:true});Object.assign(event,{touches,changedTouches:changed});element.dispatchEvent(event);}
+let element:HTMLElement,dispose:()=>void;const tap=vi.fn(),swipe=vi.fn(),adjust=vi.fn();
+beforeEach(()=>{vi.useFakeTimers();tap.mockClear();swipe.mockClear();adjust.mockClear();element=document.createElement("div");document.body.append(element);dispose=installReaderGestures(element,{tap,swipe,adjust,canSwipe:()=>true});});
+afterEach(()=>{dispose();element.remove();vi.useRealTimers();});
+it("reveals the toggle on a stationary tap and only changes page on horizontal swipe",()=>{touch(element,"touchstart",[point(1,150)]);touch(element,"touchend",[],[point(1,150)]);expect(tap).toHaveBeenCalledOnce();tap.mockClear();touch(element,"touchstart",[point(1,200)]);touch(element,"touchmove",[point(1,80)]);touch(element,"touchend",[],[point(1,80)]);expect(swipe).toHaveBeenCalledWith(true);expect(tap).not.toHaveBeenCalled();});
+it("requires three stable fingers for three seconds and never treats their release as a tap",()=>{const fingers=[point(1,100),point(2,150),point(3,200)];touch(element,"touchstart",fingers);vi.advanceTimersByTime(2999);expect(adjust).not.toHaveBeenCalled();vi.advanceTimersByTime(1);expect(adjust).toHaveBeenCalledOnce();touch(element,"touchend",[],fingers);expect(tap).not.toHaveBeenCalled();expect(swipe).not.toHaveBeenCalled();});
+it.each(["release","move","cancel"])("cancels the three-finger hold after %s",action=>{const fingers=[point(1),point(2,150),point(3,200)];touch(element,"touchstart",fingers);vi.advanceTimersByTime(1500);if(action==="release")touch(element,"touchend",[],fingers);else if(action==="move")touch(element,"touchmove",[point(1,130),fingers[1],fingers[2]]);else touch(element,"touchcancel",[]);vi.advanceTimersByTime(3000);expect(adjust).not.toHaveBeenCalled();});
+it("does not turn vertical scrolling or a drag out and back into a tap",()=>{touch(element,"touchstart",[point(1)]);touch(element,"touchmove",[point(1,100,220)]);touch(element,"touchend",[],[point(1)]);expect(tap).not.toHaveBeenCalled();expect(swipe).not.toHaveBeenCalled();});

@@ -78,3 +78,5 @@ html {
 @import "./theme-library.css";
 
 @import "./offline-booklists.css";
+
+@import "./reader-focus.css";

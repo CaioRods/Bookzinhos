@@ -734,6 +734,7 @@ function publicUser(user) {
     shelf: user.shelf ? safeParse(user.shelf) : [],
     pandinhas: Number(user.pandinhas) || 0,
     isAdmin: !!Number(user.is_admin),
+    readerTutorialSeen: !!Number(user.reader_tutorial_seen),
     animationsDefaultOff: !!Number(user.animations_default_off),
     privacyRequired: !!Number(user.privacy_required) && !Number(user.privacy_accepted_at),
     privacyAcceptedVersion: user.privacy_version || "",
@@ -1975,6 +1976,11 @@ app.post("/notifications/read", requireUser, async (req, res) => {
     }
     res.json({ ok: true });
   } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post("/reader/tutorial-seen", requireUser, async (req, res) => {
+  try { await db.query(sql`UPDATE users SET reader_tutorial_seen = 1 WHERE username = ${currentUser(req)} COLLATE NOCASE`); res.json({ ok: true }); }
+  catch (error) { res.status(500).json({ error: error.message }); }
 });
 
 // ─── PROGRESS ─────────────────────────────────────────────────────────────────

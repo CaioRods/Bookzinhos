@@ -86,6 +86,7 @@ export function saveSession(user: Partial<UserProfile> & { username: string }): 
   if (user.avatar != null) localStorage.setItem(KEYS.avatar, user.avatar);
   localStorage.setItem(KEYS.admin, String(!!user.isAdmin));
   if (user.shelf) localStorage.setItem(KEYS.shelf, JSON.stringify(user.shelf));
+  if (user.readerTutorialSeen) localStorage.setItem(`mybooks:reader-tutorial:${user.username.toLowerCase()}`, "true");
   if (user.privacyAcceptedVersion !== undefined) localStorage.setItem(KEYS.privacyAcceptedVersion, user.privacyAcceptedVersion);
   if (user.themeId !== undefined) {
     try {

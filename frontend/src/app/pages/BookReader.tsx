@@ -1,10 +1,15 @@
+import { ReaderCalibration } from "../components/ReaderCalibration";
+import { ReaderTutorial } from "../components/ReaderTutorial";
+import { defaultPreset, hasSeenReaderTutorial, loadReaderPresets, rememberReaderTutorial, saveReaderPresets, type ReaderPresets } from "../lib/readerDevice";
+import { installReaderGestures } from "../lib/readerGestures";
+import { markReaderTutorialSeen } from "../lib/api";
 import { installedPdf, isOffline } from "../lib/offline/device";
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router";
 import {
   ArrowLeft, Settings, ChevronLeft, ChevronRight, PenLine, PauseCircle, PlayCircle,
   CheckCircle, Maximize2, Minimize2, List, Download, Loader2, Sun, Plus, Minus,
-  BookOpen, ScrollText, Columns2, Square, Bookmark, X,
+  Eye, EyeOff, Hand, HelpCircle, BookOpen, ScrollText, Columns2, Square, Bookmark, X,
 } from "lucide-react";
 import { fetchBook, fetchProgress, saveProgress, fetchChapters, saveChapter, deleteChapter, sendActivityHeartbeat } from "../lib/api";
 import { createActivityTracker } from "../lib/activityTracker";
@@ -132,7 +137,7 @@ export function BookReader() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const [prefs, setPrefs] = useState<Prefs>(() =>
-    loadPrefs(typeof window !== "undefined" && window.innerWidth < 900 ? "scroll" : "double")
+    loadPrefs(typeof window !== "undefined" && window.innerWidth < 900 ? "single" : "double")
   );
   const setPref = useCallback(<K extends keyof Prefs>(key: K, value: Prefs[K]) => {
     setPrefs((prev) => {
@@ -148,7 +153,17 @@ export function BookReader() {
   const [isPaused, setIsPaused] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
 
-  const [showUi, setShowUi] = useState(true);
+  const [showUi, setShowUi] = useState(false);
+  const [showToggle, setShowToggle] = useState(false);
+  const touchDevice = typeof navigator !== "undefined" && (navigator.maxTouchPoints > 0 || window.matchMedia("(pointer: coarse)").matches);
+  const [showTutorial, setShowTutorial] = useState(() => touchDevice && !hasSeenReaderTutorial());
+  const [presets, setPresets] = useState<ReaderPresets>(loadReaderPresets);
+  const [adjusting, setAdjusting] = useState(false);
+  const gestureOptions = useRef<{ tap: () => void; swipe: (next: boolean) => void; adjust: () => void; canSwipe: () => boolean }>({ tap: () => {}, swipe: () => {}, adjust: () => {}, canSwipe: () => false });
+  useLayoutEffect(() => {
+    document.documentElement.dataset.readerChrome = showUi ? "visible" : "hidden";
+    return () => { delete document.documentElement.dataset.readerChrome; };
+  }, [showUi]);
   const [panel, setPanel] = useState<null | "settings" | "chapters">(null);
   const [jumpInput, setJumpInput] = useState("");
 
@@ -167,7 +182,7 @@ export function BookReader() {
   const [stageEl, setStageEl] = useState<HTMLDivElement | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const uiTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const touchRef = useRef<{ x: number; y: number; t: number } | null>(null);
+
   const savedPageRef = useRef(-1);
   const activityPageRef = useRef(1);
   const restoredRef = useRef(false);
@@ -303,23 +318,24 @@ export function BookReader() {
 
   // ── Dimensões da página renderizada ───────────────────────────────────────
   const GAP = 18;
-  const pageWidth = useMemo(() => {
+  const frameWidth = (layout: Layout) => {
     if (viewport.w <= 0) return 0;
-    const padding = prefs.layout === "scroll" ? 24 : 40;
+    const padding = layout === "scroll" ? 24 : 40;
     const availW = Math.max(viewport.w - padding, 120);
     const availH = Math.max(viewport.h - padding, 200);
 
-    if (prefs.layout === "double") {
+    if (layout === "double") {
       const byWidth = (availW - GAP) / 2;
       const byHeight = availH / pageAspect;
       return Math.floor(prefs.fitHeight ? Math.min(byWidth, byHeight) : byWidth) * prefs.pageScale;
     }
-    if (prefs.layout === "single") {
+    if (layout === "single") {
       const byHeight = availH / pageAspect;
       return Math.floor(prefs.fitHeight ? Math.min(availW, byHeight) : availW) * prefs.pageScale;
     }
     return Math.floor(Math.min(availW, 920)) * prefs.pageScale;
-  }, [viewport, pageAspect, prefs.layout, prefs.fitHeight, prefs.pageScale]);
+  };
+  const pageWidth = frameWidth(prefs.layout);
 
   const pageHeight = pageWidth * pageAspect;
   const rowHeight = pageHeight + GAP;
@@ -360,40 +376,42 @@ export function BookReader() {
   const goNext = useCallback(() => goToPage(currentPage + step), [goToPage, currentPage, step]);
   const goPrev = useCallback(() => goToPage(currentPage - step), [goToPage, currentPage, step]);
 
-  // ── Interface que se esconde sozinha ──────────────────────────────────────
-  const wakeUi = useCallback((keepOpen = false) => {
-    setShowUi(true);
-    clearTimeout(uiTimerRef.current);
-    if (!keepOpen) uiTimerRef.current = setTimeout(() => setShowUi(false), 3800);
+  // A tap only reveals the explicit chrome toggle; a swipe never wakes the UI.
+  const wakeUi = useCallback(() => {
+    setShowToggle(true); clearTimeout(uiTimerRef.current);
+    uiTimerRef.current = setTimeout(() => setShowToggle(false), 4000);
   }, []);
-
+  useEffect(() => () => clearTimeout(uiTimerRef.current), []);
+  useEffect(() => { if (panel) setShowUi(true); }, [panel]);
+  gestureOptions.current = {
+    tap: wakeUi,
+    swipe: next => { if (next) goNext(); else goPrev(); clearTimeout(uiTimerRef.current); setShowToggle(false); },
+    adjust: () => { if (!showTutorial) { setPanel(null); setAdjusting(true); setShowToggle(false); } },
+    canSwipe: () => prefs.layout !== "scroll" && !adjusting && !showTutorial,
+  };
   useEffect(() => {
-    wakeUi();
-    return () => clearTimeout(uiTimerRef.current);
-  }, [wakeUi]);
-
-  useEffect(() => {
-    if (panel) {
-      clearTimeout(uiTimerRef.current);
-      setShowUi(true);
-    }
-  }, [panel]);
+    if (!stageEl || adjusting || showTutorial) return;
+    return installReaderGestures(stageEl, { tap: () => gestureOptions.current.tap(), swipe: next => gestureOptions.current.swipe(next), adjust: () => gestureOptions.current.adjust(), canSwipe: () => gestureOptions.current.canSwipe() });
+  }, [stageEl, adjusting, showTutorial]);
+  const closeTutorial = () => { try { rememberReaderTutorial(); } catch { /* O aceite no servidor ainda é registrado. */ } setShowTutorial(false); void markReaderTutorialSeen().catch(() => {}); };
 
   // ── Teclado ───────────────────────────────────────────────────────────────
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (adjusting || showTutorial) return;
       const tag = document.activeElement?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA") return;
 
       switch (e.key) {
-        case "ArrowRight": case "PageDown": e.preventDefault(); goNext(); wakeUi(); break;
-        case "ArrowLeft": case "PageUp": e.preventDefault(); goPrev(); wakeUi(); break;
-        case " ": e.preventDefault(); e.shiftKey ? goPrev() : goNext(); wakeUi(); break;
+        case "ArrowRight": case "PageDown": e.preventDefault(); goNext(); break;
+        case "ArrowLeft": case "PageUp": e.preventDefault(); goPrev(); break;
+        case " ": e.preventDefault(); e.shiftKey ? goPrev() : goNext(); break;
         case "Home": e.preventDefault(); goToPage(0); break;
         case "End": e.preventDefault(); goToPage(total - 1); break;
         case "+": case "=": setPref("pageScale", Math.min(prefs.pageScale + 0.1, 2.5)); break;
         case "-": setPref("pageScale", Math.max(prefs.pageScale - 0.1, 0.5)); break;
-        case "Escape": setPanel(null); break;
+        case "Escape": setPanel(null); setShowUi(false); setShowToggle(false); break;
+        case "h": case "H": setShowUi(value => !value); break;
         case "t": case "T": {
           const keys = Object.keys(THEMES) as ThemeKey[];
           setPref("theme", keys[(keys.indexOf(prefs.theme) + 1) % keys.length]);
@@ -406,7 +424,7 @@ export function BookReader() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [goNext, goPrev, goToPage, total, prefs.pageScale, prefs.theme]);
+  }, [goNext, goPrev, goToPage, total, prefs.pageScale, prefs.theme, adjusting, showTutorial]);
 
   const toggleFullscreen = async () => {
     try {
@@ -427,29 +445,6 @@ export function BookReader() {
     } finally {
       setIsDownloading(false);
     }
-  };
-
-  // ── Toque: deslizar vira página, toque no meio mostra os controles ────────
-  const onTouchStart = (e: React.TouchEvent) => {
-    if (e.touches.length !== 1) return;
-    touchRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now() };
-  };
-
-  const onTouchEnd = (e: React.TouchEvent) => {
-    const start = touchRef.current;
-    touchRef.current = null;
-    if (!start || e.changedTouches.length !== 1) return;
-
-    const dx = e.changedTouches[0].clientX - start.x;
-    const dy = e.changedTouches[0].clientY - start.y;
-    const dt = Date.now() - start.t;
-
-    if (prefs.layout !== "scroll" && Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy) * 1.6 && dt < 500) {
-      dx < 0 ? goNext() : goPrev();
-      wakeUi();
-      return;
-    }
-    if (Math.hypot(dx, dy) < 12 && dt < 320) setShowUi((v) => !v);
   };
 
   const currentChapter = useMemo<{ chapter: BookChapter; number: number } | null>(() => {
@@ -520,7 +515,8 @@ export function BookReader() {
   const progressPct = ((currentPage + 1) / total) * 100;
 
   // ── Conteúdo ──────────────────────────────────────────────────────────────
-  const renderStage = () => {
+  const renderStage = (layout: Layout = prefs.layout, page = currentPage) => {
+    const pageWidth = frameWidth(layout), pageHeight = pageWidth * pageAspect;
     if (errorMessage) {
       return (
         <div className="h-full flex items-center justify-center px-8">
@@ -546,7 +542,7 @@ export function BookReader() {
         );
       }
 
-      if (prefs.layout === "scroll") {
+      if (layout === "scroll") {
         // Só as páginas próximas da janela são desenhadas; o resto é altura vazia.
         const first = Math.max(0, Math.floor(scrollTop / rowHeight) - 1);
         const last = Math.min(total - 1, Math.ceil((scrollTop + viewport.h) / rowHeight) + 1);
@@ -593,12 +589,12 @@ export function BookReader() {
         );
       }
 
-      const showRight = prefs.layout === "double" && currentPage + 1 < total;
+      const showRight = layout === "double" && page + 1 < total;
       return (
         <div className="h-full w-full flex items-center justify-center overflow-auto no-scrollbar p-4">
           <div className="flex items-start" style={{ gap: GAP }}>
             <div
-              key={`L${currentPage}`}
+              key={`L${page}`}
               className="rounded-md overflow-hidden animate-fade-in"
               style={{
                 width: pageWidth,
@@ -609,7 +605,7 @@ export function BookReader() {
             >
               <PdfCanvas
                 doc={pdfDoc}
-                pageNumber={currentPage + 1}
+                pageNumber={page + 1}
                 width={pageWidth}
                 filter={`${theme.filter} brightness(${prefs.brightness})`}
                 className="block"
@@ -617,7 +613,7 @@ export function BookReader() {
             </div>
             {showRight && (
               <div
-                key={`R${currentPage}`}
+                key={`R${page}`}
                 className="rounded-md overflow-hidden animate-fade-in"
                 style={{
                   width: pageWidth,
@@ -628,7 +624,7 @@ export function BookReader() {
               >
                 <PdfCanvas
                   doc={pdfDoc}
-                  pageNumber={currentPage + 2}
+                  pageNumber={page + 2}
                   width={pageWidth}
                   filter={`${theme.filter} brightness(${prefs.brightness})`}
                   className="block"
@@ -650,7 +646,7 @@ export function BookReader() {
       hyphens: "auto",
     };
 
-    if (prefs.layout === "scroll") {
+    if (layout === "scroll") {
       return (
         <div ref={scrollRef} className="h-full w-full overflow-auto no-scrollbar px-5 py-16">
           <div className="mx-auto space-y-10" style={textStyle}>
@@ -664,13 +660,13 @@ export function BookReader() {
 
     return (
       <div className="h-full w-full overflow-auto no-scrollbar px-5 py-14 flex items-start justify-center">
-        <div className={`w-full flex ${prefs.layout === "double" ? "gap-12" : ""}`} style={{ maxWidth: prefs.layout === "double" ? "60rem" : "38rem" }}>
-          <p key={currentPage} className="flex-1 whitespace-pre-wrap animate-fade-in" style={textStyle}>
-            {textPages[currentPage]}
+        <div className={`w-full flex ${layout === "double" ? "gap-12" : ""}`} style={{ maxWidth: layout === "double" ? "60rem" : "38rem" }}>
+          <p key={page} className="flex-1 whitespace-pre-wrap animate-fade-in" style={textStyle}>
+            {textPages[page]}
           </p>
-          {prefs.layout === "double" && currentPage + 1 < textPages.length && (
-            <p key={currentPage + 1} className="flex-1 whitespace-pre-wrap animate-fade-in" style={textStyle}>
-              {textPages[currentPage + 1]}
+          {layout === "double" && page + 1 < textPages.length && (
+            <p key={page + 1} className="flex-1 whitespace-pre-wrap animate-fade-in" style={textStyle}>
+              {textPages[page + 1]}
             </p>
           )}
         </div>
@@ -681,31 +677,32 @@ export function BookReader() {
   return (
     <div
       ref={rootRef}
-      className="mb-reader h-full w-full relative overflow-hidden select-none"
+      className={`mb-reader h-full w-full relative overflow-hidden select-none ${showUi ? "show-chrome" : "clean-reading"}`}
       style={{ background: theme.bg, color: theme.fg, transition: "background-color .4s ease, color .4s ease" }}
-      onMouseMove={() => wakeUi()}
+      onMouseMove={() => { if (!touchDevice && !adjusting && !showTutorial) wakeUi(); }}
     >
       {/* ── Palco ─────────────────────────────────────────────────────────── */}
       <div
         ref={setStageEl}
-        className="absolute inset-0"
-        onTouchStart={onTouchStart}
-        onTouchEnd={onTouchEnd}
+        className="absolute inset-0 mb-reader-stage"
+        data-reader-stage
+        data-reader-page={currentPage + 1}
+        style={{ touchAction: "pan-y" }}
         onClick={(e) => {
           // No desktop, clicar no meio alterna os controles; nas laterais, vira a página.
-          if (tier === "mobile") return;
+          if (touchDevice || adjusting || showTutorial) return;
           const x = e.clientX - (e.currentTarget.getBoundingClientRect().left || 0);
           const w = e.currentTarget.clientWidth;
           if (prefs.layout !== "scroll" && x < w * 0.22) goPrev();
           else if (prefs.layout !== "scroll" && x > w * 0.78) goNext();
-          else setShowUi((v) => !v);
+          else wakeUi();
         }}
       >
-        {renderStage()}
+        <div className="mb-reader-preset-frame" data-reader-preset={prefs.layout} style={{ transform: prefs.layout === "scroll" ? undefined : `translate(${presets[prefs.layout].x * viewport.w}px, ${presets[prefs.layout].y * viewport.h}px) scale(${presets[prefs.layout].zoom})` }}>{renderStage()}</div>
       </div>
 
       {/* Zonas de virada, visíveis só ao passar o mouse */}
-      {prefs.layout !== "scroll" && tier === "desktop" && (
+      {showUi && prefs.layout !== "scroll" && tier === "desktop" && (
         <>
           <button
             onClick={goPrev}
@@ -726,8 +723,11 @@ export function BookReader() {
         </>
       )}
 
+      {(showToggle || showUi) && !adjusting && !showTutorial && !panel && <button className="mb-reader-chrome-toggle" aria-label={showUi ? "Ocultar controles de leitura" : "Mostrar controles de leitura"} aria-expanded={showUi} onClick={() => { setShowUi(value => !value); setShowToggle(false); }}>{showUi ? <EyeOff size={19}/> : <Eye size={19}/>}</button>}
       {/* ── Ilha superior ─────────────────────────────────────────────────── */}
       <div
+        aria-hidden={!showUi}
+        style={{ visibility: showUi ? "visible" : "hidden" }}
         className={`absolute top-0 inset-x-0 z-30 px-3 pt-3 transition-all duration-400 ${
           showUi ? "translate-y-0 opacity-100" : "-translate-y-6 opacity-0 pointer-events-none"
         }`}
@@ -771,6 +771,8 @@ export function BookReader() {
 
       {/* ── Ilha inferior ─────────────────────────────────────────────────── */}
       <div
+        aria-hidden={!showUi}
+        style={{ visibility: showUi ? "visible" : "hidden" }}
         className={`absolute bottom-0 inset-x-0 z-30 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] transition-all duration-400 ${
           showUi ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0 pointer-events-none"
         }`}
@@ -851,14 +853,18 @@ export function BookReader() {
       </div>
 
       {/* Fio de progresso sempre visível, mesmo com os controles ocultos */}
-      <div className="absolute bottom-0 inset-x-0 h-[2px] bg-black/10 z-20 pointer-events-none">
+      <div hidden={!showUi} className="absolute bottom-0 inset-x-0 h-[2px] bg-black/10 z-20 pointer-events-none">
         <div className="h-full bg-[var(--primary)] transition-[width] duration-300" style={{ width: `${progressPct}%` }} />
       </div>
 
+      {showTutorial && <ReaderTutorial onDone={closeTutorial}/>}
+      {adjusting && <ReaderCalibration presets={presets} onCancel={() => setAdjusting(false)} onSave={value => { try { saveReaderPresets(value); setPresets(value); if (prefs.layout === "scroll") setPref("layout", "single"); setAdjusting(false); setShowUi(false); } catch { toast("Não foi possível salvar os encaixes neste aparelho.", "error"); } }} render={(mode, preset) => <div className="mb-reader-preset-frame" style={{ transform: `translate(${preset.x * viewport.w}px, ${preset.y * viewport.h}px) scale(${preset.zoom})` }}>{renderStage(mode, mode === "double" ? Math.min(currentPage, Math.max(0, total - 2)) : currentPage)}</div>}/>}
       {/* ── Painel de ajustes ─────────────────────────────────────────────── */}
       {panel === "settings" && (
         <ReaderPanel title="Ajustes de leitura" onClose={() => setPanel(null)}>
           <div className="space-y-5">
+            <button className="mb-btn mb-btn-outline w-full" onClick={() => { setPanel(null); setAdjusting(true); }}><Hand size={17}/> Ajustar uma e duas páginas</button>
+            <button className="mb-btn mb-btn-ghost w-full" onClick={async () => { if (document.fullscreenElement) await document.exitFullscreen(); setPanel(null); setShowTutorial(true); }}><HelpCircle size={17}/> Guia de gestos de leitura</button>
             <div>
               <span className="mb-label">Modo de leitura</span>
               <div className="grid grid-cols-3 gap-2">

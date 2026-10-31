@@ -24,6 +24,14 @@ test('Booklists are account-scoped, validate readable books and preserve ordered
   assert.deepEqual(await(await fetch(base,{headers:{'x-test-user':'Outra'}})).json(),[]);
   assert.equal((await save('Ana',{...config,bookIds:['private']})).status,400);
   assert.equal((await save('Admin',{...config,bookIds:['private']})).status,201);
+  const empty=await(await save('Ana',{...config,bookIds:[]})).json();
+  const append=(user,bookId)=>fetch(base+'/'+empty.id+'/books',{method:'POST',headers:{'x-test-user':user,'Content-Type':'application/json'},body:JSON.stringify({bookId})});
+  assert.equal((await append('Outra','first')).status,404);
+  assert.equal((await append('Ana','private')).status,400);
+  await Promise.all([append('Ana','first'),append('Ana','second'),append('Ana','first')]);
+  const [atomic]=await db.query(sql`SELECT data FROM booklists WHERE id=${empty.id}`);
+  assert.deepEqual([...JSON.parse(atomic.data).bookIds].sort(),['first','second']);
+  await fetch(base+'/'+empty.id,{method:'DELETE',headers:{'x-test-user':'Ana'}});
   const edited=await(await save('ana',{...config,name:'Nova',removeCover:true},list.id)).json();assert.equal(edited.imageUrl,'');assert.equal(edited.name,'Nova');
   await fetch(base+'/'+list.id,{method:'DELETE',headers:{'x-test-user':'Outra'}});assert.equal((await(await fetch(base,{headers:{'x-test-user':'Ana'}})).json()).length,1);
   await fetch(base+'/'+list.id,{method:'DELETE',headers:{'x-test-user':'Ana'}});assert.deepEqual(await(await fetch(base,{headers:{'x-test-user':'Ana'}})).json(),[]);

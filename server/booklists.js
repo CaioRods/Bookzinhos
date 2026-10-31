@@ -51,6 +51,21 @@ module.exports = function registerBooklists({ app, db, sql, currentUser, uploadF
   };
   app.post('/booklists', member, upload, save);
   app.put('/booklists/:id', member, upload, save);
+  app.post('/booklists/:id/books', member, async (req, res) => {
+    try {
+      const user=req.booklistUser, bookId=String(req.body.bookId||'');
+      const [list]=await db.query(sql`SELECT * FROM booklists WHERE id=${req.params.id} AND username=${user.username} COLLATE NOCASE`);
+      if(!list) return res.status(404).json({error:'Booklist não encontrada.'});
+      const [book]=await db.query(sql`SELECT id FROM books WHERE id=${bookId} AND (is_public=1 OR uploaded_by=${user.username} COLLATE NOCASE OR ${Number(user.is_admin)||0}=1)`);
+      if(!book) return res.status(400).json({error:'Livro indisponível para sua conta.'});
+      const existing=JSON.parse(list.data).bookIds;
+      if(existing.length>=1000&&!existing.includes(bookId)) throw new Error('Esta Booklist atingiu a capacidade de livros.');
+      // Append atomically: concurrent additions cannot replace each other's books or artwork.
+      await db.query(sql`UPDATE booklists SET data=json_insert(data,'$.bookIds[#]',${bookId}),updated_at=${Date.now()} WHERE id=${req.params.id} AND username=${user.username} COLLATE NOCASE AND NOT EXISTS (SELECT 1 FROM json_each(data,'$.bookIds') WHERE value=${bookId})`);
+      const [updated]=await db.query(sql`SELECT * FROM booklists WHERE id=${req.params.id} AND username=${user.username} COLLATE NOCASE`);
+      res.json(decode(updated));
+    } catch(error) { res.status(400).json({error:error.message}); }
+  });
   app.delete('/booklists/:id', member, async (req, res) => {
     try { await db.query(sql`DELETE FROM booklists WHERE id = ${req.params.id} AND username = ${req.booklistUser.username} COLLATE NOCASE`); res.json({ ok: true }); }
     catch (error) { res.status(500).json({ error: error.message }); }

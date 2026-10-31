@@ -1,9 +1,10 @@
+import { AddToBooklist } from "./AddToBooklist";
 import { OfflineBookButton } from "./OfflineBookButton";
 import { useOffline } from "../lib/offline/device";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
-  BookOpen, Pencil, Trash2, MessageSquare, PauseCircle, PlayCircle, Clock, Download, Loader2, Bookmark,
+  ChevronDown, FolderPlus, BookOpen, Pencil, Trash2, MessageSquare, PauseCircle, PlayCircle, Clock, Download, Loader2, Bookmark,
 } from "lucide-react";
 import { getCoverGradient, getFullUrl } from "../lib/types";
 import type { Book } from "../lib/types";
@@ -27,7 +28,7 @@ interface Props {
 }
 
 const MENU_WIDTH = 264;
-const MENU_HEIGHT = 300;
+
 
 /**
  * Menu de ações de um livro. No desktop abre junto ao cursor; no celular sobe
@@ -41,9 +42,26 @@ export function BookContextMenu({
   const pdfUrl = getFullUrl(book.pdfPath);
   const isDesktop = useDeviceTier() === "desktop";
   const [isDownloading, setIsDownloading] = useState(false);
-  const panel = useRef<HTMLDivElement>(null);
+  const panel = useRef<HTMLDivElement>(null), scroller = useRef<HTMLDivElement>(null);
+  const [addToList,setAddToList]=useState(false),[more,setMore]=useState(false);
+  const [position,setPosition]=useState({x:10,y:10,maxHeight:400,width:264,viewWidth:0});
+  const measureScroll=()=>{const element=scroller.current;if(element)setMore(element.scrollTop+element.clientHeight<element.scrollHeight-3);};
+  useLayoutEffect(()=>{
+    const measure=()=>{
+      const vv=window.visualViewport, left=vv?.offsetLeft||0,top=vv?.offsetTop||0,w=vv?.width||innerWidth,h=vv?.height||innerHeight;
+      const width=Math.min(MENU_WIDTH,Math.max(80,w-24)),maxHeight=Math.max(40,h-24);
+      if(panel.current) panel.current.style.maxHeight=`${maxHeight}px`;
+      const height=Math.min(panel.current?.offsetHeight||400,maxHeight);
+      const x=Math.max(left+12,Math.min(menuPos?.x||left+12,left+w-width-12)),y=Math.max(top+12,Math.min(menuPos?.y||top+12,top+h-height-12));
+      setPosition(previous=>previous.x===x&&previous.y===y&&previous.maxHeight===maxHeight&&previous.width===width&&previous.viewWidth===w?previous:{x,y,maxHeight,width,viewWidth:w});measureScroll();
+    };
+    measure();const observer=new ResizeObserver(measure);if(panel.current)observer.observe(panel.current);if(scroller.current)observer.observe(scroller.current);
+    window.addEventListener("resize",measure);window.visualViewport?.addEventListener("resize",measure);window.visualViewport?.addEventListener("scroll",measure);
+    return()=>{observer.disconnect();window.removeEventListener("resize",measure);window.visualViewport?.removeEventListener("resize",measure);window.visualViewport?.removeEventListener("scroll",measure);};
+  },[menuPos?.x,menuPos?.y,isDesktop]);
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
+    if (addToList) return;
     panel.current?.querySelector<HTMLButtonElement>("button:not(:disabled)")?.focus();
     const keyboard = (event: KeyboardEvent) => {
       if (event.key === "Escape") { event.preventDefault(); onClose(); }
@@ -56,7 +74,7 @@ export function BookContextMenu({
     };
     window.addEventListener("keydown", keyboard);
     return () => { window.removeEventListener("keydown", keyboard); previous?.focus(); };
-  }, [onClose]);
+  }, [onClose,addToList]);
 
   const handleDownload = async () => {
     if (!pdfUrl || isDownloading) return;
@@ -72,6 +90,7 @@ export function BookContextMenu({
 
   const actions = [
     { label: "Abrir para ler", icon: BookOpen, onClick: onRead },
+    !offline ? { label: "Adicionar à Booklist", icon: FolderPlus, onClick: () => setAddToList(true) } : null,
     onToggleSaved ? { label: isSaved ? "Remover dos favoritos" : "Favoritar", icon: Bookmark, onClick: onToggleSaved } : null,
     !offline ? { label: "Avaliar e comentar", icon: MessageSquare, onClick: onFeedback } : null,
     onPause
@@ -125,10 +144,9 @@ export function BookContextMenu({
     </div>
   );
 
+  if (addToList) return <AddToBooklist book={book} onClose={onClose}/>;
+  const footer=<><button className="mb-context-more" hidden={!more} onClick={()=>scroller.current?.scrollBy({top:150,behavior:document.documentElement.dataset.reduceMotion==="true"?"instant":"smooth"})}><ChevronDown size={15}/> Mais opções abaixo</button><button className="mb-context-close" onClick={onClose}>Fechar</button></>;
   if (isDesktop && menuPos) {
-    const x = Math.max(10, Math.min(menuPos.x, window.innerWidth - MENU_WIDTH - 16));
-    const y = Math.max(10, Math.min(menuPos.y, window.innerHeight - MENU_HEIGHT - 16));
-
     return createPortal(
       <div className="fixed inset-0 z-[9999]" onClick={onClose} onContextMenu={(e) => { e.preventDefault(); onClose(); }}>
         <div
@@ -136,12 +154,13 @@ export function BookContextMenu({
           role="dialog"
           aria-modal="true"
           aria-label={`Opções de ${book.title}`}
-          style={{ left: x, top: y, width: MENU_WIDTH }}
+          style={{ left: position.x, top: position.y, width: position.width, maxHeight: position.maxHeight }}
           onClick={(e) => e.stopPropagation()}
-          className="absolute bg-[var(--surface)] border border-[var(--line)] rounded-xl shadow-[var(--shadow-3)] overflow-hidden animate-scale-in"
+          className="mb-book-context absolute bg-[var(--surface)] border border-[var(--line)] rounded-xl shadow-[var(--shadow-3)] overflow-hidden animate-scale-in"
         >
           {header}
-          {list}
+          <div ref={scroller} className="mb-context-scroll" onScroll={measureScroll}>{list}</div>
+          {footer}
         </div>
       </div>,
       document.body
@@ -149,7 +168,7 @@ export function BookContextMenu({
   }
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-end justify-center" onClick={onClose}>
+    <div className="fixed inset-0 z-[9999] flex items-end justify-center" style={{top:window.visualViewport?.offsetTop||0,left:window.visualViewport?.offsetLeft||0,width:window.visualViewport?.width||"100vw",height:window.visualViewport?.height||"100dvh",bottom:"auto",right:"auto"}} onClick={onClose}>
       <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] animate-fade-in" />
       <div
         ref={panel}
@@ -157,13 +176,13 @@ export function BookContextMenu({
         aria-modal="true"
         aria-label={`Opções de ${book.title}`}
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full sm:max-w-sm bg-[var(--surface)] border-t sm:border border-[var(--line)] rounded-t-2xl sm:rounded-2xl sm:mb-6 shadow-[var(--shadow-3)] overflow-hidden animate-slide-up pb-[env(safe-area-inset-bottom)]"
+        style={{ maxHeight: position.maxHeight, width: Math.min(384, (window.visualViewport?.width||innerWidth)-24) }}
+        className="mb-book-context relative bg-[var(--surface)] border rounded-2xl shadow-[var(--shadow-3)] overflow-hidden animate-fade-in mb-3 pb-[env(safe-area-inset-bottom)]"
       >
         {header}
-        {list}
-        <button onClick={onClose} className="w-full h-12 text-[13px] font-semibold text-[var(--text-3)] border-t border-[var(--line)] hover:bg-[var(--surface-2)] transition-colors cursor-pointer">
-          Cancelar
-        </button>
+        <div ref={scroller} className="mb-context-scroll" onScroll={measureScroll}>{list}</div>
+        {footer}
+
       </div>
     </div>,
     document.body
