@@ -3,6 +3,12 @@
 Rede social de leitura: um acervo de PDFs compartilhado, notas e resenhas públicas,
 perfis com seguidores e um feed do que a comunidade está lendo.
 
+## Plano de integrações e importações
+
+O roteiro para implementar integrações, com prioridades, MVPs, testes e instruções
+para agentes, está em [INTEGRATIONS.md](INTEGRATIONS.md). Os planos são documentos
+de execução; sua presença não significa que as integrações já estão prontas.
+
 ## Estrutura
 
 ```
