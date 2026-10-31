@@ -81,6 +81,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "4.7.0",
     "fake-indexeddb": "^6.2.7",
+    "ical.js": "^2.2.1",
     "jsdom": "^26.1.0",
     "tailwindcss": "4.1.12",
     "typescript": "~5.9.2",

@@ -23,3 +23,7 @@ Nenhuma tabela, token ou API nova. Pode funcionar offline com livro/Booklist já
 Teste escaping, Unicode, UTC, duração inválida e leitura do arquivo em um parser independente. Conferir importação manual no Google Agenda e abertura no calendário de um celular quando disponível. Modal e download devem funcionar no computador/celular. Não criar eventos reais sem ação do usuário.
 
 Referência: https://www.rfc-editor.org/rfc/rfc5545
+
+## Entrega de 31/10/2026
+
+MVP implementado e verificado localmente. Calendário e Markdown estão disponíveis no livro, Booklist e diário; anotações do diário exigem seleção explícita e autoria identificada. Compartilhamento externo limita-se a livros públicos e posts, preservando pastas privadas. Spotify é um link opcional no editor da Booklist, validado pela API e preservado nas outras edições. Não há OAuth, sincronização ou player incorporado. Nenhuma alteração manual no Supabase é necessária; atualizar frontend e API. Importação real nos provedores e publicação não foram verificadas.

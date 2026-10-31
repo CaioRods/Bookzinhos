@@ -1,3 +1,4 @@
+import { ReadingActions } from "../components/ReadingActions";
 import { useEffect, useMemo, useState } from "react";
 import { BookPicker } from "../components/BookPicker";
 import { Link, useSearchParams } from "react-router";
@@ -156,7 +157,7 @@ export function Notes() {
       </section>
 
       {/* ── Nova anotação ──────────────────────────────────────────────────── */}
-      {selectedBook && (
+      {selectedBook && <ReadingActions title={selectedBook.title} books={[selectedBook]} notes={notes}/>}{selectedBook && (
         <section className="mb-notes-composer mb-card p-5 space-y-4">
           <SectionHeader
             title={`Anotar sobre “${selectedBook.title}”`}

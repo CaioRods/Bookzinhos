@@ -25,3 +25,7 @@ Livro/Booklist escolhidos e, somente quando selecionadas, anotações privadas e
 Testar geração manual, isolamento de token entre contas, state inválido, destino sem permissão, retry sem duplicação e exclusão de campos privados não selecionados. Exportação direta exige internet; não enfileirar credenciais/ações Notion na fila genérica de leitura. Conferir as condições comerciais atuais antes de prometer ausência de custos.
 
 Referência: https://developers.notion.com/
+
+## Entrega de 31/10/2026
+
+MVP implementado e verificado localmente. Calendário e Markdown estão disponíveis no livro, Booklist e diário; anotações do diário exigem seleção explícita e autoria identificada. Compartilhamento externo limita-se a livros públicos e posts, preservando pastas privadas. Spotify é um link opcional no editor da Booklist, validado pela API e preservado nas outras edições. Não há OAuth, sincronização ou player incorporado. Nenhuma alteração manual no Supabase é necessária; atualizar frontend e API. Importação real nos provedores e publicação não foram verificadas.

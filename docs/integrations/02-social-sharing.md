@@ -23,3 +23,7 @@ Sem banco novo no MVP. Gerar cartões offline apenas com assets disponíveis. N�
 Testar share suportado, indisponível, cancelado, cópia e download de PNG sem canvas contaminado. Conferir layout mobile e desktop. Link público de Booklist é outra entrega: opt-in explícito, token revogável e DTO sem arquivos privados.
 
 Referência: https://developer.mozilla.org/en-US/docs/Web/API/Web_Share_API
+
+## Entrega de 31/10/2026
+
+MVP implementado e verificado localmente. Calendário e Markdown estão disponíveis no livro, Booklist e diário; anotações do diário exigem seleção explícita e autoria identificada. Compartilhamento externo limita-se a livros públicos e posts, preservando pastas privadas. Spotify é um link opcional no editor da Booklist, validado pela API e preservado nas outras edições. Não há OAuth, sincronização ou player incorporado. Nenhuma alteração manual no Supabase é necessária; atualizar frontend e API. Importação real nos provedores e publicação não foram verificadas.

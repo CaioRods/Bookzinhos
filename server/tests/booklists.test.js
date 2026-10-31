@@ -18,8 +18,9 @@ test('Booklists are account-scoped, validate readable books and preserve ordered
   const base=`http://127.0.0.1:${server.address().port}/booklists`;
   const save=async(user,config,id='',cover)=>{const body=new FormData();body.set('config',JSON.stringify(config));if(cover)body.set('cover',cover,'cover.webp');return fetch(base+(id?'/'+id:''),{method:id?'PUT':'POST',headers:{'x-test-user':user},body});};
   assert.equal((await fetch(base)).status,401);
-  const config={name:'Fantasia',color:'#66a3f5',icon:'sparkles',bookIds:['second','first','second'],crop:{x:90,y:25,zoom:2},imageWidth:800,imageHeight:1200};
-  const created=await save('Ana',config,'',new Blob(['image'],{type:'image/webp'}));assert.equal(created.status,201);const list=await created.json();assert.deepEqual(list.bookIds,['second','first']);assert.deepEqual(list.crop,{x:90,y:25,zoom:2});assert.equal(list.imageUrl,'/uploads/booklist.webp');
+  const config={spotifyPlaylistUrl:'https://open.spotify.com/playlist/37i9dQZF1DX4sWSpwq3LiO?si=tracking',name:'Fantasia',color:'#66a3f5',icon:'sparkles',bookIds:['second','first','second'],crop:{x:90,y:25,zoom:2},imageWidth:800,imageHeight:1200};
+  const created=await save('Ana',config,'',new Blob(['image'],{type:'image/webp'}));assert.equal(created.status,201);const list=await created.json();assert.deepEqual(list.bookIds,['second','first']);assert.deepEqual(list.crop,{x:90,y:25,zoom:2});assert.equal(list.imageUrl,'/uploads/booklist.webp');assert.equal(list.spotifyPlaylistUrl,'https://open.spotify.com/playlist/37i9dQZF1DX4sWSpwq3LiO');
+  const legacy={...config};delete legacy.spotifyPlaylistUrl;const legacySaved=await(await save('Ana',legacy,list.id)).json();assert.equal(legacySaved.spotifyPlaylistUrl,list.spotifyPlaylistUrl);
   assert.equal((await save('Outra',config,list.id,new Blob(['x'],{type:'image/webp'}))).status,404);assert.equal(uploads,1);
   assert.deepEqual(await(await fetch(base,{headers:{'x-test-user':'Outra'}})).json(),[]);
   assert.equal((await save('Ana',{...config,bookIds:['private']})).status,400);
@@ -30,10 +31,12 @@ test('Booklists are account-scoped, validate readable books and preserve ordered
   assert.equal((await append('Ana','private')).status,400);
   await Promise.all([append('Ana','first'),append('Ana','second'),append('Ana','first')]);
   const [atomic]=await db.query(sql`SELECT data FROM booklists WHERE id=${empty.id}`);
-  assert.deepEqual([...JSON.parse(atomic.data).bookIds].sort(),['first','second']);
+  assert.deepEqual([...JSON.parse(atomic.data).bookIds].sort(),['first','second']);assert.equal(JSON.parse(atomic.data).spotifyPlaylistUrl,list.spotifyPlaylistUrl);
   await fetch(base+'/'+empty.id,{method:'DELETE',headers:{'x-test-user':'Ana'}});
   const edited=await(await save('ana',{...config,name:'Nova',removeCover:true},list.id)).json();assert.equal(edited.imageUrl,'');assert.equal(edited.name,'Nova');
   await fetch(base+'/'+list.id,{method:'DELETE',headers:{'x-test-user':'Outra'}});assert.equal((await(await fetch(base,{headers:{'x-test-user':'Ana'}})).json()).length,1);
   await fetch(base+'/'+list.id,{method:'DELETE',headers:{'x-test-user':'Ana'}});assert.deepEqual(await(await fetch(base,{headers:{'x-test-user':'Ana'}})).json(),[]);
 });
 test('Booklist configuration bounds crop and rejects invalid colors',()=>{assert.throws(()=>register.normalize({name:'a',color:'red'}));assert.throws(()=>register.normalize({name:''}));assert.deepEqual(register.normalize({name:'X',crop:{x:-20,y:800,zoom:99}}).crop,{x:0,y:100,zoom:4});});
+
+test('Spotify playlist URLs are exact, normalized and optional',()=>{assert.equal(register.normalize({name:'old'}).spotifyPlaylistUrl,'');for(const url of ['javascript:alert(1)','https://open.spotify.com.evil.com/playlist/37i9dQZF1DX4sWSpwq3LiO','https://user@open.spotify.com/playlist/37i9dQZF1DX4sWSpwq3LiO','https://open.spotify.com/track/37i9dQZF1DX4sWSpwq3LiO','http://open.spotify.com/playlist/37i9dQZF1DX4sWSpwq3LiO','https://open.spotify.com/playlist/no'])assert.throws(()=>register.normalize({name:'x',spotifyPlaylistUrl:url}));});

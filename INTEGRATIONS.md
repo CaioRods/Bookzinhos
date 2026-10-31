@@ -1,6 +1,6 @@
 # Plano de integrações do myBooks
 
-Status: **planejamento; nenhuma integração nova foi implementada por estes documentos**.
+Status: **MVPs INT-01, INT-02 (link nativo), INT-03 (link) e INT-07 (Markdown) implementados e testados localmente. Importação em provedores e deploy ainda não validados.**
 Base revisada: `0e32671`, em 31/10/2026. Antes de executar, confira o código e os commits posteriores. O pedido do usuário prevalece sobre este plano.
 
 Este é o ponto de entrada para uma IA implementar as integrações. Cada documento define a experiência, o que importar/exportar, os pontos do código, as etapas e a conclusão esperada. Não implemente todas de uma vez.
@@ -11,13 +11,13 @@ S = mudança pequena e poucas dependências; M = vários fluxos e persistência;
 
 | ID | Integração | Primeira entrega | Esforço | Custo externo do MVP | Estado |
 |---|---|---|---|---|---|
-| INT-01 | [Calendário por arquivo ICS](docs/integrations/01-calendar-ics.md) | Evento de leitura importável no calendário | S | Sem API paga | Planejado |
-| INT-02 | [Compartilhamento social](docs/integrations/02-social-sharing.md) | Compartilhar livro/link; Booklist como imagem | S no link; M na imagem | Sem API paga no compartilhamento nativo | Planejado |
-| INT-03 | [Spotify](docs/integrations/03-spotify.md) | Vincular playlist pública e abrir no Spotify | S | Sem API no MVP | Planejado |
+| INT-01 | [Calendário por arquivo ICS](docs/integrations/01-calendar-ics.md) | Evento de leitura importável no calendário | S | Sem API paga | Implementado — testes locais |
+| INT-02 | [Compartilhamento social](docs/integrations/02-social-sharing.md) | Compartilhar livro/link; Booklist como imagem | S no link; M na imagem | Sem API paga no compartilhamento nativo | Link implementado — imagens pendentes |
+| INT-03 | [Spotify](docs/integrations/03-spotify.md) | Vincular playlist pública e abrir no Spotify | S | Sem API no MVP | Link implementado — testes locais |
 | INT-04 | [Google Books e ISBN](docs/integrations/04-google-books.md) | Buscar edição e preencher cadastro | M | Consultas sujeitas às regras/cotas vigentes | Planejado |
 | INT-05 | [Open Library](docs/integrations/05-open-library.md) | Segunda fonte de metadados e capas | M; menor após INT-04 | API pública, com limites de uso | Planejado |
 | INT-06 | [Goodreads por CSV](docs/integrations/06-goodreads-csv.md) | Importar estante com prévia e deduplicação | L | Sem API paga; há processamento próprio | Planejado |
-| INT-07 | [Notion](docs/integrations/07-notion.md) | Markdown manual; depois exportação autorizada | S no arquivo; L no OAuth | Arquivo sem API; conferir condições do serviço | Planejado |
+| INT-07 | [Notion](docs/integrations/07-notion.md) | Markdown manual; depois exportação autorizada | S no arquivo; L no OAuth | Arquivo sem API; conferir condições do serviço | Markdown implementado — OAuth pendente |
 | INT-08 | [Google Agenda por OAuth](docs/integrations/08-google-calendar.md) | Criar/atualizar evento na agenda conectada | L | Conferir cotas e requisitos de verificação | Planejado |
 | INT-09 | [Discord](docs/integrations/09-discord.md) | Webhook administrativo com envio manual | M | Uso básico dentro dos limites do serviço | Planejado |
 | INT-10 | [Telegram](docs/integrations/10-telegram.md) | Bot autorizado para avisos de clube | M | Uso básico dentro dos limites do serviço | Planejado |

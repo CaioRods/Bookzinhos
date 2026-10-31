@@ -1,7 +1,7 @@
 import type { ImageCrop } from "./appearance";
 import { API_BASE_URL } from "./config";
 import { account, deviceResponse, isOffline, rememberResponse } from "./offline/device";
-export interface Booklist { id: string; name: string; color: string; icon: string; imageUrl: string; imageWidth: number; imageHeight: number; crop: ImageCrop; bookIds: string[]; updatedAt: number }
+export interface Booklist { spotifyPlaylistUrl?: string; id: string; name: string; color: string; icon: string; imageUrl: string; imageWidth: number; imageHeight: number; crop: ImageCrop; bookIds: string[]; updatedAt: number }
 export async function fetchBooklists(): Promise<Booklist[]> {
   if (!account()) return [];
   if (isOffline()) return await deviceResponse<Booklist[]>("/booklists") || [];

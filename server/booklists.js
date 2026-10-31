@@ -1,6 +1,12 @@
 const crypto = require('crypto');
 const multer = require('multer');
 const ICONS = new Set(['heart', 'sparkles', 'bookmark', 'castle', 'coffee', 'zap', 'book', 'moon', 'flower', 'library']);
+function spotifyUrl(value) {
+  if (!value) return '';
+  let url; try { url = new URL(String(value).trim()); } catch { throw new Error('Link de playlist Spotify inválido.'); }
+  if (url.protocol !== 'https:' || url.hostname !== 'open.spotify.com' || url.port || url.username || url.password || !/^\/playlist\/[a-zA-Z0-9]{22}\/?$/.test(url.pathname)) throw new Error('Use um link https://open.spotify.com/playlist/…');
+  return 'https://open.spotify.com' + url.pathname.replace(/\/$/, '');
+}
 function normalize(input = {}) {
   const name = String(input.name || '').trim().slice(0, 80);
   if (!name) throw new Error('Dê um nome à Booklist.');
@@ -10,7 +16,7 @@ function normalize(input = {}) {
   if (bookIds.length > 1000 || bookIds.some(id => !id || id.length > 160)) throw new Error('Seleção de livros inválida.');
   const crop = input.crop || {};
   const bounded = (value, fallback, max) => Number.isFinite(Number(value)) ? Math.max(0, Math.min(max, Number(value))) : fallback;
-  return { name, color, icon: ICONS.has(input.icon) ? input.icon : 'heart', bookIds, crop: { x: bounded(crop.x, 50, 100), y: bounded(crop.y, 50, 100), zoom: Math.max(1, bounded(crop.zoom, 1, 4)) }, imageWidth: Math.max(1, bounded(input.imageWidth, 1000, 20000)), imageHeight: Math.max(1, bounded(input.imageHeight, 1000, 20000)) };
+  return { name, color, spotifyPlaylistUrl: spotifyUrl(input.spotifyPlaylistUrl), icon: ICONS.has(input.icon) ? input.icon : 'heart', bookIds, crop: { x: bounded(crop.x, 50, 100), y: bounded(crop.y, 50, 100), zoom: Math.max(1, bounded(crop.zoom, 1, 4)) }, imageWidth: Math.max(1, bounded(input.imageWidth, 1000, 20000)), imageHeight: Math.max(1, bounded(input.imageHeight, 1000, 20000)) };
 }
 module.exports = function registerBooklists({ app, db, sql, currentUser, uploadFileToCloud }) {
   let initialized;
@@ -20,7 +26,7 @@ module.exports = function registerBooklists({ app, db, sql, currentUser, uploadF
     try { const me = currentUser(req); const [user] = me ? await db.query(sql`SELECT username, is_admin FROM users WHERE username = ${me} COLLATE NOCASE`) : []; if (!user) return res.status(401).json({ error: 'Entre na conta para usar Booklists.' }); req.booklistUser = user; await ready(); next(); }
     catch (error) { res.status(500).json({ error: error.message }); }
   };
-  const decode = row => ({ ...JSON.parse(row.data), id: row.id, updatedAt: Number(row.updated_at) });
+  const decode = row => ({ spotifyPlaylistUrl: '', ...JSON.parse(row.data), id: row.id, updatedAt: Number(row.updated_at) });
   app.get('/booklists', member, async (req, res) => {
     try { const rows = await db.query(sql`SELECT * FROM booklists WHERE username = ${req.booklistUser.username} COLLATE NOCASE ORDER BY updated_at DESC`); res.json(rows.map(decode)); }
     catch (error) { res.status(500).json({ error: error.message }); }
@@ -33,7 +39,7 @@ module.exports = function registerBooklists({ app, db, sql, currentUser, uploadF
         [existing] = await db.query(sql`SELECT * FROM booklists WHERE id = ${req.params.id} AND username = ${user.username} COLLATE NOCASE`);
         if (!existing) return res.status(404).json({ error: 'Booklist não encontrada.' });
       }
-      const input = JSON.parse(req.body.config || '{}'), config = normalize(input), previous = existing ? JSON.parse(existing.data) : {};
+      const input = JSON.parse(req.body.config || '{}'), previous = existing ? JSON.parse(existing.data) : {}, config = normalize({ ...input, spotifyPlaylistUrl: input.spotifyPlaylistUrl === undefined ? previous.spotifyPlaylistUrl : input.spotifyPlaylistUrl });
       if (config.bookIds.length) {
         const known = await db.query({ text: `SELECT id FROM books WHERE id IN (${config.bookIds.map(() => '?').join(',')}) AND (is_public = 1 OR uploaded_by = ? COLLATE NOCASE OR ? = 1)`, values: [...config.bookIds, user.username, Number(user.is_admin) || 0] });
         if (known.length !== config.bookIds.length) return res.status(400).json({ error: 'Um dos livros foi removido ou não está disponível para sua conta.' });

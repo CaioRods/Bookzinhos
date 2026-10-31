@@ -1,3 +1,4 @@
+import { shareReading } from "../lib/readingExports";
 import { ReaderName } from "./ReaderName";
 import { useEffect, useRef, useState } from "react";
 import { Link, useParams, useNavigate } from "react-router";
@@ -396,9 +397,8 @@ function SharePost({
           <button
             className="mb-btn mb-btn-outline"
             onClick={() =>
-              navigator
-                .share({ title: "Publicação de " + post.username, url })
-                .catch(() => {})
+              shareReading({ title: "Publicação de " + post.username, url })
+                .catch(() => toast("Não foi possível compartilhar.", "error"))
             }
           >
             Outros aplicativos

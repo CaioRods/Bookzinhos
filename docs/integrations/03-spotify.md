@@ -23,3 +23,7 @@ Offline mostra a associação salva e informa que ouvir requer internet. Sem tok
 Testar URLs válidas/inválidas, edição de pasta alheia, ausência do campo em registros antigos e preservação da trilha em outras edições. Link funciona em celular e PC. OAuth, recomendações e controle de reprodução ficam fora do MVP.
 
 Referência: https://developer.spotify.com/documentation/embeds
+
+## Entrega de 31/10/2026
+
+MVP implementado e verificado localmente. Calendário e Markdown estão disponíveis no livro, Booklist e diário; anotações do diário exigem seleção explícita e autoria identificada. Compartilhamento externo limita-se a livros públicos e posts, preservando pastas privadas. Spotify é um link opcional no editor da Booklist, validado pela API e preservado nas outras edições. Não há OAuth, sincronização ou player incorporado. Nenhuma alteração manual no Supabase é necessária; atualizar frontend e API. Importação real nos provedores e publicação não foram verificadas.

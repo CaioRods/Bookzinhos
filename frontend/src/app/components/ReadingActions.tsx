@@ -1,0 +1,21 @@
+import { useEffect, useState } from 'react';
+import { CalendarDays, FileDown, Share2 } from 'lucide-react';
+import type { Book, Note } from '../lib/types';
+import { getUsername } from '../lib/session';
+import { calendarIcs, downloadReading, readingMarkdown, shareReading } from '../lib/readingExports';
+import { Modal, toast } from './Ui';
+export function ReadingActions({ title, books, notes = [], shareBook }: {title:string; books:Book[]; notes?:Note[]; shareBook?:Book}) {
+  const [mode,setMode]=useState<'calendar'|'markdown'|null>(null),[name,setName]=useState('Leitura: '+title),[date,setDate]=useState(''),[minutes,setMinutes]=useState(30),[description,setDescription]=useState(false),[privateNotes,setPrivateNotes]=useState(false),[error,setError]=useState('');
+  useEffect(()=>{setMode(null);setName('Leitura: '+title);setPrivateNotes(false);},[title]);
+  const md=readingMarkdown(title,books,window.location.origin,description,notes,getUsername()||'',privateNotes);
+  const open=(value:'calendar'|'markdown')=>{setError('');setPrivateNotes(false);setDescription(false);setMode(value);};
+  return <div className="mb-reading-integrations" style={{display:'flex',gap:8,flexWrap:'wrap',margin:'16px 0'}}>
+    <button className="mb-btn mb-btn-outline" onClick={()=>open('calendar')}><CalendarDays size={16}/> Agendar leitura</button>
+    <button className="mb-btn mb-btn-outline" onClick={()=>open('markdown')}><FileDown size={16}/> Exportar Markdown</button>
+    {shareBook?.isPublic && <button className="mb-btn mb-btn-outline" onClick={async()=>{try{const result=await shareReading({title:shareBook.title,url:window.location.origin+'/book/'+encodeURIComponent(shareBook.id)});if(result==='copied')toast('Link copiado.');}catch{toast('Não foi possível compartilhar.','error');}}}><Share2 size={16}/> Compartilhar link</button>}
+    <Modal open={!!mode} title={mode==='calendar'?'Agendar leitura':'Exportar para o Notion'} onClose={()=>setMode(null)} footer={<button className="mb-btn mb-btn-primary" onClick={()=>{try{if(mode==='calendar'){const start=new Date(date);if(!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(date)||start.getFullYear()!==Number(date.slice(0,4))||start.getMonth()+1!==Number(date.slice(5,7))||start.getDate()!==Number(date.slice(8,10))||start.getHours()!==Number(date.slice(11,13))||start.getMinutes()!==Number(date.slice(14,16)))throw new Error('Escolha uma data e horário válidos.');downloadReading(calendarIcs(name,start,minutes,title+(shareBook?.isPublic ? '\n'+window.location.origin+'/book/'+encodeURIComponent(shareBook.id) : '')),title,'ics');}else downloadReading(md,title,'md');setError('');}catch(e){setError((e as Error).message);}}}>Baixar {mode==='calendar'?'.ics':'.md'}</button>}>
+      {mode==='calendar'?<div style={{display:'grid',gap:16}}><p>Baixe e abra o arquivo no Google Agenda, Apple Calendar ou Outlook para importar. O evento não é criado automaticamente.</p><label>Título<input className="mb-input" value={name} maxLength={200} onChange={e=>setName(e.target.value)}/></label><label>Data e horário local<input aria-label="Data e horário" className="mb-input" type="datetime-local" value={date} onChange={e=>setDate(e.target.value)}/></label><small>Fuso deste aparelho: {Intl.DateTimeFormat().resolvedOptions().timeZone}</small><label>Duração em minutos<input className="mb-input" type="number" min={1} max={1440} value={minutes} onChange={e=>setMinutes(Number(e.target.value))}/></label><p>Prévia: {name} · {date.replace('T',' ')} · {minutes} min</p></div>:<div><p>No Notion, escolha Importar → Texto e Markdown e selecione o arquivo baixado. Não há sincronização de conta.</p><label><input type="checkbox" checked={description} onChange={e=>setDescription(e.target.checked)}/> Incluir sinopses</label>{notes.length>0&&<label style={{display:'block'}}><input type="checkbox" checked={privateNotes} onChange={e=>setPrivateNotes(e.target.checked)}/> Incluir minhas anotações e notas pessoais</label>}<pre aria-label="Prévia Markdown" style={{whiteSpace:'pre-wrap',overflowWrap:'anywhere',maxHeight:'40vh',overflow:'auto',padding:16,background:'rgba(128,128,128,.07)',borderRadius:16}}>{md}</pre><small>Somente os livros disponíveis nesta tela serão exportados. Booklists continuam privadas.</small></div>}
+      {error&&<p role="alert">{error}</p>}
+    </Modal>
+  </div>;
+}
