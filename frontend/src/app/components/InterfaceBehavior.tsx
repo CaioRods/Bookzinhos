@@ -1,9 +1,11 @@
+import { installLongPressContext } from "../lib/longPressContext";
 import { useEffect, useState } from "react";
 import { Modal, toast } from "./Ui";
 import { downloadRemoteFile, safeFileName } from "../lib/download";
 import { getFullUrl } from "../lib/types";
 
 export function InterfaceBehavior() {
+  useEffect(() => installLongPressContext(), []);
   const [banner, setBanner] = useState<{ url: string; name: string } | null>(null);
   const [busy, setBusy] = useState(false);
   useEffect(() => {

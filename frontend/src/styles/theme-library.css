@@ -2,6 +2,7 @@
   html, body, #root { user-select: none; -webkit-user-select: none; }
   input, textarea, [contenteditable="true"] { user-select: text; -webkit-user-select: text; }
   img, a, button { -webkit-user-drag: none; }
+  img, [data-banner-src], .mb-reaction-wrap { -webkit-touch-callout: none; }
   .mb-theme-library { padding: 4px; }
   .mb-theme-toolbar { display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:28px; }
   .mb-theme-toolbar small { opacity:.65; margin-left:6px; }

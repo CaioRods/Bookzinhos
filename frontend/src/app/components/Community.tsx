@@ -55,6 +55,7 @@ export function ReactionButton({
     [busy, setBusy] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null),
     held = useRef(false);
+  const pressStart = useRef({ x: 0, y: 0 });
   useEffect(
     () => () => {
       if (timer.current) clearTimeout(timer.current);
@@ -88,15 +89,21 @@ export function ReactionButton({
         className={target.myReaction ? "is-reacted" : ""}
         onContextMenu={(e) => {
           e.preventDefault();
+          stop();
+          held.current = true;
           setOpen(true);
         }}
-        onPointerDown={() => {
+        onPointerDown={(event) => {
+          if (event.button !== 0 || !event.isPrimary) return;
+          stop();
+          pressStart.current = { x: event.clientX, y: event.clientY };
           held.current = false;
           timer.current = setTimeout(() => {
             held.current = true;
             setOpen(true);
           }, 450);
         }}
+        onPointerMove={(event) => { if (Math.hypot(event.clientX - pressStart.current.x, event.clientY - pressStart.current.y) > 10) { stop(); held.current = true; } }}
         onPointerUp={stop}
         onPointerLeave={stop}
         onPointerCancel={stop}

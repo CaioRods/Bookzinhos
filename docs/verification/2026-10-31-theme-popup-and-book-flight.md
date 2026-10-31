@@ -14,3 +14,9 @@ Testes unitários: menu acompanha nome editado; respostas parciais de sessão pr
 Playwright/Chromium com API interceptada e dados fictícios: abertura do popup, contagem e seleção, 390 px sem overflow, edição de nome refletida no menu, download WebP original e PDF, transição até o retângulo real da capa (diferença inferior a 2 px), sem erros de execução. O teste não grava no banco de produção.
 
 Deploy: alteração apenas no frontend; nenhuma migração adicional da API ou do banco é necessária.
+
+## Acesso por toque
+
+Banners abrem a ação de salvar após 500 ms de pressão por toque ou caneta. O gesto usa a mesma ação de contexto do desktop e cancela ao mover mais de 10 px, rolar, soltar antes do prazo ou interromper o toque. O clique de soltura após a pressão é suprimido, evitando abrir o link do banner. Botões e campos dentro do banner mantêm suas ações próprias. Cartões de livros e reações também aceitam pressão prolongada; cartões cancelam o temporizador em touchcancel/desmontagem e evitam navegação no toque de soltura. Reações cancelam ao arrastar para rolar.
+
+Validação adicional: seis testes do gesto (abertura, soltura, movimento, rolagem, cancelamento, controles e cleanup) e Chromium com emulação de toque: pressionar o banner abre o download e permite salvar o arquivo original; pressionar livro abre opções sem navegar.

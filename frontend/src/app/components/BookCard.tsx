@@ -46,6 +46,7 @@ function BookCardImpl({
   const [localProgress, setLocalProgress] = useState(initialProgress);
   useEffect(() => { setLocalProgress(initialProgress); }, [initialProgress]);
   const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => () => clearTimeout(timerRef.current), []);
   const longPressedRef = useRef(false);
   const touchStartPos = useRef({ x: 0, y: 0 });
 
@@ -109,6 +110,7 @@ function BookCardImpl({
       const dist = Math.hypot(point.x - touchStartPos.current.x, point.y - touchStartPos.current.y);
       if (dist < 10) openDetails();
     }
+    if (longPressedRef.current && "changedTouches" in e) e.preventDefault();
     longPressedRef.current = false;
   }, [openDetails]);
 
@@ -185,6 +187,7 @@ function BookCardImpl({
     onMouseLeave: cancelPress,
     onTouchStart: startPress,
     onTouchEnd: endPress,
+    onTouchCancel: cancelPress,
     onTouchMove: handleTouchMove,
     onContextMenu: (e: React.MouseEvent) => {
       e.preventDefault();
