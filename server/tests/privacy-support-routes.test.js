@@ -4,7 +4,7 @@ const express = require("express");
 
 const { registerPrivacySupportRoutes, createPrivacyAcceptanceGate, PRIVACY_POLICY_VERSION } = require("../privacy-support");
 
-test("the server blocks protected routes until the current policy is accepted", () => {
+test("the server blocks protected routes only for accounts created with pending initial acceptance", () => {
   const gate = createPrivacyAcceptanceGate();
   const response = () => ({
     statusCode: 200,
@@ -13,18 +13,23 @@ test("the server blocks protected routes until the current policy is accepted", 
     json(payload) { this.payload = payload; return this; },
   });
   const denied = response();
-  gate({ path: "/books", auth: { username: "reader", privacyAcceptedVersion: "" } }, denied, () => assert.fail("must not continue"));
+  gate({ path: "/books", auth: { username: "reader", privacyAcceptedVersion: "", privacyRequired: true } }, denied, () => assert.fail("must not continue"));
   assert.equal(denied.statusCode, 428);
   assert.equal(denied.payload.code, "privacy_acceptance_required");
 
   for (const path of ["/auth/session", "/auth/logout", "/privacy/accept"]) {
     let continued = false;
-    gate({ path, auth: { username: "reader", privacyAcceptedVersion: "" } }, response(), () => { continued = true; });
+    gate({ path, auth: { username: "reader", privacyAcceptedVersion: "", privacyRequired: true } }, response(), () => { continued = true; });
     assert.equal(continued, true, path);
   }
   let accepted = false;
   gate({ path: "/books", auth: { username: "reader", privacyAcceptedVersion: PRIVACY_POLICY_VERSION } }, response(), () => { accepted = true; });
   assert.equal(accepted, true);
+  for (const version of ["", "2020-01-01"]) {
+    let continued = false;
+    gate({ path: "/books", auth: { username: "legacy", privacyAcceptedVersion: version } }, response(), () => { continued = true; });
+    assert.equal(continued, true, "Existing accounts never require another acceptance");
+  }
 });
 
 function memoryDb() {
@@ -43,7 +48,7 @@ function memoryDb() {
       }
       if (/INSERT INTO app_settings/i.test(text)) { settings.set(values[0], values[1]); return []; }
       if (/UPDATE users SET privacy_version/i.test(text)) {
-        users.set(values[2], { privacy_version: values[0], privacy_accepted_at: values[1] });
+        users.set(values[2], { privacy_version: values[0], privacy_accepted_at: values[1], privacy_required: 0 });
         return [];
       }
       throw new Error(`Unexpected query: ${text}`);
@@ -69,7 +74,7 @@ test("a reader accepts the current privacy version with a server timestamp", asy
     const response = await fetch(`${ctx.base}/privacy/accept`, { method: "POST", headers: { "x-test-user": "reader" } });
     assert.equal(response.status, 200);
     assert.deepEqual(await response.json(), { version: PRIVACY_POLICY_VERSION, acceptedAt: 1730246400000 });
-    assert.deepEqual(ctx.db.users.get("reader"), { privacy_version: PRIVACY_POLICY_VERSION, privacy_accepted_at: 1730246400000 });
+    assert.deepEqual(ctx.db.users.get("reader"), { privacy_version: PRIVACY_POLICY_VERSION, privacy_accepted_at: 1730246400000, privacy_required: 0 });
   } finally { await ctx.close(); }
 });
 

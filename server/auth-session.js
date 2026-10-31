@@ -25,7 +25,8 @@ function createSessionStore({ db, clock = Date.now, randomBytes = crypto.randomB
     async resolve(rawToken) {
       if (typeof rawToken !== "string" || rawToken.length < 16 || rawToken.length > 256) return null;
       const rows = await db.query(query(`SELECT s.id, s.username, s.expires_at, s.last_used_at, s.revoked_at,
-          COALESCE(u.privacy_version, '') AS privacy_version
+          COALESCE(u.privacy_version, '') AS privacy_version,
+          COALESCE(u.privacy_required, 0) AS privacy_required, COALESCE(u.privacy_accepted_at, 0) AS privacy_accepted_at
         FROM auth_sessions s LEFT JOIN users u ON u.username = s.username COLLATE NOCASE
         WHERE s.token_hash = ? LIMIT 1`, [hashToken(rawToken)]));
       const row = rows[0];
@@ -34,7 +35,7 @@ function createSessionStore({ db, clock = Date.now, randomBytes = crypto.randomB
       if (now - Number(row.last_used_at || 0) >= TOUCH_INTERVAL_MS) {
         await db.query(query("UPDATE auth_sessions SET last_used_at = ? WHERE id = ?", [now, row.id]));
       }
-      return { id: row.id, username: row.username, expiresAt: Number(row.expires_at), privacyAcceptedVersion: row.privacy_version || "" };
+      return { id: row.id, username: row.username, expiresAt: Number(row.expires_at), privacyAcceptedVersion: row.privacy_version || "", privacyRequired: !!Number(row.privacy_required) && !Number(row.privacy_accepted_at) };
     },
     async touch(sessionId) {
       await db.query(query("UPDATE auth_sessions SET last_used_at = ? WHERE id = ?", [clock(), sessionId]));
@@ -89,6 +90,7 @@ function createSessionMiddleware({ store }) {
         username: session.username,
         sessionId: session.id,
         expiresAt: session.expiresAt,
+        ...(session.privacyRequired !== undefined ? { privacyRequired: session.privacyRequired === true } : {}),
         ...(session.privacyAcceptedVersion !== undefined ? { privacyAcceptedVersion: session.privacyAcceptedVersion } : {}),
       } : null;
       next();

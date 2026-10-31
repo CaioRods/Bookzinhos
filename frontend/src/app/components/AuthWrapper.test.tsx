@@ -7,6 +7,7 @@ import { AuthWrapper } from "./AuthWrapper";
 const session = vi.hoisted(() => ({
   username: null as string | null,
   guest: false,
+  privacyRequired: false,
   privacyAcceptedVersion: "2026-10-30",
 }));
 vi.mock("../lib/session", () => ({
@@ -25,8 +26,8 @@ vi.mock("../lib/session", () => ({
   savePrivacyAcceptedVersion: (version: string) => { session.privacyAcceptedVersion = version; window.dispatchEvent(new Event("mybooks:session")); },
 }));
 vi.mock("../lib/api", () => ({
-  getAuthenticatedSession: async () => session.username ? { username: session.username, privacyAcceptedVersion: session.privacyAcceptedVersion } : null,
-  acceptPrivacyPolicy: async () => ({ version: "2026-10-30", acceptedAt: Date.now() }),
+  getAuthenticatedSession: async () => session.username ? { username: session.username, privacyAcceptedVersion: session.privacyAcceptedVersion, privacyRequired: session.privacyRequired } : null,
+  acceptPrivacyPolicy: async () => { session.privacyRequired = false; return { version: "2026-10-30", acceptedAt: Date.now() }; },
 }));
 vi.mock("../pages/Login", () => ({
   Login: ({
@@ -68,6 +69,7 @@ const app = () =>
 beforeEach(() => {
   session.username = null;
   session.guest = false;
+  session.privacyRequired = false;
   session.privacyAcceptedVersion = "2026-10-30";
   sessionStorage.clear();
 });
@@ -107,10 +109,18 @@ describe("authenticated opening", () => {
       screen.getByRole("heading", { name: "Biblioteca pronta" }),
     ).toBeTruthy();
   });
+  it.each(["", "2020-01-01"])("never asks existing accounts to accept again, even with version %s", async (version) => {
+    session.username = "ExistingReader";
+    session.privacyAcceptedVersion = version;
+    app();
+    expect(await screen.findByText("Finalizar abertura")).toBeTruthy();
+    expect(screen.queryByRole("dialog", { name: "Política de Privacidade" })).toBeNull();
+  });
   it("blocks a new account until the current privacy policy is read and accepted", async () => {
     session.username = "NewReader";
+    session.privacyRequired = true;
     session.privacyAcceptedVersion = "";
-    app();
+    const view = app();
 
     expect(await screen.findByRole("dialog", { name: "Política de Privacidade" })).toBeTruthy();
     expect(screen.queryByRole("heading", { name: "Biblioteca pronta", hidden: true })).toBeTruthy();
@@ -128,6 +138,11 @@ describe("authenticated opening", () => {
     expect(accept.disabled).toBe(false);
     fireEvent.click(accept);
 
+    expect(await screen.findByText("Finalizar abertura")).toBeTruthy();
+    expect(screen.queryByRole("dialog", { name: "Política de Privacidade" })).toBeNull();
+    view.unmount();
+    session.privacyAcceptedVersion = "older-version";
+    app();
     expect(await screen.findByText("Finalizar abertura")).toBeTruthy();
     expect(screen.queryByRole("dialog", { name: "Política de Privacidade" })).toBeNull();
   });

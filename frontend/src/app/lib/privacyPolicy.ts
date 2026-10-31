@@ -117,8 +117,8 @@ export const PRIVACY_POLICY_SECTIONS = [
     title: "15. Alterações desta Política",
     paragraphs: [
       "Esta Política poderá ser atualizada para refletir mudanças no produto, nos fornecedores, na legislação ou nas práticas de segurança. A versão vigente e a data serão identificadas no documento.",
-      "Quando uma alteração for relevante, o aplicativo poderá solicitar novo aceite antes de liberar a continuidade do uso autenticado. Mudanças meramente editoriais, que não alterem finalidades ou direitos, poderão ser comunicadas sem uma nova confirmação.",
-      "A continuidade após um novo aceite representa concordância com a versão apresentada. Se você não concordar, poderá deixar de utilizar a conta e solicitar o tratamento cabível para seus dados.",
+      "O aceite é solicitado uma única vez, na criação da conta. A aplicação não volta a exigir confirmação nos próximos acessos, inclusive quando esta Política é atualizada.",
+      "O registro do aceite inicial é preservado. Atualizações poderão ser comunicadas sem interromper o acesso à conta. Você pode deixar de utilizar a conta e solicitar o tratamento cabível para seus dados.",
     ],
   },
   {

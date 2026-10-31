@@ -7,13 +7,12 @@ import { getUsername, isGuest, enterGuestMode } from "../lib/session";
 import { clearSession, saveSession } from "../lib/session";
 import { getAuthenticatedSession } from "../lib/api";
 import { PrivacyConsent } from "./PrivacyConsent";
-import { PRIVACY_POLICY_VERSION } from "../lib/privacyPolicy";
 
 export function AuthWrapper() {
   const [user, setUser] = useState<string | null>(null);
   const [guest, setGuest] = useState<boolean>(isGuest);
   const [restoring, setRestoring] = useState(true);
-  const [privacyAcceptedVersion, setPrivacyAcceptedVersion] = useState<string | null>(null);
+  const [privacyPending, setPrivacyPending] = useState(false);
   const [restoreError, setRestoreError] = useState("");
   const [openingFor, setOpeningFor] = useState<string | null>(() => {
     const username = getUsername();
@@ -29,12 +28,12 @@ export function AuthWrapper() {
       const profile = await getAuthenticatedSession();
       if (profile) {
         saveSession(profile);
-        setPrivacyAcceptedVersion(profile.privacyAcceptedVersion || "");
+        setPrivacyPending(profile.privacyRequired === true);
         setUser(profile.username);
       } else if (!isGuest()) {
         clearSession();
         setUser(null);
-        setPrivacyAcceptedVersion(null);
+        setPrivacyPending(false);
       }
       setRestoring(false);
       return profile;
@@ -52,11 +51,11 @@ export function AuthWrapper() {
         if (!active) return;
         if (profile) {
           saveSession(profile);
-          setPrivacyAcceptedVersion(profile.privacyAcceptedVersion || "");
+          setPrivacyPending(profile.privacyRequired === true);
           setUser(profile.username);
         } else if (!isGuest()) {
           clearSession();
-          setPrivacyAcceptedVersion(null);
+          setPrivacyPending(false);
         }
         setRestoring(false);
       })
@@ -90,12 +89,12 @@ export function AuthWrapper() {
   useEffect(() => {
     const element = content.current;
     if (!element) return;
-    const blocked = !!openingFor || (!!user && privacyAcceptedVersion !== PRIVACY_POLICY_VERSION);
+    const blocked = !!openingFor || (!!user && privacyPending);
     element.inert = blocked;
     return () => {
       element.inert = false;
     };
-  }, [openingFor, user, guest, privacyAcceptedVersion]);
+  }, [openingFor, user, guest, privacyPending]);
 
   const finishOpening = useCallback(() => {
     if (openingFor) completeOpening(openingFor);
@@ -106,7 +105,7 @@ export function AuthWrapper() {
 
   if (restoreError) return <main className="mb-auth-session-error"><h1>Sessão não confirmada</h1><p>{restoreError}</p><button className="mb-btn mb-btn-primary" onClick={restoreSession}>Tentar novamente</button></main>;
 
-  const privacyRequired = !!user && privacyAcceptedVersion !== PRIVACY_POLICY_VERSION;
+  const privacyRequired = !!user && privacyPending;
 
   if (user || guest)
     return (
@@ -121,7 +120,7 @@ export function AuthWrapper() {
         {user && openingFor && !privacyRequired && (
           <BookOpening key={openingFor} onComplete={finishOpening} />
         )}
-        {privacyRequired && <PrivacyConsent onAccepted={(version) => setPrivacyAcceptedVersion(version)} />}
+        {privacyRequired && <PrivacyConsent onAccepted={() => setPrivacyPending(false)} />}
       </>
     );
 

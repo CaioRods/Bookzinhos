@@ -421,6 +421,7 @@ async function initDB() {
   await ensureColumn("users", "tiktok_handle", "TEXT NOT NULL DEFAULT ''");
   await ensureColumn("users", "profile_theme_id", "TEXT NOT NULL DEFAULT 'none'");
   await ensureColumn("users", "registration_order", "INTEGER NOT NULL DEFAULT 0");
+  await ensureColumn("users", "privacy_required", "INTEGER NOT NULL DEFAULT 0");
   await ensureColumn("users", "privacy_version", "TEXT NOT NULL DEFAULT ''");
   await ensureColumn("users", "privacy_accepted_at", "INTEGER NOT NULL DEFAULT 0");
   await ensureColumn("books", "publisher", "TEXT NOT NULL DEFAULT ''");

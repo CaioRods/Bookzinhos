@@ -4,7 +4,7 @@ const PRIVACY_ALLOWED_PATHS = new Set(["/", "/health", "/support", "/auth/sessio
 
 function createPrivacyAcceptanceGate() {
   return function privacyAcceptanceGate(req, res, next) {
-    if (!req.auth?.username || PRIVACY_ALLOWED_PATHS.has(req.path) || req.auth.privacyAcceptedVersion === PRIVACY_POLICY_VERSION) return next();
+    if (!req.auth?.username || PRIVACY_ALLOWED_PATHS.has(req.path) || req.auth.privacyRequired !== true) return next();
     return res.status(428).json({
       error: "Leia e aceite a Política de Privacidade para continuar.",
       code: "privacy_acceptance_required",
@@ -63,7 +63,7 @@ function registerPrivacySupportRoutes({ app, db, sql, currentUser, requireAdmin,
       const username = currentUser(req);
       if (!username) return res.status(401).json({ error: "Entre na sua conta para continuar." });
       const acceptedAt = clock();
-      await db.query(sql`UPDATE users SET privacy_version = ${PRIVACY_POLICY_VERSION}, privacy_accepted_at = ${acceptedAt} WHERE username = ${username} COLLATE NOCASE`);
+      await db.query(sql`UPDATE users SET privacy_version = ${PRIVACY_POLICY_VERSION}, privacy_accepted_at = ${acceptedAt}, privacy_required = 0 WHERE username = ${username} COLLATE NOCASE`);
       res.json({ version: PRIVACY_POLICY_VERSION, acceptedAt });
     } catch (error) { res.status(500).json({ error: error.message }); }
   });
