@@ -1,3 +1,4 @@
+import { useInstalled, useOffline } from "../lib/offline/device";
 import { LibraryBanner } from "../components/LibraryBanner";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router";
@@ -37,6 +38,7 @@ const VIEWS: { key: View; label: string; icon: typeof LayoutGrid }[] = [
 ];
 
 export function Library() {
+  const offline = useOffline(), { ids: installedIds } = useInstalled();
   const [params, setParams] = useSearchParams();
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -71,17 +73,17 @@ export function Library() {
     { intervalMs: 120000 }
   );
 
-  const books = booksData ?? [];
+  const books = (booksData ?? []).filter(book => !offline || installedIds.has(book.id));
   const savedIds = savedData ?? [];
   const progress = progressData ?? [];
 
   // Gera capas em segundo plano para livros que chegaram sem imagem.
   useEffect(() => {
-    if (books.length === 0) return;
+    if (offline || books.length === 0) return;
     triggerBackgroundCoverGeneration(books, (updated) => {
       setBooks((prev) => prev?.map((b) => (b.id === updated.id ? updated : b)) ?? prev);
     });
-  }, [books.length, setBooks]);
+  }, [books.length, setBooks, offline]);
 
   useEffect(() => {
     if (params.get("focus") === "search") {

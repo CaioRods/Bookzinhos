@@ -1,3 +1,4 @@
+import { isOffline, connectionLost, installedBooks, installedBook, installedChapters, deviceResponse, rememberResponse, queueMutation, rememberSession, deviceSession, account, pendingMutations, synchronize } from "./offline/device";
 /**
  * Cliente HTTP do myBooks.
  *
@@ -51,15 +52,36 @@ export function invalidate(...fragments: string[]): void {
 }
 
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+  const user = account();
+  if (isOffline()) {
+    if (method !== "GET") return queueMutation<T>(method, path, body);
+    const stored = await deviceResponse<T>(path);
+    if (stored !== undefined) return stored;
+    throw new Error("Este conteúdo precisa de internet.");
+  }
+  if (method === "GET" && typeof indexedDB !== "undefined" && /^\/(progress|saved|notes\/book)/.test(path) && (await pendingMutations()).length) {
+    const stored = await deviceResponse<T>(path); if (stored !== undefined) return stored;
+  }
+  if (method !== "GET" && typeof indexedDB !== "undefined" && (await pendingMutations()).some(item => item.path === path)) {
+    const result = await queueMutation<T>(method, path, body); void synchronize(); return result;
+  }
   const url = `${API_BASE_URL}${path}`;
 
-  const res = await fetch(url, {
+  let res: Response;
+  try { res = await fetch(url, {
     method,
     credentials: "include",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...(user && /^\/(progress|saved|notes)/.test(path) ? { "X-Offline-Account": user } : {}) },
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
 
+  } catch (error) {
+    if (!(error instanceof TypeError) && navigator.onLine) throw error;
+    connectionLost();
+    if (method !== "GET") return queueMutation<T>(method, path, body);
+    const stored = await deviceResponse<T>(path); if (stored !== undefined) return stored;
+    throw error;
+  }
   if (res.status === 404) return null as T;
   if (!res.ok) {
     if (res.status === 401 && !path.startsWith("/auth/")) {
@@ -69,7 +91,10 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
     throw new Error(await readError(res));
   }
   if (res.status === 204) return null as T;
-  return res.json() as Promise<T>;
+  const result = await res.json() as T;
+  if (/^\/auth\/(login|google|reset|register)$/.test(path)) localStorage.removeItem("mybooks:offline-logout");
+  await rememberResponse(path, result, user).catch(() => {});
+  return result;
 }
 
 /** GET com cache e deduplicação. `ttl: 0` força ida ao servidor. */
@@ -99,6 +124,7 @@ async function cachedGet<T>(path: string, ttl = DEFAULT_TTL): Promise<T> {
 
 /** Upload multipart (arquivos) — nunca passa pelo cache. */
 async function upload<T>(method: string, path: string, form: FormData): Promise<T> {
+  if (isOffline()) throw new Error("Conecte-se para enviar arquivos e validar suas permissões.");
   const res = await fetch(`${API_BASE_URL}${path}`, {
     method,
     credentials: "include",
@@ -124,12 +150,12 @@ async function readError(res: Response): Promise<string> {
   }
 }
 
-// ─── Compatibilidade: o modo offline foi removido ─────────────────────────────
+// ─── Estado da conexão ─────────────────────────────
 export function isOfflineMode(): boolean {
-  return false;
+  return isOffline();
 }
 export function setOfflineMode(_value: boolean): void {
-  /* modo offline descontinuado — o app é sempre sincronizado com o servidor */
+  /* A conexão é detectada automaticamente; não pode ser simulada por uma preferência. */
 }
 
 // ─── HOME (uma chamada monta a tela inteira) ──────────────────────────────────
@@ -141,6 +167,7 @@ export function fetchHome(force = false): Promise<HomeData> {
 // ─── LIVROS ───────────────────────────────────────────────────────────────────
 
 export function fetchBooks(force = false): Promise<Book[]> {
+  if (isOffline()) return installedBooks();
   if (!force) {
     try {
       const stored = JSON.parse(localStorage.getItem(BOOKS_STORAGE_KEY) || "null") as
@@ -165,6 +192,7 @@ export function fetchBooks(force = false): Promise<Book[]> {
 }
 
 export function fetchBook(id: string, force = false): Promise<Book | null> {
+  if (isOffline()) return installedBook(id);
   return cachedGet<Book | null>(`/books/${id}`, force ? 0 : DEFAULT_TTL);
 }
 
@@ -292,10 +320,12 @@ export async function deleteBook(id: string): Promise<{ ok: boolean }> {
 // ─── PROGRESSO ────────────────────────────────────────────────────────────────
 
 export function fetchAllProgress(force = false): Promise<ReadingProgress[]> {
+  if (isOffline()) return deviceResponse<ReadingProgress[]>("/progress").then(value => value || []);
   return cachedGet<ReadingProgress[]>("/progress", force ? 0 : DEFAULT_TTL);
 }
 
 export function fetchProgress(bookId: string): Promise<ReadingProgress | null> {
+  if (isOffline()) return deviceResponse<ReadingProgress>(`/progress/${bookId}`).then(value => value || null);
   return cachedGet<ReadingProgress | null>(`/progress/${bookId}`, 2000);
 }
 
@@ -313,13 +343,33 @@ export function login(username: string, password: string): Promise<UserProfile> 
 }
 
 export async function getAuthenticatedSession(): Promise<UserProfile | null> {
-  const response = await fetch(`${API_BASE_URL}/auth/session`, { credentials: "include" });
-  if (response.status === 401) return null;
-  if (!response.ok) throw new Error(await readError(response));
-  return response.json() as Promise<UserProfile>;
+  if (isOffline()) return deviceSession();
+  const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 6000);
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/session`, { credentials: "include", signal: controller.signal });
+    if (response.status === 401) return null;
+    if (!response.ok) throw new Error(await readError(response));
+    const profile = await response.json() as UserProfile;
+    const logoutFor = localStorage.getItem("mybooks:offline-logout");
+    if (logoutFor && logoutFor === profile.username.toLowerCase()) {
+      const revoked = await fetch(`${API_BASE_URL}/auth/logout`, { method: "POST", credentials: "include", signal: controller.signal });
+      if (!revoked.ok) throw new Error("Conecte-se para concluir a saída da conta.");
+      localStorage.removeItem("mybooks:offline-logout"); return null;
+    }
+    if (logoutFor) localStorage.removeItem("mybooks:offline-logout");
+    await rememberSession(profile).catch(() => {});
+    return profile;
+  } catch (error) {
+    if (error instanceof TypeError || (error instanceof Error && error.name === "AbortError") || !navigator.onLine) {
+      const stored = await deviceSession().catch(() => null);
+      if (stored && !stored.privacyRequired) { connectionLost(); return stored; }
+    }
+    throw error;
+  } finally { clearTimeout(timeout); }
 }
 
 export function logout(): Promise<{ ok: true }> {
+  if (isOffline()) { localStorage.setItem("mybooks:offline-logout", account()); invalidate(); return Promise.resolve({ ok: true }); }
   invalidate();
   return request<{ ok: true }>("POST", "/auth/logout");
 }
@@ -482,6 +532,7 @@ export async function revokeUserBadge(username: string, code: string, reason: st
 // ─── FAVORITOS ────────────────────────────────────────────────────────────────
 
 export function fetchSavedIds(force = false): Promise<string[]> {
+  if (isOffline()) return deviceResponse<string[]>("/saved").then(value => value || []);
   return cachedGet<string[]>("/saved", force ? 0 : DEFAULT_TTL);
 }
 
@@ -673,11 +724,12 @@ export function fetchAdminOverview(): Promise<AdminOverview> {
 // ─── NOTAS E DIÁRIO ───────────────────────────────────────────────────────────
 
 export function fetchBookNotes(bookId: string): Promise<Note[]> {
+  if (isOffline()) return deviceResponse<Note[]>(`/notes/book/${bookId}`).then(value => value || []);
   return cachedGet<Note[]>(`/notes/book/${bookId}`, 3000);
 }
 
 export async function addNote(data: { bookId: string; feedback: string; rating: number }): Promise<Note> {
-  const res = await request<Note>("POST", "/notes", data);
+  const res = await request<Note>("POST", "/notes", { ...data, clientId: `offline-${crypto.randomUUID()}` });
   invalidate("/notes", "/stats");
   return res;
 }
@@ -733,6 +785,7 @@ export async function updateGlobalStatus(content: string, emote: string) {
 // ─── CAPÍTULOS ────────────────────────────────────────────────────────────────
 
 export async function fetchChapters(bookId: string): Promise<BookChapter[]> {
+  if (isOffline()) return installedChapters(bookId);
   return (await cachedGet<BookChapter[]>(`/books/${bookId}/chapters`, 5000)) || [];
 }
 
@@ -747,3 +800,5 @@ export async function deleteChapter(bookId: string, startPage: number) {
   invalidate(`/books/${bookId}/chapters`);
   return res;
 }
+
+if (typeof window !== "undefined") window.addEventListener("mybooks:synced", () => invalidate());

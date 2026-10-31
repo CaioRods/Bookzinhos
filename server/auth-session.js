@@ -129,3 +129,11 @@ module.exports = {
   requireUser,
   cookieOptionsFromEnv,
 };
+
+// Replayed device changes remain bound to the account that created them.
+function enforceOfflineAccount(req, res, next) {
+  const expected = req.headers?.["x-offline-account"];
+  if (expected && (typeof expected !== "string" || expected.toLowerCase() !== req.auth?.username?.toLowerCase())) return res.status(409).json({ error: "Entre na conta que criou estas alterações para sincronizar.", code: "offline_account_mismatch" });
+  next();
+}
+module.exports.enforceOfflineAccount = enforceOfflineAccount;

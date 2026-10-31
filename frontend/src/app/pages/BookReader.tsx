@@ -1,3 +1,4 @@
+import { installedPdf, isOffline } from "../lib/offline/device";
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router";
 import {
@@ -222,7 +223,10 @@ export function BookReader() {
         pdfjs.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
         let doc;
-        if (pdfUrl.startsWith("blob:") || pdfUrl.startsWith("data:")) {
+        const savedPdf = id ? await installedPdf(id).catch(() => undefined) : undefined;
+        if (savedPdf) {
+          doc = await pdfjs.getDocument({ data: await savedPdf.arrayBuffer() }).promise;
+        } else if (pdfUrl.startsWith("blob:") || pdfUrl.startsWith("data:")) {
           const buffer = await (await fetch(pdfUrl)).arrayBuffer();
           doc = await pdfjs.getDocument({ data: buffer }).promise;
         } else {
@@ -291,8 +295,9 @@ export function BookReader() {
 
   // Grava a posição com folga: rolar não deve disparar uma escrita por página.
   useEffect(() => {
-    if (isLoading || savedPageRef.current === currentPage) return;
-    const t = setTimeout(() => persistProgress(currentPage), 900);
+    if (isLoading || total <= 0 || savedPageRef.current === currentPage) return;
+    if (isOffline()) { void persistProgress(currentPage).catch(() => toast("Não foi possível salvar o progresso neste aparelho.", "error")); return; }
+    const t = setTimeout(() => { void persistProgress(currentPage).catch(() => toast("Não foi possível salvar o progresso.", "error")); }, 900);
     return () => clearTimeout(t);
   }, [currentPage, isLoading, persistProgress]);
 

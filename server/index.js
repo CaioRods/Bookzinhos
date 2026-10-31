@@ -16,6 +16,7 @@ const { registerPrivacySupportRoutes, createPrivacyAcceptanceGate } = require(".
 const {
   createSessionStore,
   createSessionMiddleware,
+  enforceOfflineAccount,
   requireUser,
   readSessionCookie,
   buildSessionCookie,
@@ -169,6 +170,7 @@ app.use((_req, res, next) => {
   startup.then(() => next()).catch(() => res.status(503).json({ error: "O servidor ainda não conseguiu inicializar o banco de dados." }));
 });
 app.use(createSessionMiddleware({ store: sessionStore }));
+app.use(enforceOfflineAccount);
 app.use(createPrivacyAcceptanceGate());
 
 app.get("/", (_req, res) => {
@@ -184,6 +186,7 @@ app.get("/health", (_req, res) => res.json({ ok: true, ts: Date.now() }));
 const appearance = require("./appearance")({ app, db, sql, upload, uploadFileToCloud, currentUser, requireAdmin });
 const community = require("./community")({ app, db, sql, upload, uploadFileToCloud, currentUser, requireAdmin });
 const characters = require("./characters")({ app, db, sql, upload, uploadFileToCloud, requireAdmin });
+const booklists = require("./booklists")({ app, db, sql, currentUser, uploadFileToCloud });
 const privacySupport = registerPrivacySupportRoutes({ app, db, sql, currentUser, requireAdmin });
 const progression = require("./progression-service").createProgressionService({ db, sql });
 const activity = require("./activity")({ app, db, sql, currentUser, progression });
@@ -2004,7 +2007,9 @@ app.put("/progress/:bookId", requireUser, async (req, res) => {
     const { bookId } = req.params;
     const { currentPage, totalPages, progress, status } = req.body;
     const username = currentUser(req);
-    const [existing] = await db.query(sql`SELECT 1 FROM reading_progress WHERE book_id = ${bookId} AND username = ${username} COLLATE NOCASE`);
+    const [existing] = await db.query(sql`SELECT * FROM reading_progress WHERE book_id = ${bookId} AND username = ${username} COLLATE NOCASE`);
+    const recordedAt = Math.min(Date.now(), Number(req.body._offlineRecordedAt) || 0);
+    if (recordedAt && existing && Number(existing.last_read_at) > recordedAt) return res.json({ bookId, currentPage: Number(existing.current_page), totalPages: Number(existing.total_pages), progress: Number(existing.progress), status: existing.status, startedAt: Number(existing.started_at), lastReadAt: Number(existing.last_read_at) });
     if (existing) {
       await db.query(sql`UPDATE reading_progress SET current_page=${currentPage},total_pages=${totalPages},progress=${progress},status=${status},last_read_at=${Date.now()} WHERE book_id=${bookId} AND username=${username} COLLATE NOCASE`);
     } else {
@@ -2058,7 +2063,11 @@ app.post("/notes", requireUser, async (req, res) => {
       return res.status(400).json({ error: "Campos obrigatórios faltando" });
     const now = new Date();
     const dateLabel = now.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
-    const id = `note-${Date.now()}`;
+    const clientId = String(req.body.clientId || "");
+    if (clientId && !/^offline-[a-f0-9-]{36}$/i.test(clientId)) return res.status(400).json({ error: "Identificador da anotação inválido." });
+    const id = clientId ? `note-${crypto.createHash("sha256").update(username.toLowerCase() + ":" + clientId).digest("hex")}` : `note-${crypto.randomUUID()}`;
+    const [duplicate] = await db.query(sql`SELECT * FROM notes WHERE id = ${id} AND username = ${username} COLLATE NOCASE`);
+    if (duplicate) return res.json({ id: duplicate.id, bookId: duplicate.book_id, date: duplicate.date_label, feedback: duplicate.feedback, rating: Number(duplicate.rating), createdAt: Number(duplicate.created_at) });
     await db.query(sql`INSERT INTO notes (id,username,book_id,date_label,feedback,rating,created_at) VALUES (${id},${username},${bookId},${dateLabel},${feedback},${rating},${Date.now()})`);
     res.status(201).json({ id, bookId, date: dateLabel, feedback, rating, createdAt: Date.now() });
   } catch (err) {
@@ -2067,6 +2076,7 @@ app.post("/notes", requireUser, async (req, res) => {
 });
 
 app.delete("/notes/:id", requireUser, async (req, res) => {
+  if (/^offline-[a-f0-9-]{36}$/i.test(req.params.id)) req.params.id = `note-${crypto.createHash("sha256").update(currentUser(req).toLowerCase() + ":" + req.params.id).digest("hex")}`;
   try {
     const username = currentUser(req);
     await db.query(sql`DELETE FROM notes WHERE id = ${req.params.id} AND username = ${username} COLLATE NOCASE`);
@@ -2216,6 +2226,7 @@ async function start() {
   await appearance.ready();
   await community.ready();
   await privacySupport.ready();
+  await booklists.ready();
   if (!process.env.VERCEL) {
     const { initWatcher } = require("./watcher");
     initWatcher(db, sql, PORT, uploadFileToCloud);

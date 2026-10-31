@@ -1,0 +1,99 @@
+@layer components {
+  .mb-offline-status { position:fixed; z-index:9990; bottom:20px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:12px; padding:12px 17px; max-width:calc(100vw - 28px); width:max-content; border-radius:18px; background:color-mix(in srgb,var(--surface) 82%,transparent); backdrop-filter:blur(24px); border:1px solid var(--line); box-shadow:0 8px 32px #29182d20; color:var(--text-2); }
+  .mb-offline-status.is-offline { color:#ae782b; }
+  .mb-offline-status span { display:grid; gap:3px; }
+  .mb-offline-status strong { font-size:12px; }
+  .mb-offline-status small { font-size:11px; color:var(--text-3); max-width:440px; }
+  .mb-offline-status button { padding:5px; cursor:pointer; }
+  .mb-install-app { position:fixed; bottom:22px; right:24px; z-index:100; display:flex; gap:8px; align-items:center; font-size:12px; font-weight:600; border:1px solid var(--line); border-radius:25px; background:color-mix(in srgb,var(--surface) 78%,transparent); backdrop-filter:blur(18px); padding:9px 14px; color:var(--primary); box-shadow:0 4px 18px #24122513; cursor:pointer; }
+  .mb-install-help { position:fixed; bottom:72px; right:24px; z-index:9991; padding:24px; border:1px solid var(--line); border-radius:22px; width:min(330px,calc(100vw - 32px)); background:var(--surface); box-shadow:var(--shadow-lg); font-size:13px; }
+  .mb-install-help > button { float:right; cursor:pointer; }
+  .mb-install-help p { margin-top:12px; color:var(--text-3); line-height:1.7; }
+  .mb-offline-book { display:inline-flex; align-items:center; gap:8px; }
+  .mb-offline-book.is-installed,.mb-installed-mark { color:#239b66; }
+  .mb-offline-book.is-compact { padding:6px; border-radius:8px; cursor:pointer; }
+  .mb-installed-mark { display:inline-flex; vertical-align:middle; margin-left:6px; }
+  .mb-offline-book progress { width:55px; height:4px; accent-color:var(--primary); }
+  .mb-booklists { margin-bottom:36px; }
+  .mb-booklists > header { display:flex; justify-content:space-between; align-items:center; gap:18px; margin-bottom:24px; }
+  .mb-booklists h2 { font:600 30px Georgia,serif; margin:6px 0; letter-spacing:-1px; }
+  .mb-booklists header p:not(.mb-eyebrow) { color:var(--text-3); font-size:13px; }
+  .mb-booklist-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:24px; }
+  .mb-booklist-card { position:relative; min-width:0; border-radius:25px; transition:transform .45s cubic-bezier(.2,1,.3,1),box-shadow .4s; }
+  .mb-booklist-card:hover { transform:translateY(-6px); box-shadow:0 18px 35px #311b221a; }
+  .mb-booklist-open { width:100%; text-align:left; display:block; cursor:pointer; border-radius:25px; overflow:hidden; -webkit-touch-callout:none; }
+  .mb-folder-art { aspect-ratio:280/300; width:100%; position:relative; overflow:hidden; border-radius:25px; isolation:isolate; background:linear-gradient(135deg,color-mix(in srgb,var(--folder-color) 18%,var(--surface)),color-mix(in srgb,var(--folder-color) 30%,var(--surface))); }
+  .mb-folder-art > .mb-scenery { position:absolute; inset:0; width:100%; height:100%; z-index:-2; }
+  .mb-folder-glow { position:absolute; inset:0; z-index:-1; background:radial-gradient(ellipse at 86% 5%,#fff8,transparent 68%),radial-gradient(ellipse at 40% 95%,var(--folder-color),transparent 70%); opacity:.5; }
+  .mb-folder-shape { width:100%; height:100%; position:absolute; inset:0; filter:drop-shadow(0 10px 8px #311d2220); }
+  .mb-folder-back { fill:color-mix(in srgb,var(--folder-color) 65%,#ffffff60); stroke:#ffffff90; stroke-width:1.5; }
+  .mb-folder-paper { fill:#ffffff35; stroke:#ffffff85; stroke-width:1.4; }
+  .mb-folder-front { fill:color-mix(in srgb,var(--folder-color) 38%,#ffffff40); stroke:#ffffffb0; stroke-width:1.6; }
+  .has-image .mb-folder-back { fill:#ffffff20; stroke:#ffffff80; }
+  .has-image .mb-folder-front { fill:#ffffff08; stroke:#ffffff80; }
+  .has-image .mb-folder-paper { fill:#ffffff0d; stroke:#ffffff50; }
+  .has-image .mb-folder-glow { background:linear-gradient(90deg,#0007,transparent 85%); opacity:1; }
+  .mb-folder-copy { position:absolute; inset:38% 15% 12% 17%; display:flex; flex-direction:column; color:color-mix(in srgb,var(--folder-color) 24%,#251b28); }
+  .has-image .mb-folder-copy { color:#fff; text-shadow:0 2px 16px #0006; }
+  .mb-folder-copy strong { font-size:clamp(20px,2vw,28px); letter-spacing:-.8px; line-height:1.08; overflow-wrap:anywhere; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+  .mb-folder-copy span { margin-top:9px; font-size:14px; opacity:.65; }
+  .mb-folder-copy > svg { margin-top:auto; color:color-mix(in srgb,var(--folder-color) 70%,#3f1f28); }
+  .has-image .mb-folder-copy > svg { color:#fff; opacity:.8; }
+  .mb-booklist-more { position:absolute; right:14px; top:14px; width:34px; height:34px; display:grid; place-items:center; border-radius:50%; background:#ffffff4d; backdrop-filter:blur(16px); cursor:pointer; color:var(--text-2); }
+  .mb-booklist-create { min-height:220px; border:1px dashed var(--line); border-radius:25px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; color:var(--text-3); cursor:pointer; background:color-mix(in srgb,var(--surface) 50%,transparent); }
+  .mb-booklist-create strong { color:var(--text-2); font-size:14px; }
+  .mb-booklist-create span { font-size:12px; }
+  .mb-booklist-room { position:relative; isolation:isolate; min-height:70vh; animation:mb-booklist-enter .7s cubic-bezier(.2,1,.3,1) both; }
+  .mb-booklist-room::before { content:""; position:absolute; inset:-28px -20px; z-index:-1; background:radial-gradient(ellipse at 25% 0%,color-mix(in srgb,var(--folder-color) 28%,transparent),transparent 65%); filter:blur(22px); pointer-events:none; }
+  .mb-booklist-hero { display:flex; align-items:center; gap:38px; padding:24px 0 40px; }
+  .mb-booklist-hero-art { width:210px; flex-shrink:0; transform:rotate(-3deg); animation:mb-folder-open .8s cubic-bezier(.2,1,.3,1); }
+  .mb-booklist-hero h1 { font:600 clamp(30px,4vw,56px) Georgia,serif; letter-spacing:-2px; margin:12px 0; overflow-wrap:anywhere; }
+  .mb-booklist-hero p:not(.mb-eyebrow) { font-size:14px; color:var(--text-3); }
+  .mb-booklist-download { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin:18px 0; }
+  .mb-booklist-download small { color:var(--text-3); font-size:11px; flex-basis:100%; }
+  .mb-booklist-download progress { flex-basis:100%; width:100%; height:5px; accent-color:var(--primary); }
+  .mb-booklist-actions { display:flex; flex-direction:column; gap:10px; }
+  .mb-booklist-actions > button { justify-content:flex-start; }
+  .mb-booklist-empty { display:grid; justify-items:center; gap:18px; color:var(--text-3); padding:60px 20px; font-size:14px; text-align:center; }
+  .mb-booklist-editor { display:grid; grid-template-columns:220px 1fr; gap:28px; }
+  .mb-booklist-preview { position:sticky; top:0; align-self:start; }
+  .mb-booklist-fields { display:flex; flex-direction:column; gap:14px; min-width:0; }
+  .mb-booklist-fields label { display:flex; flex-direction:column; gap:7px; font-size:12px; color:var(--text-2); font-weight:600; }
+  .mb-booklist-fields input[type=range] { width:100%; accent-color:var(--primary); }
+  .mb-booklist-colors,.mb-booklist-icons { display:flex; flex-wrap:wrap; gap:9px; }
+  .mb-booklist-colors button { width:26px; height:26px; border-radius:50%; cursor:pointer; outline:2px solid transparent; outline-offset:3px; }
+  .mb-booklist-colors button[aria-pressed=true] { outline-color:var(--primary); }
+  .mb-booklist-icons button { display:grid; place-items:center; width:36px; height:36px; border-radius:10px; border:1px solid var(--line); cursor:pointer; }
+  .mb-booklist-icons button[aria-pressed=true] { background:var(--primary-soft); color:var(--primary); }
+  @media(max-width:700px) {
+    .mb-offline-status { bottom:90px; padding:9px 12px; }
+    .mb-install-app { bottom:86px; right:16px; }
+    .mb-offline-status ~ .mb-install-app { display:none; }
+    .mb-install-help { bottom:130px; right:16px; }
+    .mb-booklist-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
+    .mb-folder-copy strong { font-size:20px; }
+    .mb-folder-copy span { font-size:11px; margin-top:6px; }
+    .mb-folder-copy > svg { width:23px; height:23px; }
+    .mb-booklists > header { align-items:flex-start; flex-wrap:wrap; }
+    .mb-booklist-hero { gap:20px; align-items:flex-start; flex-wrap:wrap; }
+    .mb-booklist-hero-art { width:145px; }
+    .mb-booklist-hero > div:last-child { flex:1; min-width:160px; }
+    .mb-booklist-editor { grid-template-columns:1fr; }
+    .mb-booklist-preview { position:static; width:180px; margin:auto; }
+  }
+  @media(prefers-reduced-motion:reduce) { .mb-booklist-room,.mb-booklist-hero-art { animation:none; } .mb-booklist-card { transition:none; } }
+  html[data-reduce-motion=true] .mb-booklist-room,html[data-reduce-motion=true] .mb-booklist-hero-art { animation:none; }
+}
+@keyframes mb-booklist-enter { from { opacity:0; transform:translateY(25px) scale(.98); filter:blur(5px); } to { opacity:1; transform:none; filter:blur(0); } }
+@keyframes mb-folder-open { from { transform:rotate(-10deg) scale(.82); opacity:.2; } to { transform:rotate(-3deg) scale(1); opacity:1; } }
+@layer components { .mb-booklist-open .mb-folder-art { pointer-events: none; } }
+
+@layer components {
+  .mb-folder-art::after { content:""; position:absolute; inset:30% 4% 5%; border-radius:26px; box-shadow:inset 0 2px 3px #ffffff60,inset -8px -2px 20px #ffffff25; pointer-events:none; }
+  .mb-booklist-download progress { border:0; border-radius:8px; overflow:hidden; appearance:none; background:var(--line); }
+  .mb-booklist-download progress::-webkit-progress-bar { background:var(--line); border-radius:8px; }
+  .mb-booklist-download progress::-webkit-progress-value { background:var(--primary); border-radius:8px; transition:width .25s ease; }
+  .mb-booklist-download progress::-moz-progress-bar { background:var(--primary); border-radius:8px; }
+}
+
+@layer components { .mb-offline-status.is-reader { top:74px; bottom:auto; } .mb-offline-status.is-reader small { max-width:300px; } }

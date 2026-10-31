@@ -1,3 +1,4 @@
+import { InstalledMark } from "./OfflineBookButton";
 import { useRef, useState, useEffect, useCallback, memo } from "react";
 import { BookOpen, Star, MoreVertical, Bookmark } from "lucide-react";
 import { useNavigate } from "react-router";
@@ -244,7 +245,7 @@ function BookCardImpl({
             )}
           </div>
           <div className="flex-1 min-w-0 py-0.5">
-            <h3 className="font-semibold text-foreground text-sm truncate">{book.title}</h3>
+            <h3 className="font-semibold text-foreground text-sm truncate">{book.title}<InstalledMark id={book.id}/></h3>
             <p className="text-[12px] text-[var(--text-3)] truncate mt-0.5">{book.author || "Autor desconhecido"}</p>
             <div className="flex items-center gap-2 mt-2">
               <span className="inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--text-2)]">
@@ -296,13 +297,14 @@ function BookCardImpl({
           {!!book.pdfPath && !book.coverImagePath && <span className="mb-library-pdf-badge">PDF</span>}
         </div> : cover}
 
+        {isSpine && <InstalledMark id={book.id}/>}
         {/* A legenda some no modo estante: o nome já está na lombada. */}
         <div
           className="mb-book-caption"
           style={{ display: isSpine ? "none" : undefined, width, marginTop: 12 }}
         >
           <button className="mb-book-more" aria-label={`Opções de ${book.title}`} onMouseDown={e => e.stopPropagation()} onTouchStart={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); const rect = e.currentTarget.getBoundingClientRect(); setMenuPos({ x: rect.left, y: rect.bottom }); setShowMenu(true); }}><MoreVertical size={16} /></button>
-          <h4 className="text-[13px] font-semibold text-foreground line-clamp-2 leading-snug">{book.title}</h4>
+          <h4 className="text-[13px] font-semibold text-foreground line-clamp-2 leading-snug">{book.title}<InstalledMark id={book.id}/></h4>
           <p className="mb-book-author">{book.author || "Autor desconhecido"}</p>
           {book.seriesName && <p className="mb-book-series-label">{book.seriesName} · Vol. {book.seriesOrder}</p>}
           <div className="mb-library-book-rating" aria-label={book.rating > 0 ? `Nota ${book.rating.toFixed(1)} de 5` : "Livro ainda sem avaliações"}><Star size={12} fill={book.rating > 0 ? "currentColor" : "none"} /><span>{book.rating > 0 ? book.rating.toFixed(1) : "Sem nota"}</span></div>

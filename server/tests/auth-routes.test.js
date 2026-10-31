@@ -54,3 +54,13 @@ test("cross-site cookies require HTTPS while local cookies stay Lax", () => {
     /requires Secure/,
   );
 });
+
+
+test("offline replay header cannot move another account's changes into the cookie owner", () => {
+  const { enforceOfflineAccount } = require("../auth-session");
+  const res = responseRecorder(); let continued = false;
+  enforceOfflineAccount({ headers: { "x-offline-account": "Ana" }, auth: { username: "Outra" } }, res, () => { continued = true; });
+  assert.equal(continued, false); assert.equal(res.statusCode, 409);
+  enforceOfflineAccount({ headers: { "x-offline-account": "ANA" }, auth: { username: "Ana" } }, responseRecorder(), () => { continued = true; });
+  assert.equal(continued, true);
+});

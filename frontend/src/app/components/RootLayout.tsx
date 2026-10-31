@@ -1,3 +1,4 @@
+import { OfflineStatus } from "./OfflineStatus";
 import { ReaderNamesProvider } from "./ReaderName";
 import { useProfileScene } from "../lib/profileScene";
 import { ThemeImage } from "./ThemeImage";
@@ -161,6 +162,7 @@ export function RootLayout() {
     return (
       <div className="h-screen overflow-hidden bg-background relative">
         <ReaderChoiceProvider>
+          <OfflineStatus />
           <div key={location.pathname} className="mb-page h-full">
             <Outlet />
           </div>
@@ -183,6 +185,7 @@ export function RootLayout() {
     <ReaderNamesProvider><BookTransitionProvider>
       <AuthGateModal />
       <LevelUpOverlay />
+      <OfflineStatus />
       <a href="#main-content" className="mb-skip-link">Pular para o conteúdo</a>
       <SceneAtmosphere theme={selectedTheme} />
       <div className="mb-app-window bg-background">

@@ -1,8 +1,8 @@
 {
-  "name": "myBooks — rede social de leitura",
+  "name": "myBooks",
   "short_name": "myBooks",
-  "description": "Leia, avalie, comente e descubra o que a comunidade está lendo.",
-  "start_url": "/",
+  "description": "Sua biblioteca, suas Booklists e seus livros disponíveis offline.",
+  "start_url": "/library",
   "display": "standalone",
   "background_color": "#faf7f2",
   "theme_color": "#64344f",
@@ -26,5 +26,7 @@
       "type": "image/png",
       "purpose": "maskable"
     }
-  ]
+  ],
+  "id": "/",
+  "scope": "/"
 }

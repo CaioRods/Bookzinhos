@@ -1,3 +1,5 @@
+import { Booklists } from "../components/Booklists";
+import { useInstalled, useOffline } from "../lib/offline/device";
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
 import { Play, ArrowRight, LayoutGrid, Heart, Library as ShelfIcon } from "lucide-react";
@@ -20,6 +22,7 @@ const TABS: { key: TabKey; label: string }[] = [
 
 export function MyBooks() {
   const openBook = useOpenBook();
+  const offline = useOffline(), { ids: installedIds } = useInstalled();
   const [tab, setTab] = useState<TabKey>("lendo");
   const [shelfMode, setShelfMode] = useState(false);
 
@@ -40,7 +43,7 @@ export function MyBooks() {
     { intervalMs: 45000 }
   );
 
-  const books = data?.books ?? [];
+  const books = (data?.books ?? []).filter(book => !offline || installedIds.has(book.id));
   const progress = data?.progress ?? [];
   const savedIds = data?.savedIds ?? [];
 
@@ -77,14 +80,9 @@ export function MyBooks() {
 
   return (
     <div className="mb-screen mb-screen--wide mb-mybooks space-y-6">
-      <PageHeader
-        title="Meus"
-        highlight="livros."
-        subtitle="Continue de onde parou ou visite seus favoritos."
-        icon={<Heart className="w-5 h-5" />}
-        gradient="linear-gradient(140deg,#e0a33c,#c07f1f)"
-      />
-
+      <Booklists books={books} progressOf={progressOf} savedIds={savedIds} onSavedChange={handleSavedChange} heading={
+        <PageHeader title="Meus" highlight="livros." subtitle="Continue de onde parou ou visite seus favoritos." icon={<Heart className="w-5 h-5" />} gradient="linear-gradient(140deg,#e0a33c,#c07f1f)" />
+      }>
       {/* Destaque da leitura em andamento */}
       {isLoading ? (
         <Skeleton className="h-36 w-full rounded-2xl" />
@@ -170,6 +168,7 @@ export function MyBooks() {
       ) : (
         <BookGrid books={visible} progressOf={progressOf} savedIds={savedIds} onSavedChange={handleSavedChange} display={shelfMode ? "spine" : "cover"} />
       )}
+      </Booklists>
     </div>
   );
 }

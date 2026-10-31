@@ -1,3 +1,5 @@
+import { OfflineBookButton } from "./OfflineBookButton";
+import { useOffline } from "../lib/offline/device";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -34,6 +36,7 @@ const MENU_HEIGHT = 300;
 export function BookContextMenu({
   book, isPaused, isSaved, onClose, onRead, onEdit, onDelete, onFeedback, onPause, onReadLater, onToggleSaved, menuPos,
 }: Props) {
+  const offline = useOffline();
   const coverUrl = getFullUrl(book.coverImagePath);
   const pdfUrl = getFullUrl(book.pdfPath);
   const isDesktop = useDeviceTier() === "desktop";
@@ -70,15 +73,15 @@ export function BookContextMenu({
   const actions = [
     { label: "Abrir para ler", icon: BookOpen, onClick: onRead },
     onToggleSaved ? { label: isSaved ? "Remover dos favoritos" : "Favoritar", icon: Bookmark, onClick: onToggleSaved } : null,
-    { label: "Avaliar e comentar", icon: MessageSquare, onClick: onFeedback },
+    !offline ? { label: "Avaliar e comentar", icon: MessageSquare, onClick: onFeedback } : null,
     onPause
       ? { label: isPaused ? "Retomar leitura" : "Pausar leitura", icon: isPaused ? PlayCircle : PauseCircle, onClick: onPause }
       : null,
     onReadLater ? { label: "Ler depois", icon: Clock, onClick: onReadLater } : null,
-    pdfUrl
+    pdfUrl && !offline
       ? { label: isDownloading ? "Baixando…" : "Baixar PDF", icon: isDownloading ? Loader2 : Download, onClick: handleDownload, spinning: isDownloading }
       : null,
-    { label: "Editar livro", icon: Pencil, onClick: onEdit },
+    !offline ? { label: "Editar livro", icon: Pencil, onClick: onEdit } : null,
   ].filter(Boolean) as { label: string; icon: typeof BookOpen; onClick: () => void; spinning?: boolean }[];
 
   const header = (
@@ -100,6 +103,7 @@ export function BookContextMenu({
 
   const list = (
     <div className="py-1.5">
+      <OfflineBookButton id={book.id}/>
       {actions.map(({ label, icon: Icon, onClick, spinning }) => (
         <button
           key={label}
@@ -112,6 +116,7 @@ export function BookContextMenu({
       ))}
       <div className="h-px bg-[var(--line)] my-1.5" />
       <button
+        disabled={offline}
         onClick={onDelete}
         className="w-full flex items-center gap-3 px-3.5 h-10 text-[13px] font-medium text-[var(--destructive)] hover:bg-[var(--destructive)]/10 transition-colors cursor-pointer"
       >

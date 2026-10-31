@@ -1,3 +1,4 @@
+import { isOffline } from "./offline/device";
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router";
@@ -52,7 +53,7 @@ export function ReaderChoiceProvider({ children }: { children: ReactNode }) {
     soundOpen();
     // Conta a abertura para o ranking "Mais lidos" da home.
     registerBookOpen(book.id);
-    if (!book.pdfPath) {
+    if (isOffline() || !book.pdfPath) {
       openInApp(book);
       return;
     }

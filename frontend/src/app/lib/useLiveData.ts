@@ -72,12 +72,16 @@ export function useLiveData<T>(
     };
     document.addEventListener("visibilitychange", onVisible);
     window.addEventListener("focus", onVisible);
+    window.addEventListener("mybooks:offline-data", tick);
+    window.addEventListener("mybooks:synced", tick);
 
     return () => {
       mountedRef.current = false;
       window.clearInterval(interval);
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("focus", onVisible);
+      window.removeEventListener("mybooks:offline-data", tick);
+      window.removeEventListener("mybooks:synced", tick);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
