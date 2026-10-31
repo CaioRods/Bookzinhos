@@ -27,3 +27,14 @@ Referência: https://developer.mozilla.org/en-US/docs/Web/API/Web_Share_API
 ## Entrega de 31/10/2026
 
 MVP implementado e verificado localmente. Calendário e Markdown estão disponíveis no livro, Booklist e diário; anotações do diário exigem seleção explícita e autoria identificada. Compartilhamento externo limita-se a livros públicos e posts, preservando pastas privadas. Spotify é um link opcional no editor da Booklist, validado pela API e preservado nas outras edições. Não há OAuth, sincronização ou player incorporado. Nenhuma alteração manual no Supabase é necessária; atualizar frontend e API. Importação real nos provedores e publicação não foram verificadas.
+
+## Prévia pública de livros compartilhados
+
+Implementada em `server/book-share.js`, com HTML renderizado no servidor e metadados Open Graph/Twitter usando a capa cadastrada. O compartilhamento gera `/share/book/:id/:titulo-do-livro`. A regra correspondente em `frontend/vercel.json` precisa ser publicada junto com a API.
+
+- Visitantes veem somente informações editoriais, número de páginas cadastradas e até 12 avaliações públicas recentes; spoilers ficam recolhidos. Sem sinopse/capa/páginas há indicação de indisponibilidade.
+- A consulta exclui livros privados e não carrega PDF, texto das páginas, diário ou dados pessoais de leitura. A página não tem navegação interna do app, leitor, downloads ou ações de comunidade.
+- Entrar/criar conta encaminha para o mesmo livro, preservando o destino após autenticar; o cadastro abre no modo correto. Nessa entrada explícita, o botão de explorar sem conta é ocultado.
+- Sessões autenticadas pelo cookie são encaminhadas aos detalhes normais do livro. A prévia usa `private, no-store`, CSP sem scripts e escaping do conteúdo cadastrado.
+- `PUBLIC_APP_URL` opcional na API define o domínio canônico; por padrão usa a primeira origem do frontend. Não há migração de banco.
+- Verificação local: testes da rota com SQLite em memória, metadata, escape de HTML, público/privado, sessão/redirect, fallback; Chromium em 1440, 390 e 320 px sem transbordamento horizontal. A atualização de cartões em WhatsApp e outros serviços depende do rastreador/cache deles e não foi validada em produção.

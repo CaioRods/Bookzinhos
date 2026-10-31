@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Outlet } from "react-router";
+import { Outlet, useLocation } from "react-router";
 import { Login } from "../pages/Login";
 import { BookOpening } from "./BookOpening";
 import { completeOpening, needsOpening } from "../lib/opening";
@@ -9,6 +9,8 @@ import { getAuthenticatedSession } from "../lib/api";
 import { PrivacyConsent } from "./PrivacyConsent";
 
 export function AuthWrapper() {
+  const { search } = useLocation();
+  const authRequested = ["login", "signup"].includes(new URLSearchParams(search).get("auth") || "");
   const [user, setUser] = useState<string | null>(null);
   const [guest, setGuest] = useState<boolean>(isGuest);
   const [restoring, setRestoring] = useState(true);
@@ -107,7 +109,7 @@ export function AuthWrapper() {
 
   const privacyRequired = !!user && privacyPending;
 
-  if (user || guest)
+  if (user || (guest && !authRequested))
     return (
       <>
         <div
@@ -126,6 +128,7 @@ export function AuthWrapper() {
 
   return (
     <Login
+      allowGuest={!authRequested}
       onLoginSuccess={async (username) => {
         previousUser.current = username;
         setGuest(false);

@@ -12,7 +12,7 @@ S = mudança pequena e poucas dependências; M = vários fluxos e persistência;
 | ID | Integração | Primeira entrega | Esforço | Custo externo do MVP | Estado |
 |---|---|---|---|---|---|
 | INT-01 | [Calendário por arquivo ICS](docs/integrations/01-calendar-ics.md) | Evento de leitura importável no calendário | S | Sem API paga | Implementado — testes locais |
-| INT-02 | [Compartilhamento social](docs/integrations/02-social-sharing.md) | Compartilhar livro/link; Booklist como imagem | S no link; M na imagem | Sem API paga no compartilhamento nativo | Link implementado — imagens pendentes |
+| INT-02 | [Compartilhamento social](docs/integrations/02-social-sharing.md) | Compartilhar livro/link; Booklist como imagem | S no link; M na imagem | Sem API paga no compartilhamento nativo | Link e prévia guest implementados — cartões gráficos pendentes |
 | INT-03 | [Spotify](docs/integrations/03-spotify.md) | Vincular playlist pública e abrir no Spotify | S | Sem API no MVP | Link implementado — testes locais |
 | INT-04 | [Google Books e ISBN](docs/integrations/04-google-books.md) | Buscar edição e preencher cadastro | M | Consultas sujeitas às regras/cotas vigentes | Planejado |
 | INT-05 | [Open Library](docs/integrations/05-open-library.md) | Segunda fonte de metadados e capas | M; menor após INT-04 | API pública, com limites de uso | Planejado |

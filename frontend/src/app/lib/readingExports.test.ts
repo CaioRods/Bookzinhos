@@ -37,3 +37,9 @@ it('native sharing cancels quietly and unsupported devices copy links',async()=>
  vi.stubGlobal('navigator',{clipboard:{writeText}});
  expect(await shareReading({url:'https://mybooks.test/book/a'})).toBe('copied');expect(writeText).toHaveBeenCalledWith('https://mybooks.test/book/a');
 });
+
+it('builds personalized share links with encoded IDs and a stable title slug',async()=>{
+ const {publicBookShareUrl}=await import('./readingExports');
+ expect(publicBookShareUrl('https://mybooks.test',{id:'id/1',title:'O Príncipe Cruel!'})).toBe('https://mybooks.test/share/book/id%2F1/o-principe-cruel');
+ expect(publicBookShareUrl('http://localhost:5173',{id:'a',title:'📚'})).toBe('http://localhost:3001/share/book/a/livro');
+});

@@ -171,6 +171,7 @@ app.use((_req, res, next) => {
 });
 app.use(createSessionMiddleware({ store: sessionStore }));
 app.use(enforceOfflineAccount);
+require("./book-share")({ app, db, sql, currentUser, appOrigin: process.env.PUBLIC_APP_URL || frontendOrigins[0] });
 app.use(createPrivacyAcceptanceGate());
 
 app.get("/", (_req, res) => {

@@ -56,9 +56,9 @@ vi.mock("./BookOpening", () => ({
     <button onClick={onComplete}>Finalizar abertura</button>
   ),
 }));
-const app = () =>
+const app = (entry = "/") =>
   render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[entry]}>
       <Routes>
         <Route element={<AuthWrapper />}>
           <Route index element={<h1>Biblioteca pronta</h1>} />
@@ -146,4 +146,11 @@ describe("authenticated opening", () => {
     expect(await screen.findByText("Finalizar abertura")).toBeTruthy();
     expect(screen.queryByRole("dialog", { name: "Política de Privacidade" })).toBeNull();
   });
+});
+
+it("explicit signup from a book preview shows authentication even in existing guest mode", async () => {
+  session.guest = true;
+  app("/?auth=signup");
+  expect(await screen.findByText("Entrar na conta")).toBeTruthy();
+  expect(screen.queryByText("Biblioteca pronta")).toBeNull();
 });

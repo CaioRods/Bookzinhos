@@ -26,3 +26,9 @@ export function downloadReading(content: string, name: string, extension: 'ics'|
   const url=URL.createObjectURL(new Blob([content],{type:extension==='ics'?'text/calendar;charset=utf-8':'text/markdown;charset=utf-8'}));
   const anchor=document.createElement('a'); anchor.href=url; anchor.download=(name.replace(/[\\/:*?"<>|\u0000-\u001f]/g,' ').trim()||'leitura')+'.'+extension; document.body.append(anchor); anchor.click(); anchor.remove(); setTimeout(()=>URL.revokeObjectURL(url),4000);
 }
+
+export function publicBookShareUrl(origin: string, book: Pick<Book, 'id'|'title'>) {
+  const slug=book.title.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,80)||'livro';
+  const base=/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin) ? new URL(origin).protocol+'//'+new URL(origin).hostname+':3001' : origin;
+  return base+'/share/book/'+encodeURIComponent(book.id)+'/'+slug;
+}

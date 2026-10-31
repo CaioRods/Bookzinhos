@@ -14,6 +14,7 @@ import { getFullUrl, type Book } from "../lib/types";
 interface LoginProps {
   onLoginSuccess: (name: string) => void;
   onGuest: () => void;
+  allowGuest?: boolean;
 }
 
 type Mode = "login" | "signup" | "forgot";
@@ -34,7 +35,7 @@ function passwordChecks(pw: string) {
   };
 }
 
-export function Login({ onLoginSuccess, onGuest }: LoginProps) {
+export function Login({ onLoginSuccess, onGuest, allowGuest = true }: LoginProps) {
   const [config, setConfig] = useState<ServerConfig | null>(null);
   const [authenticated, setAuthenticated] = useState(false);
   const [showcase, setShowcase] = useState<Book[]>([]);
@@ -66,7 +67,7 @@ export function Login({ onLoginSuccess, onGuest }: LoginProps) {
         </section>
         <section className="mb-auth-panel" aria-label="Acesse sua biblioteca">
           <div className="mb-auth-card"><div className="mb-auth-card-ornament" aria-hidden="true"><span /><Sparkles size={14} /><span /></div><div className="mb-auth-card-content"><AuthFlow config={config} onLoginSuccess={finishLogin} onGuest={onGuest} /></div><div className="mb-auth-success" aria-live="polite"><span><Check /></span><strong>Biblioteca aberta</strong><small>Preparando seu próximo capítulo…</small></div></div>
-          <button onClick={onGuest} className="mb-auth-visit">Explorar a biblioteca sem conta <ArrowRight className="w-4 h-4" /></button>
+          {allowGuest && <button onClick={onGuest} className="mb-auth-visit">Explorar a biblioteca sem conta <ArrowRight className="w-4 h-4" /></button>}
           <p className="mb-auth-footnote">Feito para quem encontra um mundo em cada livro.</p>
         </section>
       </main>
@@ -93,7 +94,7 @@ function LoginLibraryShowcase({ books }: { books: Book[] }) {
 }
 
 function AuthFlow({ config, onLoginSuccess, onGuest }: { config: ServerConfig | null } & Omit<LoginProps, never>) {
-  const [mode, setMode] = useState<Mode>("login");
+  const [mode, setMode] = useState<Mode>(() => new URLSearchParams(window.location.search).get("auth") === "signup" ? "signup" : "login");
 
   const succeed = (username: string) => {
     onLoginSuccess(username);
