@@ -26,6 +26,7 @@ export interface Book {
   pdfBytes?: number | null;
   epubBytes?: number | null;
   coverImagePath?: string | null;
+  coverPalette?: { base: string; shade: string; tint: string; ink: string } | null;
   isUserBook?: boolean;
   reviews?: Review[];
   pages?: string[];

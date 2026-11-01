@@ -10,13 +10,13 @@ export interface SceneTheme {
 export interface BookAppearance { width: number; height: number; imageUrl: string; mainColor: string | null; blur: number; opacity: number; crop: ImageCrop }
 export const CENTER_CROP: ImageCrop = { x: 50, y: 50, zoom: 1 };
 export const DEFAULT_BOOK_APPEARANCE: BookAppearance = { width: 800, height: 1200, imageUrl: "", mainColor: null, blur: 0, opacity: 1, crop: { ...CENTER_CROP } };
-export function accentVariables(color: string, dark = false): Record<string, string> {
+export function accentVariables(color: string, dark = false, preserveSource = false): Record<string, string> {
   const rgb = color.match(/^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);
   if (!rgb) return {};
   let channels = rgb.slice(1).map(value => parseInt(value, 16));
   const luminance = (channels[0] * .2126 + channels[1] * .7152 + channels[2] * .0722) / 255;
-  if (dark && luminance < .6) channels = channels.map(value => Math.round(value + (255 - value) * .45));
-  if (!dark && luminance > .65) channels = channels.map(value => Math.round(value * .55));
+  if (!preserveSource && dark && luminance < .6) channels = channels.map(value => Math.round(value + (255 - value) * .45));
+  if (!preserveSource && !dark && luminance > .65) channels = channels.map(value => Math.round(value * .55));
   const main = `#${channels.map(value => value.toString(16).padStart(2, "0")).join("")}`;
   const light = (channels[0] * .2126 + channels[1] * .7152 + channels[2] * .0722) > 155;
   return { "--primary": main, "--accent": main, "--primary-hover": `color-mix(in srgb, ${main} 85%, ${dark ? "white" : "black"})`, "--primary-deep": main, "--primary-soft": `color-mix(in srgb, ${main} 12%, transparent)`, "--primary-foreground": light ? "#211526" : "#ffffff", "--ring": `color-mix(in srgb, ${main} 22%, transparent)` };

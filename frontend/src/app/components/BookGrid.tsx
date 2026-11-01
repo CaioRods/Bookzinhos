@@ -26,17 +26,7 @@ export function BookGrid({ books, framed = false, progressOf, display = "cover",
     if (!isShelf) return;
     const element = gridRef.current;
     if (!element) return;
-    const measure = () => {
-      const styles = getComputedStyle(element);
-      const available = element.clientWidth - parseFloat(styles.paddingLeft) - parseFloat(styles.paddingRight);
-      if (!available) return;
-      const mobile = window.innerWidth < 640;
-      const spacing = framed ? (mobile ? 12 : 16) : mobile ? 16 : 28;
-      const minimum = framed ? (mobile ? (window.innerWidth < 360 ? 124 : 142) : window.innerWidth < 1600 ? 176 : 200) : window.innerWidth < 400 ? 82 : mobile ? 108 : 200;
-      const columns = Math.max(1, Math.floor((available + spacing) / (minimum + spacing)));
-      const tileWidth = Math.floor((available - spacing * (columns - 1)) / columns);
-      setCoverWidth(framed ? Math.max(80, tileWidth - 48) : Math.min(236, tileWidth));
-    };
+    const measure = () => setCoverWidth(window.innerWidth < 640 ? 148 : 176);
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(element);

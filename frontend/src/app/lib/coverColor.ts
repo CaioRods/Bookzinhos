@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "./config";
 /**
  * Cor dominante da capa de um livro.
  *
@@ -40,12 +41,20 @@ export function dominantCoverColor(data: Uint8ClampedArray | Uint8Array): SpineC
   }
   const largest = (buckets: Map<string, Bucket>) => [...buckets.values()].sort((a,b) => b.count - a.count)[0];
   const accent = largest(accents), dominant = accent && accent.count / total >= .08 ? accent : largest(all);
-  return dominant ? paletteFromRgb(dominant.r / dominant.count, dominant.g / dominant.count, dominant.b / dominant.count) : NEUTRAL_COVER_COLOR;
+  if (!dominant) return NEUTRAL_COVER_COLOR;
+  const average = [dominant.r / dominant.count, dominant.g / dominant.count, dominant.b / dominant.count];
+  let sample = [0, 0, 0], distance = Infinity;
+  for (let i = 0; i < data.length; i += 4) {
+    if (data[i + 3] < 200) continue;
+    const next = (data[i] - average[0]) ** 2 + (data[i + 1] - average[1]) ** 2 + (data[i + 2] - average[2]) ** 2;
+    if (next < distance) { distance = next; sample = [data[i], data[i + 1], data[i + 2]]; }
+  }
+  return paletteFromRgb(sample[0], sample[1], sample[2]);
 }
 
 const memory = new Map<string, SpineColor>();
 const pending = new Map<string, Promise<SpineColor>>();
-const STORAGE_KEY = "mybooks-spine-colors-v4";
+const STORAGE_KEY = "mybooks-spine-colors-v6";
 
 /** Paleta de reserva para livros sem imagem de capa, por gradiente cadastrado. */
 const FALLBACK_HUES: Record<string, number> = {
@@ -123,7 +132,8 @@ function rgbToHsl(r: number, g: number, b: number): [number, number, number] {
 export function getSpineColor(
   coverUrl: string | null | undefined,
   coverColor?: string | null,
-  seed = ""
+  seed = "",
+  bookId?: string
 ): Promise<SpineColor> {
   const fallback = coverUrl ? NEUTRAL_COVER_COLOR : fallbackSpineColor(coverColor, seed);
   if (!coverUrl) return Promise.resolve(fallback);
@@ -152,10 +162,19 @@ export function getSpineColor(
       resolve(color);
     };
 
-    img.onerror = () => {
-      pending.delete(coverUrl);
-      resolve(fallback);
+    const recover = async () => {
+      if (bookId) {
+        try {
+          const response = await fetch(`${API_BASE_URL}/books/${encodeURIComponent(bookId)}/cover-palette`, { credentials: "include", signal: AbortSignal.timeout(12000) });
+          if (!response.ok) throw new Error("Capa indisponível");
+          const palette = await response.json();
+          if (!["base", "shade", "tint", "ink"].every(key => /^#[a-f0-9]{6}$/i.test(palette[key]))) throw new Error("Cor inválida");
+          finish(palette); return;
+        } catch { /* Keep a neutral fallback only when both extraction paths fail. */ }
+      }
+      pending.delete(coverUrl); resolve(fallback);
     };
+    img.onerror = () => { void recover(); };
 
     img.onload = () => {
       try {
@@ -165,16 +184,16 @@ export function getSpineColor(
         canvas.width = W;
         canvas.height = H;
         const ctx = canvas.getContext("2d", { willReadFrequently: true });
-        if (!ctx) { pending.delete(coverUrl); resolve(fallback); return; }
+        if (!ctx) { void recover(); return; }
 
+        ctx.imageSmoothingEnabled = false;
         ctx.drawImage(img, 0, 0, W, H);
         const { data } = ctx.getImageData(0, 0, W, H);
 
         finish(dominantCoverColor(data));
       } catch {
         // getImageData falha em canvas "sujo" (imagem sem CORS liberado).
-        pending.delete(coverUrl);
-        resolve(fallback);
+        void recover();
       }
     };
 

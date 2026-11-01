@@ -1,3 +1,4 @@
+const { extractCoverPalette } = require("./cover-palette");
 const { createAuthorRegistry } = require("./authors");
 const { createBookMetadata, metadataFields } = require("./integrations/book-metadata");
 const { normalizeBookGenres } = require("./book-genres");
@@ -210,6 +211,11 @@ async function seriesFields(body) {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+function readCoverPalette(row) {
+  if (!row.cover_palette || row.cover_palette_url !== row.cover_image_path) return null;
+  try { const palette = JSON.parse(row.cover_palette); return ["base","shade","tint","ink"].every(key => /^#[a-f0-9]{6}$/i.test(palette[key])) ? palette : null; } catch { return null; }
+}
+const paletteRequests = new Map();
 function rowToBook(row) {
   if (!row) return null;
   return {
@@ -230,6 +236,7 @@ function rowToBook(row) {
     pdfPath: row.pdf_path || null,
     epubPath: row.epub_path || null, pdfBytes: Number(row.pdf_bytes) || null, epubBytes: Number(row.epub_bytes) || null,
     coverImagePath: row.cover_image_path || null,
+    coverPalette: readCoverPalette(row),
     seriesId: row.series_id || null,
     seriesName: row.series_name || null,
     seriesOrder: row.series_order == null ? null : Number(row.series_order),
@@ -439,6 +446,26 @@ app.get("/books", async (_req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+const coverPaletteLimit = createRateLimiter({windowMs:60000,limit:120,key:req => currentUser(req) || req.ip});
+app.get("/books/:id/cover-palette", coverPaletteLimit, async (req, res) => {
+  res.set("Cache-Control", "private, no-store");
+  try {
+    await startup;
+    const [row] = await db.query(sql`SELECT * FROM books WHERE id=${req.params.id}`);
+    const username = currentUser(req);
+    if (!row || (Number(row.is_public) !== 1 && (!username || (row.uploaded_by?.toLowerCase() !== username.toLowerCase() && !await isAdmin(username))))) return res.status(404).json({error:"Capa indisponível."});
+    const stored = readCoverPalette(row);
+    if (stored) return res.json(stored);
+    if (!row.cover_image_path) return res.status(404).json({error:"Este livro não possui capa."});
+    const key = `${row.id}:${row.cover_image_path}`;
+    if (!paletteRequests.has(key)) paletteRequests.set(key, extractCoverPalette(row.cover_image_path).then(async palette => {
+      await db.query(sql`UPDATE books SET cover_palette=${JSON.stringify(palette)}, cover_palette_url=${row.cover_image_path} WHERE id=${row.id} AND cover_image_path=${row.cover_image_path}`);
+      return palette;
+    }).finally(() => paletteRequests.delete(key)));
+    res.json(await paletteRequests.get(key));
+  } catch { res.status(502).json({error:"Não foi possível extrair a cor da capa."}); }
 });
 
 app.get("/books/:id", async (req, res) => {

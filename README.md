@@ -160,3 +160,14 @@ preservam a instalação anterior. Instalações permanecem isoladas por conta.
 O tema automático da página usa uma cor real da capa, preservando capas neutras
 ou destacando uma cor com presença significativa. Falhas de leitura da imagem
 usam cinza; cores escolhidas manualmente na aparência continuam prevalecendo.
+
+A estante usa a espessura real de cada lombada, alturas uniformes e espaçamento
+compacto. Se CORS bloquear a leitura da cor no navegador, a API extrai a paleta da
+capa com processamento limitado e salva o resultado vinculado à URL da imagem.
+Uma capa substituída invalida essa paleta. Apenas hosts de storage conhecidos ou
+configurados podem ser consultados; para um CDN próprio, configure
+`COVER_IMAGE_HOSTS` no servidor. Capas privadas exigem acesso à conta correspondente.
+
+As lombadas exibem a própria imagem da capa. O tema da página escolhe um pixel
+representativo real, sem interpolar uma cor média nem clarear/escurecer a cor
+principal conforme o modo de aparência. O contraste do texto continua automático.

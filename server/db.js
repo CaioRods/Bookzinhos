@@ -433,6 +433,8 @@ async function initDB() {
   await ensureColumn("books", "series_name", "TEXT");
   await ensureColumn("books", "series_order", "REAL");
   await ensureColumn("books", "uploaded_by", "TEXT NOT NULL DEFAULT ''");
+  await ensureColumn("books", "cover_palette", "TEXT");
+  await ensureColumn("books", "cover_palette_url", "TEXT");
   await ensureColumn("books", "epub_path", "TEXT");
   await ensureColumn("books", "pdf_bytes", "INTEGER");
   await ensureColumn("books", "epub_bytes", "INTEGER");

@@ -10,7 +10,7 @@ import { deleteBook, saveProgress, toggleSaved } from "../lib/api";
 import { requireAuth } from "../lib/authGate";
 import { useOpenBook } from "../lib/readerChoice";
 import { ConfirmDialog, toast } from "./Ui";
-import { Book3D, type BookDisplay } from "./Book3D";
+import { Book3D, spineWidth, type BookDisplay } from "./Book3D";
 import { useBookFlight, useFlyingBookId } from "./BookTransition";
 import type { Book, ReadingProgress } from "../lib/types";
 
@@ -288,8 +288,8 @@ function BookCardImpl({
       <div
         ref={rootRef}
         {...pressHandlers}
-        className={`mb-book-tile cursor-pointer select-none ${!isSpine ? "mb-poster-tile" : ""}`}
-        style={{ visibility: flyingId === book.id ? "hidden" : undefined, width } as React.CSSProperties}
+        className={`mb-book-tile cursor-pointer select-none ${!isSpine ? "mb-poster-tile" : "mb-spine-tile"}`}
+        style={{ visibility: flyingId === book.id ? "hidden" : undefined, width: isSpine ? spineWidth(book) : width, ...(isSpine ? { height: Math.max(220, Math.round(width * 1.5)) } : {}) } as React.CSSProperties}
       >
         {cover}
 

@@ -162,7 +162,7 @@ export function BookDetails() {
   const appearance = book.appearance || DEFAULT_BOOK_APPEARANCE;
   const autoColor = colorToHex(coverColor.base);
   const dark = settings.theme === "escuro" || (settings.theme === "sistema" && window.matchMedia("(prefers-color-scheme: dark)").matches);
-  const pageColors = accentVariables(appearance.mainColor || autoColor, dark);
+  const pageColors = accentVariables(appearance.mainColor || autoColor, dark, true);
   const artwork: SceneTheme = { id: book.id, name: book.title, scope: "system", imageUrl: appearance.imageUrl || cover || "/scenery/golden-branches.webp", width: appearance.width || 800, height: appearance.height || 1200, mainColor: appearance.mainColor || autoColor, profile: appearance.crop, sidebar: appearance.crop, sidebarOpacity: 1 };
 
   return (

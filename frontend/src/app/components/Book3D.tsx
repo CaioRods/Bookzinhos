@@ -29,16 +29,17 @@ export function useSpineColor(book: Book | null | undefined): SpineColor {
   const coverUrl = getFullUrl(book?.coverImagePath);
   const coverColor = book?.coverColor ?? null;
   const id = book?.id ?? "";
-  const [color, setColor] = useState<SpineColor>(() => coverUrl ? NEUTRAL_COVER_COLOR : fallbackSpineColor(coverColor, id));
+  const [color, setColor] = useState<SpineColor>(() => book?.coverPalette || (coverUrl ? NEUTRAL_COVER_COLOR : fallbackSpineColor(coverColor, id)));
 
   useEffect(() => {
     let alive = true;
+    if (book?.coverPalette) { setColor(book.coverPalette); return; }
     setColor(coverUrl ? NEUTRAL_COVER_COLOR : fallbackSpineColor(coverColor, id));
-    getSpineColor(coverUrl, coverColor, id).then((c) => {
+    getSpineColor(coverUrl, coverColor, id, id).then((c) => {
       if (alive) setColor(c);
     });
     return () => { alive = false; };
-  }, [coverUrl, coverColor, id]);
+  }, [coverUrl, coverColor, id, book?.coverPalette]);
 
   return color;
 }
@@ -98,6 +99,7 @@ function Book3DImpl({ book, width, display = "cover", index = 0, progress, rank,
   // A dedicated, readable spine avoids compressed 3D text and overlapping authors.
   if (isSpine && !pose) {
     return <div className="mb-book-scene mb-shelf-spine" style={{ width: depth, height, background: `linear-gradient(100deg, ${color.shade}, ${color.base} 18%, ${color.base} 75%, ${color.shade})`, color: color.ink }} title={`${book.title}${book.author ? ` — ${book.author}` : ""}`}>
+      {coverUrl && <span className="mb-spine-art" aria-hidden="true"><img src={coverUrl} alt="" loading={index < 8 ? "eager" : "lazy"} decoding="async" /></span>}
       <span className="mb-spine-rule" />
       <span className="mb-spine-title"><span>{book.title}</span></span>
       <span className="mb-spine-number">{String(index + 1).padStart(2, "0")}</span>

@@ -85,3 +85,14 @@
 @layer components {
   .mb-flat-cover { outline-offset:-2px; }
 }
+@layer components {
+  .mb-book-grid--shelf { align-items:flex-end; justify-content:flex-start; }
+  .mb-book-grid--shelf .mb-spine-tile { position:relative; flex:0 0 auto; margin:0; padding:0; transition:none; animation:none; }
+  .mb-spine-tile > .mb-installed-mark { position:absolute; bottom:-29px; left:50%; transform:translateX(-50%); }
+}
+@layer components {
+  .mb-spine-art { position:absolute; inset:0; overflow:hidden; pointer-events:none; }
+  .mb-spine-art img { display:block; width:100%; height:100%; object-fit:fill; }
+  .mb-shelf-spine .mb-spine-title,.mb-shelf-spine .mb-spine-number,.mb-shelf-spine .mb-spine-rule { z-index:1; }
+  .mb-shelf-spine .mb-spine-title { text-shadow:0 1px 2px rgb(0 0 0 / 35%); }
+}
