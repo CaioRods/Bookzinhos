@@ -1,7 +1,7 @@
 import { bookFileKind, convertEpub } from "./epub/convert";
 import { localGenres } from "./bookMetadata";
 import pdfjsWorker from "pdfjs-dist/build/pdf.worker.mjs?url";
-export interface PreparedBook { file: File; cover: File | null; pageCount: number; title: string; author: string; description: string; genres: string[] }
+export interface PreparedBook { file: File; cover: File | null; pageCount: number; pageCountKnown?: boolean; title: string; author: string; description: string; genres: string[] }
 export function filenameMetadata(name: string) {
   const value = name.replace(/\.(pdf|epub)$/i, "").replace(/_/g, " ").trim();
   const split = value.match(/^(.+?)\s+[-–—]\s+(.+)$/);
@@ -44,5 +44,5 @@ export async function prepareBook(source: File, signal: AbortSignal, progress: (
   if (signal.aborted) throw new DOMException("Cancelado", "AbortError");
   progress(null); const details = await pdfDetails(file, signal);
   if (signal.aborted) throw new DOMException("Cancelado", "AbortError");
-  return { file, cover: details?.cover || null, pageCount: details?.pageCount || pageCount, title: title || details?.title || guessed.title, author: author || details?.author || guessed.author, description, genres: genres.length ? genres : details?.genres || [] };
+  return { pageCountKnown: !!details?.pageCount || kind === "epub", file, cover: details?.cover || null, pageCount: details?.pageCount || pageCount, title: title || details?.title || guessed.title, author: author || details?.author || guessed.author, description, genres: genres.length ? genres : details?.genres || [] };
 }

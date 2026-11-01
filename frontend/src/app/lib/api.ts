@@ -29,7 +29,7 @@ const inFlight = new Map<string, Promise<unknown>>();
 
 /** Janela padrão do cache. Curta o bastante para não servir dado velho. */
 const DEFAULT_TTL = 8000;
-const BOOKS_STORAGE_KEY = "mybooks:catalog:v1";
+const BOOKS_STORAGE_KEY = "mybooks:catalog:v2";
 const BOOKS_STORAGE_TTL = 24 * 60 * 60 * 1000;
 
 function cacheKey(path: string): string {
@@ -170,6 +170,7 @@ export function fetchBooks(force = false): Promise<Book[]> {
   if (isOffline()) return installedBooks();
   if (!force) {
     try {
+      localStorage.removeItem("mybooks:catalog:v1");
       const stored = JSON.parse(localStorage.getItem(BOOKS_STORAGE_KEY) || "null") as
         | { at: number; books: Book[] }
         | null;
@@ -211,7 +212,7 @@ export function registerBookOpen(id: string): void {
 export type BookUploadStage = "checking" | "pdf" | "cover" | "saving";
 export async function uploadBook(data: {
   title: string; author: string; description: string; genre: string; isPublic: boolean; coverColor: string;
-  seriesId?: string; seriesOrder?: number; pdfFile: File; coverFile?: File; epubFile?: File;
+  seriesId?: string; seriesOrder?: number; pdfFile: File; coverFile?: File; epubFile?: File; pageCount?: number;
   publisher?: string; publishedYear?: string; metadataSource?: string; metadataId?: string; isbn?: string; uploadRequestId?: string;
 }, onStage?: (stage: BookUploadStage) => void): Promise<Book> {
   onStage?.("checking");
@@ -219,7 +220,7 @@ export async function uploadBook(data: {
   const duplicate = existing.find(book => book.title.trim().toLowerCase() === data.title.trim().toLowerCase() && (book.author || "").trim().toLowerCase() === (data.author || "").trim().toLowerCase());
   // The API resolves retries by uploadRequestId, including uncertain previous responses.
   if (duplicate && (!data.uploadRequestId || duplicate.uploadRequestId !== data.uploadRequestId)) throw new Error("Já existe um livro com este título e autor!");
-  const fields = { pdfBytes: data.pdfFile.size, epubBytes: data.epubFile?.size || 0, title: data.title, author: data.author, description: data.description, genre: data.genre,
+  const fields = { pageCount: data.pageCount || 0, pdfBytes: data.pdfFile.size, epubBytes: data.epubFile?.size || 0, title: data.title, author: data.author, description: data.description, genre: data.genre,
     isPublic: String(data.isPublic), coverColor: data.coverColor, seriesId: data.seriesId || "", seriesOrder: data.seriesOrder || 1,
     publisher: data.publisher || "", publishedYear: data.publishedYear || "", metadataSource: data.metadataSource || "", metadataId: data.metadataId || "", isbn: data.isbn || "", uploadRequestId: data.uploadRequestId || "" };
   if (duplicate && data.uploadRequestId && duplicate.uploadRequestId === data.uploadRequestId) {

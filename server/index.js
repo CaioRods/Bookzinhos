@@ -233,6 +233,7 @@ function rowToBook(row) {
     isPublic: !!row.is_public,
     coverColor: row.cover_color,
     addedAt: Number(row.added_at) || 0,
+    pageCount: Number(row.page_count) || 0,
     pdfPath: row.pdf_path || null,
     epubPath: row.epub_path || null, pdfBytes: Number(row.pdf_bytes) || null, epubBytes: Number(row.epub_bytes) || null,
     coverImagePath: row.cover_image_path || null,
@@ -257,7 +258,8 @@ async function loadBookStats() {
       SELECT book_id,
              COUNT(*) as readers,
              SUM(CASE WHEN status = 'finalizado' THEN 1 ELSE 0 END) as finished,
-             MAX(last_read_at) as last_read_at
+             MAX(last_read_at) as last_read_at,
+             MAX(CASE WHEN current_page > 0 AND total_pages > 1 THEN total_pages ELSE 0 END) as observed_pages
       FROM reading_progress GROUP BY book_id
     `),
   ]);
@@ -278,6 +280,7 @@ async function loadBookStats() {
   for (const p of pages) slot(p.book_id).pageCount = Number(p.cnt);
   for (const r of readers) {
     const s = slot(r.book_id);
+    s.observedPages = Number(r.observed_pages) || 0;
     s.readers = Number(r.readers);
     s.finished = Number(r.finished);
     s.lastReadAt = Number(r.last_read_at) || 0;
@@ -292,12 +295,12 @@ function decorateBook(book, stats) {
       book.rating = s.rating;
       book.reviewCount = s.reviewCount;
     }
-    book.pageCount = s.pageCount;
+    book.pageCount = book.pageCount || (book.pdfPath ? s.observedPages || s.pageCount : s.pageCount || s.observedPages) || 0;
     book.readers = s.readers;
     book.finishedCount = s.finished;
     book.lastReadAt = s.lastReadAt;
   } else {
-    book.pageCount = 0;
+    book.pageCount = book.pageCount || 0;
     book.readers = 0;
     book.finishedCount = 0;
     book.lastReadAt = 0;
@@ -479,14 +482,14 @@ app.get("/books/:id", async (req, res) => {
       loadReviews({ bookId: row.id, me }),
       db.query(sql`SELECT content FROM book_pages WHERE book_id = ${row.id} ORDER BY page_num`),
       db.query(sql`
-        SELECT COUNT(*) as readers, SUM(CASE WHEN status = 'finalizado' THEN 1 ELSE 0 END) as finished
+        SELECT COUNT(*) as readers, SUM(CASE WHEN status = 'finalizado' THEN 1 ELSE 0 END) as finished, MAX(CASE WHEN current_page > 0 AND total_pages > 1 THEN total_pages ELSE 0 END) as observed_pages
         FROM reading_progress WHERE book_id = ${row.id}
       `),
     ]);
 
     book.reviews = reviews;
     book.pages = pageRows.map((r) => r.content);
-    book.pageCount = pageRows.length;
+    book.pageCount = book.pageCount || (book.pdfPath ? Number(readerRow[0]?.observed_pages) || pageRows.length : pageRows.length || Number(readerRow[0]?.observed_pages)) || 0;
     book.readers = readerRow[0] ? Number(readerRow[0].readers) || 0 : 0;
     book.finishedCount = readerRow[0] ? Number(readerRow[0].finished) || 0 : 0;
     if (reviews.length > 0) {
@@ -601,6 +604,9 @@ app.post("/books", requireUser, upload.fields([{ name: "pdf", maxCount: 1 }, { n
     `);
 
     if (series) await db.query(sql`UPDATE books SET series_id=${series.id}, series_name=${series.name}, series_order=${series.order} WHERE id=${id}`);
+    const pages = Number(req.body.pageCount);
+    const pageCount = Number.isSafeInteger(pages) && pages > 0 && pages <= 200000 ? pages : 0;
+    await db.query(sql`UPDATE books SET page_count=${pageCount} WHERE id=${id}`);
     const fileSize = value => Number.isSafeInteger(Number(value)) && Number(value) > 0 && Number(value) <= 1024 * 1024 * 1024 ? Number(value) : null;
     await db.query(sql`UPDATE books SET epub_path=${epubUrl}, pdf_bytes=${pdfFile?.size || fileSize(req.body.pdfBytes)}, epub_bytes=${epubFile?.size || fileSize(req.body.epubBytes)} WHERE id=${id}`);
     const metadata = metadataFields(req.body);

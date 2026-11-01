@@ -19,6 +19,7 @@ const emptyForm = () => ({ title: "", author: "", description: "", genre: "Outro
 export function Upload() {
   const navigate = useNavigate();
   const mounted = useRef(true);
+  const knownPages = useRef(false);
   const [showUploadProgress, setShowUploadProgress] = useState(false);
   const [formData, setFormData] = useState(emptyForm), formRef = useRef(formData); formRef.current = formData;
   const touched = useRef(new Set<string>());
@@ -96,11 +97,13 @@ export function Upload() {
   };
   const processFile = async (item: QueueItem) => {
     processing.current?.abort(); lookup.current?.abort(); const controller = new AbortController(); processing.current = controller;
+    knownPages.current = false;
     setPdfFile(null); setError(null); setIsPreparing(true); setConversionProgress(null); setFindingGenre(false); patchItem(item.id, { status: "preparing" });
     try {
       const prepared = await prepareBook(item.file, controller.signal, value => { if (!controller.signal.aborted) setConversionProgress(value); });
       if (controller.signal.aborted || activeId.current !== item.id) return;
       if (prepared.cover && !manualCover.current) previewCover(prepared.cover);
+      knownPages.current = prepared.pageCountKnown !== false;
       setPdfFile(prepared.file); setTotalPages(prepared.pageCount);
       const previous = formRef.current;
       const next = { ...previous, title: previous.title || prepared.title, author: previous.author || prepared.author, description: previous.description || prepared.description,
@@ -143,7 +146,7 @@ export function Upload() {
     event.preventDefault(); if (!pdfFile || !current || ["published", "skipped"].includes(current.status) || !formData.title.trim() || isPreparing || posting.current) return;
     posting.current = true; setShowUploadProgress(true); setIsUploading(true); setUploadStage("checking"); setError(null); lookup.current?.abort(); setFindingGenre(false); patchItem(current.id, { status: "publishing" });
     try {
-      const book = await uploadBook({ ...formData, uploadRequestId: current.id, coverColor: randomCoverColor(), pdfFile, coverFile: coverFile || undefined, epubFile: bookFileKind(current.file) === "epub" ? current.file : undefined }, setUploadStage);
+      const book = await uploadBook({ ...formData, uploadRequestId: current.id, pageCount: knownPages.current ? totalPages : 0, coverColor: randomCoverColor(), pdfFile, coverFile: coverFile || undefined, epubFile: bookFileKind(current.file) === "epub" ? current.file : undefined }, setUploadStage);
       if (!mounted.current) return;
       patchItem(current.id, { status: "published", bookId: book.id });
       try { await saveProgress({ bookId: book.id, currentPage: 0, totalPages, progress: 0, status: "lendo", startedAt: Date.now(), lastReadAt: Date.now() }); }

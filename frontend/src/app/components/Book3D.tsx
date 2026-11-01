@@ -16,12 +16,8 @@ export type BookDisplay = "cover" | "spine";
  * parecer uma estante de verdade, em vez de uma fileira de tiras iguais.
  */
 export function spineWidth(book: Book): number {
-  const pages = book.pageCount || 0;
-  if (pages > 0) return Math.round(Math.min(Math.max(42 + pages / 75, 44), 54));
-  // Sem contagem de páginas, uma variação estável derivada do id.
-  let hash = 0;
-  for (let i = 0; i < book.id.length; i++) hash = (hash * 31 + book.id.charCodeAt(i)) % 1000;
-  return 44 + (hash % 8);
+  const pages = Number(book.pageCount);
+  return Number.isFinite(pages) && pages > 0 ? Math.round(Math.min(112, Math.max(24, 20 + pages * .065))) : 36;
 }
 
 /** Busca a cor dominante da capa, com reserva imediata enquanto carrega. */
@@ -98,7 +94,7 @@ function Book3DImpl({ book, width, display = "cover", index = 0, progress, rank,
 
   // A dedicated, readable spine avoids compressed 3D text and overlapping authors.
   if (isSpine && !pose) {
-    return <div className="mb-book-scene mb-shelf-spine" style={{ width: depth, height, background: `linear-gradient(100deg, ${color.shade}, ${color.base} 18%, ${color.base} 75%, ${color.shade})`, color: color.ink }} title={`${book.title}${book.author ? ` — ${book.author}` : ""}`}>
+    return <div className="mb-book-scene mb-shelf-spine" style={{ width: depth, height, background: `linear-gradient(100deg, ${color.shade}, ${color.base} 18%, ${color.base} 75%, ${color.shade})`, color: color.ink }} title={`${book.title}${book.author ? ` — ${book.author}` : ""}${book.pageCount ? ` · ${book.pageCount} páginas` : ""}`}>
       {coverUrl && <span className="mb-spine-art" aria-hidden="true"><img src={coverUrl} alt="" loading={index < 8 ? "eager" : "lazy"} decoding="async" /></span>}
       <span className="mb-spine-rule" />
       <span className="mb-spine-title"><span>{book.title}</span></span>

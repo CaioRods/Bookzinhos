@@ -171,3 +171,7 @@ configurados podem ser consultados; para um CDN próprio, configure
 As lombadas exibem a própria imagem da capa. O tema da página escolhe um pixel
 representativo real, sem interpolar uma cor média nem clarear/escurecer a cor
 principal conforme o modo de aparência. O contraste do texto continua automático.
+
+A espessura da lombada cresce com a contagem real de páginas. Novos envios guardam
+essa contagem no catálogo; PDFs antigos aproveitam a contagem já registrada em
+leituras. Quando o total ainda é desconhecido, usam uma espessura padrão única.

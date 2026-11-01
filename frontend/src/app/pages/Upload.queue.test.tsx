@@ -101,3 +101,9 @@ it('shows an unavailable server route rather than claiming that the book was not
     expect(screen.getByRole('button',{name:'Tentar preenchimento automático novamente'})).toBeEnabled();
   }finally{vi.unstubAllGlobals();}
 });
+it('publishes the real extracted page count and does not save an unknown placeholder as one page',async()=>{
+ mocks.prepare.mockImplementationOnce(async file=>({file,cover:null,pageCount:1,pageCountKnown:false,title:'Primeiro',author:'Autora',description:'',genres:['Fantasia']}));
+ setup();await waitFor(()=>expect(screen.getByLabelText('Título')).toHaveValue('Primeiro'));fireEvent.click(publish());
+ await waitFor(()=>expect(screen.getByLabelText('Título')).toHaveValue('Segundo'));expect(mocks.upload.mock.calls[0][0].pageCount).toBe(0);
+ fireEvent.click(publish());await screen.findByText('2 livros adicionados ao acervo');expect(mocks.upload.mock.calls[1][0].pageCount).toBe(5);
+});
