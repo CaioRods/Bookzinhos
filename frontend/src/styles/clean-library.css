@@ -92,7 +92,7 @@
 }
 @layer components {
   .mb-spine-art { position:absolute; inset:0; overflow:hidden; pointer-events:none; }
-  .mb-spine-art img { display:block; width:100%; height:100%; object-fit:fill; }
+  .mb-spine-art img { display:block; width:100%; height:100%; object-fit:fill; transform:scale(6,1.12); transform-origin:center; filter:blur(5px); }
   .mb-shelf-spine .mb-spine-title,.mb-shelf-spine .mb-spine-number,.mb-shelf-spine .mb-spine-rule { z-index:1; }
   .mb-shelf-spine .mb-spine-title { text-shadow:0 1px 2px rgb(0 0 0 / 35%); }
 }
