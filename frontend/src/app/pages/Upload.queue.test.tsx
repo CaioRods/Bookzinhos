@@ -87,3 +87,17 @@ it('fills missing genres from the fallback and preserves a synopsis typed during
     expect(screen.getByLabelText('Sinopse')).toHaveValue('Minha sinopse');
   } finally {vi.unstubAllGlobals();}
 });
+it('fills the reported title when a catalog edition has a series subtitle and inverted author',async()=>{
+  mocks.prepare.mockImplementation(async file=>({file,cover:null,pageCount:5,title:'Os Garotos Corvos',author:'Maggie Stiefvater',description:'',genres:[]}));
+  vi.stubGlobal('fetch',vi.fn(async()=>({ok:true,json:async()=>[{id:'edition-test',source:'google',title:'Os garotos corvos - A saga dos corvos',authors:['Stiefvater, Maggie'],description:'Descrição de teste da edição',genres:['Fantasia','Young adult']}]})));
+  try {setup();await waitFor(()=>expect(screen.getByLabelText('Sinopse')).toHaveValue('Descrição de teste da edição'));
+    expect(screen.getByRole('button',{name:'Fantasia'})).toHaveAttribute('aria-pressed','true');
+    expect(screen.getByRole('button',{name:'Young adult'})).toHaveAttribute('aria-pressed','true');
+  }finally{vi.unstubAllGlobals();}
+});
+it('shows an unavailable server route rather than claiming that the book was not found',async()=>{
+  vi.stubGlobal('fetch',vi.fn(async()=>({ok:false,status:404,json:async()=>({})})));
+  try {setup();await screen.findByText(/É necessário atualizar também o servidor/);
+    expect(screen.getByRole('button',{name:'Tentar preenchimento automático novamente'})).toBeEnabled();
+  }finally{vi.unstubAllGlobals();}
+});

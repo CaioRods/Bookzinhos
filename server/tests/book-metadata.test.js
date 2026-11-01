@@ -23,3 +23,18 @@ test('handles quota and timeout without guessing metadata',async()=>{
   const quota=createBookMetadata({fetchImpl:async()=>({ok:false,status:429})});await assert.rejects(quota.search({q:'Livro'}),/limite/);
   const timeout=createBookMetadata({fetchImpl:async()=>{throw new DOMException('Timeout','TimeoutError');}});await assert.rejects(timeout.search({q:'Livro'}),{name:'TimeoutError'});
 });
+test('preserves translated edition titles as aliases of the same Open Library work',async()=>{
+ const client=createBookMetadata({fetchImpl:async url=>{
+  assert.equal(url.searchParams.get('lang'),'pt');
+  assert.ok(url.searchParams.get('fields').includes('editions'));
+  return response({docs:[{key:'/works/OL123W',title:'The Raven Boys',author_name:['Maggie Stiefvater'],editions:{docs:[{key:'/books/OL456M',title:'Os Garotos Corvos'}]},subject:['Fantasy','Young adult fiction']}]});
+ }});
+ const [record]=await client.search({source:'openlibrary',q:'Os Garotos Corvos',author:'Maggie Stiefvater'});
+ assert.deepEqual(record.alternativeTitles,['Os Garotos Corvos']);assert.equal(record.title,'The Raven Boys');assert.equal(record.isbn,null);
+ assert.deepEqual(record.genres,['Fantasia','Young adult']);
+});
+test('scopes multiword Google title and author queries as phrases',async()=>{
+ const client=createBookMetadata({fetchImpl:async url=>{
+  assert.equal(url.searchParams.get('q'),'intitle:"Os Garotos Corvos" inauthor:"Maggie Stiefvater"');return response({items:[]});
+ }});await client.search({q:'Os Garotos Corvos',author:'Maggie Stiefvater'});
+});

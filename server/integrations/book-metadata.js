@@ -42,14 +42,14 @@ function createBookMetadata({ fetchImpl = fetch, apiKey = process.env.GOOGLE_BOO
     const isbn = validIsbn(q); let data;
     if (source === "google") {
       const url = new URL("https://www.googleapis.com/books/v1/volumes");
-      url.search = new URLSearchParams({ q: isbn ? `isbn:${isbn}` : `intitle:${q}${author ? ` inauthor:${author}` : ""}`, maxResults: "8", printType: "books", projection: "full" }).toString();
+      url.search = new URLSearchParams({ q: isbn ? `isbn:${isbn}` : `intitle:"${q.replace(/["\\]/g, " ")}"${author ? ` inauthor:"${author.replace(/["\\]/g, " ")}"` : ""}`, maxResults: "8", printType: "books", projection: "full" }).toString();
       if (apiKey) url.searchParams.set("key", apiKey);
       const result = await json(url); data = (result.items || []).slice(0, 8).map(googleResult).filter(book => book.title);
     } else {
       const url = new URL("https://openlibrary.org/search.json");
-      url.search = new URLSearchParams({ ...(isbn ? { isbn } : { title: q, ...(author ? { author } : {}) }), limit: "8", fields: "key,title,author_name,subject,publisher,first_publish_year,isbn,number_of_pages_median" }).toString();
+      url.search = new URLSearchParams({ ...(isbn ? { isbn } : { title: q, ...(author ? { author } : {}) }), limit: "8", fields: "key,title,alternative_title,editions,editions.title,author_name,subject", lang: "pt" }).toString();
       const result = await json(url);
-      data = (result.docs || []).slice(0, 8).filter(item => /^\/works\/OL[0-9]+W$/.test(item.key || "")).map(item => ({ id: item.key, source, sourceUrl: `https://openlibrary.org${item.key}`, title: plain(item.title), authors: (item.author_name || []).slice(0, 10), description: "", genres: mapGenres(item.subject), publisher: "", publishedYear: "", pageCount: null, isbn: null }));
+      data = (result.docs || []).slice(0, 8).filter(item => /^\/works\/OL[0-9]+W$/.test(item.key || "")).map(item => ({ id: item.key, source, sourceUrl: `https://openlibrary.org${item.key}`, title: plain(item.title), alternativeTitles: [...(Array.isArray(item.alternative_title) ? item.alternative_title : []), ...(item.editions?.docs || []).map(edition => edition.title)].filter(value => typeof value === "string").map(plain).slice(0, 30), authors: (item.author_name || []).slice(0, 10), description: "", genres: mapGenres(item.subject), publisher: "", publishedYear: "", pageCount: null, isbn: null }));
     }
     if (cache.size >= 200) cache.delete(cache.keys().next().value);
     cache.set(key, { data, until: clock() + 10 * 60 * 1000 }); return data;

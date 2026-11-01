@@ -59,9 +59,18 @@ export function Upload() {
   const suggestGenre = async (title: string, author: string, id: string) => {
     lookup.current?.abort(); const controller = new AbortController(); lookup.current = controller; setFindingGenre(true);
     try {
-      let responded = false, matched = false;
-      let description = "", genres: string[] = [], origin: BookMetadata | null = null;
+      let responded = false, matched = false; const failures: string[] = [];
+      const applyAvailable = (match: BookMetadata) => {
+        if (controller.signal.aborted || activeId.current !== id || formRef.current.title !== title || formRef.current.author !== author) return;
+        setFormData(previous => {
+          const fillGenre = !touched.current.has("genre") && (!previous.genre || previous.genre === "Outros") && !!match.genres.length;
+          const fillDescription = !touched.current.has("description") && !previous.description.trim() && !!match.description;
+          return { ...previous, ...(fillGenre ? { genre: match.genres.join(", ") } : {}), ...(fillDescription ? { description: match.description } : {}), ...((fillGenre || fillDescription) ? { metadataSource: match.source, metadataId: match.id } : {}) };
+        });
+      };
+      let description = "", genres: string[] = [];
       for (const source of ["google", "openlibrary"] as const) {
+        setMetadataNotice(`Consultando ${source === "google" ? "Google Books" : "Open Library"} para “${title}”${author ? `, de ${author}` : ""}…`);
         try {
           let records = await searchBookMetadata(title, author, source, controller.signal);
           if (!automaticGenreCandidate(records, title, author) && author) records = await searchBookMetadata(title, "", source, controller.signal);
@@ -69,22 +78,19 @@ export function Upload() {
           let match = automaticGenreCandidate(records, title, author); responded = true;
           if (!match) continue;
           matched = true;
+          applyAvailable(match);
           if (source === "openlibrary" && (!description || !genres.length)) {
             try { const details = await openLibraryDetails(match.id, controller.signal); match = { ...match, description: details.description || match.description, genres: details.genres.length ? details.genres : match.genres }; }
-            catch { if (controller.signal.aborted) return; }
+            catch (error) { if (controller.signal.aborted) return; failures.push(`Open Library: ${(error as Error).message}`); }
           }
-          if (!description && match.description) { description = match.description; origin = match; }
-          if (!genres.length && match.genres.length) { genres = match.genres; origin ||= match; }
+          applyAvailable(match);
+          if (!description && match.description) description = match.description;
+          if (!genres.length && match.genres.length) genres = match.genres;
           if (description && genres.length) break;
-        } catch { if (controller.signal.aborted) return; }
+        } catch (error) { if (controller.signal.aborted) return; failures.push(`${source === "google" ? "Google Books" : "Open Library"}: ${(error as Error).message}`); }
       }
       if (controller.signal.aborted || activeId.current !== id || formRef.current.title !== title || formRef.current.author !== author) return;
-      setFormData(previous => {
-        const fillGenre = !touched.current.has("genre") && (!previous.genre || previous.genre === "Outros") && genres.length > 0;
-        const fillDescription = !touched.current.has("description") && !previous.description.trim() && !!description;
-        return { ...previous, ...(fillGenre ? { genre: genres.join(", ") } : {}), ...(fillDescription ? { description } : {}), ...((fillGenre || fillDescription) && origin ? { metadataSource: origin.source, metadataId: origin.id } : {}) };
-      });
-      setMetadataNotice(description || genres.length ? "Dados encontrados nos catálogos. Confira a sinopse e os gêneros antes de publicar." : matched ? "Livro encontrado, mas o catálogo não forneceu sinopse ou gêneros. Você pode preencher manualmente ou buscar outra edição." : responded ? "Não encontramos uma correspondência segura. Confira o título e o autor ou busque outra edição." : "Os catálogos estão indisponíveis agora. Tente Buscar dados do livro ou preencha manualmente.");
+      setMetadataNotice(description || genres.length ? "Dados encontrados nos catálogos. Confira a sinopse e os gêneros antes de publicar." : matched ? "Livro encontrado, mas o catálogo não forneceu sinopse ou gêneros. Você pode preencher manualmente ou buscar outra edição." : responded ? `Não encontramos uma correspondência segura para “${title}”${author ? `, de ${author}` : ""}. Confira os campos ou use Buscar dados do livro. ${failures.join(" ")}` : `Os catálogos estão indisponíveis. ${failures.join(" ")}`);
     } catch { if (!controller.signal.aborted && activeId.current === id) setMetadataNotice("A sugestão automática está indisponível. O cadastro manual e a busca por outra fonte continuam disponíveis."); }
     finally { if (!controller.signal.aborted && activeId.current === id) setFindingGenre(false); }
   };
@@ -170,7 +176,8 @@ export function Upload() {
           <div><label htmlFor="up-title" className="mb-label">Título</label><input id="up-title" value={formData.title} onChange={event => edit("title", event.target.value)} placeholder="Nome do livro" className="mb-input" /></div>
           <AuthorField value={formData.author} onChange={name => edit("author", name)} refreshKey={published} />
           <GenreField value={formData.genre} onChange={genre => edit("genre", genre)} />
-          {findingGenre && <p className="text-xs text-[var(--text-3)]" role="status">Buscando sinopse e gêneros…</p>}{metadataNotice && <p className="text-xs text-[var(--text-3)]">{metadataNotice}</p>}
+          {findingGenre && <p className="text-xs text-[var(--text-3)]" role="status">Buscando sinopse e gêneros…</p>}{metadataNotice && <p role="status" className="text-xs text-[var(--text-3)]">{metadataNotice}</p>}
+          {currentId && pdfFile && !findingGenre && <button type="button" disabled={isUploading} className="mb-btn mb-btn-outline mb-btn-sm" onClick={() => void suggestGenre(formData.title, formData.author, currentId)}>Tentar preenchimento automático novamente</button>}
           <div><label htmlFor="up-desc" className="mb-label">Sinopse</label><textarea id="up-desc" value={formData.description} onChange={event => edit("description", event.target.value)} rows={4} placeholder="Do que trata o livro?" className="mb-input resize-y" /></div>
           {(formData.publisher || formData.publishedYear || formData.isbn) && <p className="text-xs text-[var(--text-3)]">{[formData.publisher, formData.publishedYear, formData.isbn && `ISBN ${formData.isbn}`].filter(Boolean).join(" · ")}</p>}
         </section>
