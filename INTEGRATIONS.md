@@ -1,6 +1,6 @@
 # Plano de integrações do myBooks
 
-Status: **MVPs INT-01, INT-02 (link nativo), INT-03 (link) e INT-07 (Markdown) implementados e testados localmente. Importação em provedores e deploy ainda não validados.**
+Status: **MVPs INT-01, INT-02 (link nativo), INT-03 (link) e INT-07 (Markdown) implementados e testados localmente. INT-04 e INT-05 implementadas com mocks; consultas reais aos provedores e deploy ainda não validados.**
 Base revisada: `0e32671`, em 31/10/2026. Antes de executar, confira o código e os commits posteriores. O pedido do usuário prevalece sobre este plano.
 
 Este é o ponto de entrada para uma IA implementar as integrações. Cada documento define a experiência, o que importar/exportar, os pontos do código, as etapas e a conclusão esperada. Não implemente todas de uma vez.
@@ -14,8 +14,8 @@ S = mudança pequena e poucas dependências; M = vários fluxos e persistência;
 | INT-01 | [Calendário por arquivo ICS](docs/integrations/01-calendar-ics.md) | Evento de leitura importável no calendário | S | Sem API paga | Implementado — testes locais |
 | INT-02 | [Compartilhamento social](docs/integrations/02-social-sharing.md) | Compartilhar livro/link; Booklist como imagem | S no link; M na imagem | Sem API paga no compartilhamento nativo | Link e prévia guest implementados — cartões gráficos pendentes |
 | INT-03 | [Spotify](docs/integrations/03-spotify.md) | Vincular playlist pública e abrir no Spotify | S | Sem API no MVP | Link implementado — testes locais |
-| INT-04 | [Google Books e ISBN](docs/integrations/04-google-books.md) | Buscar edição e preencher cadastro | M | Consultas sujeitas às regras/cotas vigentes | Planejado |
-| INT-05 | [Open Library](docs/integrations/05-open-library.md) | Segunda fonte de metadados e capas | M; menor após INT-04 | API pública, com limites de uso | Planejado |
+| INT-04 | [Google Books e ISBN](docs/integrations/04-google-books.md) | Buscar edição e preencher cadastro | M | Consultas sujeitas às regras/cotas vigentes | Implementado — mock; câmera/capas pendentes |
+| INT-05 | [Open Library](docs/integrations/05-open-library.md) | Segunda fonte de metadados e capas | M; menor após INT-04 | API pública, com limites de uso | Implementado — mock; obras, sem seleção de edição/capa |
 | INT-06 | [Goodreads por CSV](docs/integrations/06-goodreads-csv.md) | Importar estante com prévia e deduplicação | L | Sem API paga; há processamento próprio | Planejado |
 | INT-07 | [Notion](docs/integrations/07-notion.md) | Markdown manual; depois exportação autorizada | S no arquivo; L no OAuth | Arquivo sem API; conferir condições do serviço | Markdown implementado — OAuth pendente |
 | INT-08 | [Google Agenda por OAuth](docs/integrations/08-google-calendar.md) | Criar/atualizar evento na agenda conectada | L | Conferir cotas e requisitos de verificação | Planejado |
@@ -34,7 +34,7 @@ S = mudança pequena e poucas dependências; M = vários fluxos e persistência;
 - `frontend/src/app/lib/booklists.ts`, `components/Booklists.tsx`, `FolderArtwork.tsx` e `server/booklists.js` oferecem pastas privadas por conta, capa e ordem dos livros.
 - `frontend/src/app/pages/Upload.tsx`, `components/EditBookModal.tsx` e `lib/api.ts` cuidam do cadastro atual. Não substituir o catálogo inteiro nem preencher campos editados sem confirmação.
 - `server/catalog-importer.js`, `catalog-schema.js`, `catalog-source.js` e o importador MEC já têm deduplicação e políticas de origem. O importador atual exige um PDF; **não usá-lo diretamente para registros apenas bibliográficos**.
-- Não há ISBN tipado no modelo `Book` revisado. Não presumir coluna, índice, tela de eventos de clube ou sistema de assinaturas já prontos.
+- `Book` agora inclui ISBN validado e referências de origem; migrações aditivas em `server/db.js`. Não presumir tela de eventos de clube ou sistema de assinaturas já prontos.
 - PWA/offline e fila por conta: `frontend/src/app/lib/offline/`; não enfileirar ações externas indiscriminadamente. Notas privadas, pagamentos, tokens e dados de terceiros não entram no cache público do service worker.
 - Preferências de animação e acessibilidade, menus por botão direito/toque prolongado e recortes de capa devem ser preservados.
 

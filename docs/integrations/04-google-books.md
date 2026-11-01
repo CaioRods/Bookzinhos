@@ -1,6 +1,8 @@
 # INT-04 — Google Books: busca e preenchimento por ISBN
 
-Estado: Planejado. Esforço M; câmera fica para uma segunda etapa.
+Estado: Implementado parcialmente — mock; validação com provedor pendente.
+
+Busca autenticada por título/autor ou ISBN, prévia por campo e origem persistida implementadas em `server/integrations/book-metadata.js` e `BookMetadataLookup.tsx`. A classificação automática exige correspondência conservadora e mantém a edição manual. Chave opcional `GOOGLE_BOOKS_API_KEY` somente no servidor; timeout, cache e limite por conta. Testes com mocks e navegador passaram. Consultas reais não foram validadas neste ambiente (rede bloqueada). Câmera, importação de capas, idiomas e preenchimento de páginas pela API continuam pendentes.
 
 ## O que importa
 

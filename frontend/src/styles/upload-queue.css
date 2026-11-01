@@ -1,0 +1,11 @@
+@layer components {
+  .mb-upload-progress { display:flex; gap:18px; padding:22px; border-radius:22px; border:1px solid color-mix(in srgb,var(--primary) 25%,var(--line)); background:radial-gradient(circle at top right,color-mix(in srgb,var(--primary) 13%,transparent),transparent 65%),var(--surface); box-shadow:0 12px 32px -24px color-mix(in srgb,var(--primary) 55%,transparent); }
+  .mb-upload-progress-icon { width:52px; height:58px; border-radius:15px; flex-shrink:0; display:flex; align-items:center; justify-content:center; background:var(--primary-soft); color:var(--primary); }
+  .mb-upload-progress-counter { display:inline-block; font-size:11px; font-weight:700; letter-spacing:.04em; color:var(--primary); }
+  .mb-upload-progress-track { height:7px; overflow:hidden; border-radius:99px; background:var(--surface-2); }
+  .mb-upload-progress-track > span { display:block; height:100%; border-radius:99px; background:linear-gradient(90deg,var(--primary),color-mix(in srgb,var(--primary) 55%,#b7d9c5)); transition:width .2s ease; }
+  .mb-upload-progress-track.is-indeterminate > span { animation:mb-upload-travel 1.25s ease-in-out infinite alternate; }
+  html[data-reduce-motion=true] .mb-upload-progress-track.is-indeterminate > span { animation:none; }
+  @keyframes mb-upload-travel { from { transform:translateX(0); } to { transform:translateX(185%); } }
+  @media(max-width:480px) { .mb-upload-progress { padding:16px; gap:12px; } .mb-upload-progress-icon { width:40px; height:48px; } }
+}

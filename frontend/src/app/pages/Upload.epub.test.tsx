@@ -7,6 +7,8 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({ convert: vi.fn(), upload: vi.fn(), progress: vi.fn() }));
 vi.mock("../lib/epub/convert", () => ({ bookFileKind: (file: File) => file.name.endsWith(".epub") ? "epub" : "pdf", convertEpub: mocks.convert }));
 vi.mock("../lib/api", () => ({ uploadBook: mocks.upload, saveProgress: mocks.progress }));
+vi.mock("../components/AuthorField", () => ({ AuthorField: ({ value, onChange }: any) => <label>Autor<input value={value} onChange={event => onChange(event.target.value)} /></label> }));
+vi.mock("../lib/bookMetadata", async importOriginal => ({ ...await importOriginal<object>(), searchBookMetadata: vi.fn(async () => []) }));
 vi.mock("../components/SeriesField", () => ({ SeriesField: () => null }));
 vi.mock("pdfjs-dist", () => ({ GlobalWorkerOptions: {}, getDocument: () => ({ promise: Promise.resolve({ numPages: 2, getPage: async () => ({ getViewport: () => ({ width: 1, height: 1 }), render: () => ({ promise: Promise.resolve() }) }) }), destroy: async () => {} }) }));
 import { Upload } from "./Upload";

@@ -13,6 +13,7 @@ export interface Book {
   author: string;
   description: string;
   genre: string;
+  uploadRequestId?: string; metadataSource?: string; metadataId?: string; metadataUrl?: string; isbn?: string;
   publisher?: string;
   publishedYear?: string;
   rating: number;

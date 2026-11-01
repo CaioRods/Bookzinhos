@@ -1,3 +1,5 @@
+const { createAuthorRegistry } = require("./authors");
+const { createBookMetadata, metadataFields } = require("./integrations/book-metadata");
 const { normalizeBookGenres } = require("./book-genres");
 require("dotenv").config();
 const express = require("express");
@@ -27,6 +29,8 @@ const {
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const authorRegistry = createAuthorRegistry({ db });
+const bookMetadata = createBookMetadata();
 const sessionStore = createSessionStore({ db });
 const sessionCookieOptions = cookieOptionsFromEnv(process.env);
 
@@ -214,6 +218,8 @@ function rowToBook(row) {
     author: row.author,
     description: row.description,
     genre: row.genre,
+    uploadRequestId: row.upload_request_id || "",
+    metadataSource: row.metadata_source || "", metadataId: row.metadata_id || "", metadataUrl: row.metadata_url || "", isbn: row.isbn || "",
     publisher: row.publisher || "",
     publishedYear: row.published_year || "",
     rating: Number(row.rating) || 0,
@@ -406,6 +412,22 @@ async function loadReviews({ bookId = null, username = null, limit = 100, me = n
 
 // ─── BOOKS ────────────────────────────────────────────────────────────────────
 
+const metadataLimit = createRateLimiter({ windowMs: 60000, limit: 20, key: req => currentUser(req) || req.ip });
+app.get("/authors", requireUser, async (req, res) => {
+  try { await startup; res.json(await authorRegistry.list(currentUser(req), await isAdmin(currentUser(req)))); }
+  catch { res.status(500).json({ error: "Não foi possível carregar os autores." }); }
+});
+app.get("/integrations/books/search", requireUser, metadataLimit, async (req, res) => {
+  if (typeof req.query.q !== "string" || req.query.q.trim().length < 2 || (req.query.source && !["google", "openlibrary"].includes(req.query.source))) return res.status(400).json({ error: "Informe um título ou ISBN e uma fonte válida." });
+  try { res.json(await bookMetadata.search({ source: req.query.source, q: req.query.q, author: req.query.author })); }
+  catch (error) { res.status(502).json({ error: error.name === "TimeoutError" ? "A busca demorou demais. Tente outra fonte ou preencha manualmente." : error.message }); }
+});
+app.get("/integrations/books/openlibrary/:id", requireUser, metadataLimit, async (req, res) => {
+  if (!/^OL[0-9]+W$/.test(req.params.id)) return res.status(400).json({ error: "Referência de catálogo inválida." });
+  try { res.json(await bookMetadata.detail("openlibrary", req.params.id)); }
+  catch (error) { res.status(502).json({ error: error.name === "TimeoutError" ? "A busca demorou demais." : error.message }); }
+});
+
 app.get("/books", async (_req, res) => {
   try {
     const [rows, stats] = await Promise.all([
@@ -508,10 +530,16 @@ app.post("/books/presigned-url", requireUser, async (req, res) => {
 
 app.post("/books", requireUser, upload.fields([{ name: "pdf", maxCount: 1 }, { name: "cover", maxCount: 1 }]), async (req, res) => {
   try {
+    await startup;
     const { title, author, description, genre, isPublic, coverColor, publisher, publishedYear } = req.body;
     const series = req.body.seriesId !== undefined ? await seriesFields(req.body) : undefined;
     if (!title) return res.status(400).json({ error: "Título é obrigatório" });
 
+    const uploadRequestId = /^[A-Za-z0-9-]{16,100}$/.test(String(req.body.uploadRequestId || "")) ? String(req.body.uploadRequestId) : "";
+    if (uploadRequestId) {
+      const [previous] = await db.query(sql`SELECT * FROM books WHERE uploaded_by = ${currentUser(req)} COLLATE NOCASE AND upload_request_id = ${uploadRequestId}`);
+      if (previous) { await authorRegistry.replace(previous.id, previous.author, previous.uploaded_by || currentUser(req)); const book = rowToBook(previous); book.pages = []; book.reviews = []; return res.json(book); }
+    }
     const [existing] = await db.query(sql`
       SELECT id FROM books
       WHERE LOWER(TRIM(title)) = LOWER(TRIM(${title}))
@@ -536,11 +564,14 @@ app.post("/books", requireUser, upload.fields([{ name: "pdf", maxCount: 1 }, { n
     }
 
     await db.query(sql`
-      INSERT INTO books (id,title,author,description,genre,publisher,published_year,rating,review_count,is_public,cover_color,added_at,pdf_path,cover_image_path,is_user_book,uploaded_by)
-      VALUES (${id},${title},${author || ""},${description || ""},${normalizeBookGenres(genre)},${publisher || ""},${publishedYear || ""},0,0,${isPublic === "false" ? 0 : 1},${coverColor || "lavender-mint"},${Date.now()},${pdfUrl},${coverUrl},1,${currentUser(req) || ""})
+      INSERT INTO books (id,title,author,description,genre,publisher,published_year,rating,review_count,is_public,cover_color,added_at,pdf_path,cover_image_path,is_user_book,uploaded_by,upload_request_id)
+      VALUES (${id},${title},${author || ""},${description || ""},${normalizeBookGenres(genre)},${publisher || ""},${publishedYear || ""},0,0,${isPublic === "false" || isPublic === false ? 0 : 1},${coverColor || "lavender-mint"},${Date.now()},${pdfUrl},${coverUrl},1,${currentUser(req) || ""},${uploadRequestId})
     `);
 
     if (series) await db.query(sql`UPDATE books SET series_id=${series.id}, series_name=${series.name}, series_order=${series.order} WHERE id=${id}`);
+    const metadata = metadataFields(req.body);
+    await db.query(sql`UPDATE books SET metadata_source=${metadata.source}, metadata_id=${metadata.id}, metadata_url=${metadata.url}, isbn=${metadata.isbn} WHERE id=${id}`);
+    await authorRegistry.replace(id, author || "", currentUser(req) || "");
     const [bookRow] = await db.query(sql`SELECT * FROM books WHERE id = ${id}`);
     const book = rowToBook(bookRow);
     book.reviews = [];
@@ -555,6 +586,7 @@ app.post("/books", requireUser, upload.fields([{ name: "pdf", maxCount: 1 }, { n
 
 app.put("/books/:id", requireAdmin, upload.fields([{ name: "cover", maxCount: 1 }]), async (req, res) => {
   try {
+    await startup;
     const { title, author, description, genre, isPublic, coverColor, publisher, publishedYear } = req.body;
     const series = req.body.seriesId !== undefined ? await seriesFields(req.body) : undefined;
     const coverFile = req.files?.cover?.[0];
@@ -575,13 +607,14 @@ app.put("/books/:id", requireAdmin, upload.fields([{ name: "cover", maxCount: 1 
         genre=${genre === undefined ? existing.genre : normalizeBookGenres(genre)},
         publisher=${publisher ?? existing.publisher ?? ""},
         published_year=${publishedYear ?? existing.published_year ?? ""},
-        is_public=${isPublic === "false" || isPublic === false ? 0 : 1},
+        is_public=${isPublic === undefined ? existing.is_public : isPublic === "false" || isPublic === false ? 0 : 1},
         cover_color=${coverColor || existing.cover_color},
         cover_image_path=${coverUrl}
       WHERE id=${req.params.id}
     `);
     if (series) await db.query(sql`UPDATE books SET series_id=${series.id}, series_name=${series.name}, series_order=${series.order} WHERE id=${req.params.id}`);
     const [updated] = await db.query(sql`SELECT * FROM books WHERE id = ${req.params.id}`);
+    await authorRegistry.replace(req.params.id, updated.author, updated.uploaded_by || currentUser(req) || "");
     const book = rowToBook(updated);
     book.reviews = await loadReviews({ bookId: req.params.id, me: currentUser(req) });
     book.pages = (await db.query(sql`SELECT content FROM book_pages WHERE book_id = ${req.params.id} ORDER BY page_num`)).map((r) => r.content);
@@ -608,6 +641,7 @@ app.post("/books/:id/cover", requireAdmin, upload.fields([{ name: "cover", maxCo
 
 app.delete("/books/:id", requireAdmin, async (req, res) => {
   try {
+    await startup;
     const id = req.params.id;
     const [row] = await db.query(sql`SELECT pdf_path, cover_image_path FROM books WHERE id = ${id}`);
     if (!row) return res.status(404).json({ error: "Livro não encontrado" });
@@ -625,6 +659,7 @@ app.delete("/books/:id", requireAdmin, async (req, res) => {
     await db.query(sql`DELETE FROM book_recommendations WHERE book_id = ${id}`);
     await db.query(sql`DELETE FROM book_chapters WHERE book_id = ${id}`);
     await db.query(sql`DELETE FROM book_opens WHERE book_id = ${id}`);
+    await db.query(sql`DELETE FROM book_authors WHERE book_id = ${id}`);
     await db.query(sql`DELETE FROM books WHERE id = ${id}`);
 
     res.json({ ok: true });
@@ -2232,6 +2267,7 @@ app.get("/admin/overview", requireAdmin, async (_req, res) => {
 
 async function start() {
   await initDB();
+  await authorRegistry.ready();
   await appearance.ready();
   await community.ready();
   await privacySupport.ready();

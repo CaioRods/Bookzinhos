@@ -113,3 +113,23 @@ A conversão gera páginas com texto selecionável, capítulos, ênfases e image
 compatíveis. A paginação e o estilo são reorganizados para PDF; não é uma cópia
 exata do CSS do EPUB. Livros com DRM, ilustrações SVG complexas, caracteres fora
 da fonte disponível ou recursos não suportados exibem um erro e não são enviados.
+
+## Cadastro em lote e metadados
+
+Selecione vários PDFs/EPUBs na tela de adicionar livro. Cada arquivo é preparado
+individualmente; revise e confirme sua publicação antes de avançar. A fila mostra
+qual livro está em processamento, o progresso da conversão e quantos foram
+adicionados. Falhas mantêm o livro atual para tentar novamente sem duplicá-lo.
+Mantenha a tela aberta: arquivos e rascunhos da fila não sobrevivem a recarregamentos.
+
+Gêneros podem ser sugeridos pelos metadados do arquivo ou por uma correspondência
+conservadora no Google Books/Open Library. “Buscar dados do livro” permite revisar
+título, autores, sinopse e outros campos antes de aplicar; campos manuais não são
+substituídos sem seleção explícita. Somente a consulta bibliográfica é enviada aos
+provedores, nunca o PDF/EPUB. As fontes têm cotas e podem ter dados incompletos; o
+cadastro manual continua disponível. `GOOGLE_BOOKS_API_KEY` é opcional e exclusiva
+do servidor. A integração foi testada com mocks; falta validar consultas reais.
+
+O botão ao lado de Autor abre o cadastro pesquisável. Selecionar um autor mostra
+as capas vinculadas que a conta pode consultar. Autores salvos são preservados
+mesmo após a remoção de seu último livro. Separe coautores com ponto e vírgula.

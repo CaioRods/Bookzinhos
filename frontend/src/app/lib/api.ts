@@ -203,96 +203,53 @@ export function registerBookOpen(id: string): void {
   });
 }
 
+export type BookUploadStage = "checking" | "pdf" | "cover" | "saving";
 export async function uploadBook(data: {
-  title: string;
-  author: string;
-  description: string;
-  genre: string;
-  isPublic: boolean;
-  coverColor: string;
-  seriesId?: string;
-  seriesOrder?: number;
-  pdfFile: File;
-  coverFile?: File;
-}): Promise<Book> {
+  title: string; author: string; description: string; genre: string; isPublic: boolean; coverColor: string;
+  seriesId?: string; seriesOrder?: number; pdfFile: File; coverFile?: File;
+  publisher?: string; publishedYear?: string; metadataSource?: string; metadataId?: string; isbn?: string; uploadRequestId?: string;
+}, onStage?: (stage: BookUploadStage) => void): Promise<Book> {
+  onStage?.("checking");
   const existing = await fetchBooks(true).catch(() => [] as Book[]);
-  const duplicate = existing.find(
-    (b) =>
-      b.title.trim().toLowerCase() === data.title.trim().toLowerCase() &&
-      (b.author || "").trim().toLowerCase() === (data.author || "").trim().toLowerCase()
-  );
-  if (duplicate) throw new Error("Já existe um livro com este título e autor!");
-
+  const duplicate = existing.find(book => book.title.trim().toLowerCase() === data.title.trim().toLowerCase() && (book.author || "").trim().toLowerCase() === (data.author || "").trim().toLowerCase());
+  // The API resolves retries by uploadRequestId, including uncertain previous responses.
+  if (duplicate && (!data.uploadRequestId || duplicate.uploadRequestId !== data.uploadRequestId)) throw new Error("Já existe um livro com este título e autor!");
+  const fields = { title: data.title, author: data.author, description: data.description, genre: data.genre,
+    isPublic: String(data.isPublic), coverColor: data.coverColor, seriesId: data.seriesId || "", seriesOrder: data.seriesOrder || 1,
+    publisher: data.publisher || "", publishedYear: data.publishedYear || "", metadataSource: data.metadataSource || "", metadataId: data.metadataId || "", isbn: data.isbn || "", uploadRequestId: data.uploadRequestId || "" };
+  if (duplicate && data.uploadRequestId && duplicate.uploadRequestId === data.uploadRequestId) {
+    onStage?.("saving");
+    const book = await request<Book>("POST", "/books", { ...fields, pdfUrl: duplicate.pdfPath || null });
+    invalidate("/books", "/home"); return book;
+  }
+  let direct: { pdfUrl: string; coverUrl: string | null } | null = null;
   try {
-    // Caminho rápido: upload direto para o storage via URL assinada.
-    const presignedRes = await fetch(`${API_BASE_URL}/books/presigned-url`, {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ fileName: data.pdfFile.name, fileType: "application/pdf" }),
-    });
-
-    if (presignedRes.ok) {
-      const pdfS3Data = await presignedRes.json();
-      const pdfUploadRes = await fetch(pdfS3Data.uploadUrl, {
-        method: "PUT",
-        headers: { "Content-Type": "application/pdf" },
-        body: data.pdfFile,
-      });
-      if (!pdfUploadRes.ok) throw new Error("Erro no upload do PDF");
-
+    const presigned = await fetch(`${API_BASE_URL}/books/presigned-url`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fileName: data.pdfFile.name, fileType: "application/pdf" }) });
+    if (presigned.ok) {
+      const pdf = await presigned.json(); onStage?.("pdf");
+      const uploaded = await fetch(pdf.uploadUrl, { method: "PUT", headers: { "Content-Type": "application/pdf" }, body: data.pdfFile });
+      if (!uploaded.ok) throw new Error("Erro no upload do PDF");
       let coverUrl: string | null = null;
       if (data.coverFile) {
-        const coverPresignedRes = await fetch(`${API_BASE_URL}/books/presigned-url`, {
-          method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ fileName: data.coverFile.name, fileType: data.coverFile.type }),
-        });
-        if (coverPresignedRes.ok) {
-          const coverS3Data = await coverPresignedRes.json();
-          const coverUploadRes = await fetch(coverS3Data.uploadUrl, {
-            method: "PUT",
-            headers: { "Content-Type": data.coverFile.type },
-            body: data.coverFile,
-          });
-          if (coverUploadRes.ok) coverUrl = coverS3Data.downloadUrl;
+        onStage?.("cover");
+        const signedCover = await fetch(`${API_BASE_URL}/books/presigned-url`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fileName: data.coverFile.name, fileType: data.coverFile.type }) });
+        if (signedCover.ok) {
+          const cover = await signedCover.json();
+          const response = await fetch(cover.uploadUrl, { method: "PUT", headers: { "Content-Type": data.coverFile.type }, body: data.coverFile });
+          if (response.ok) coverUrl = cover.downloadUrl;
         }
       }
-
-      const book = await request<Book>("POST", "/books", {
-        title: data.title,
-        author: data.author,
-        description: data.description,
-        genre: data.genre,
-        isPublic: String(data.isPublic),
-        coverColor: data.coverColor,
-        seriesId: data.seriesId || "", seriesOrder: data.seriesOrder || 1,
-        pdfUrl: pdfS3Data.downloadUrl,
-        coverUrl,
-      });
-      invalidate("/books", "/home");
-      return book;
+      direct = { pdfUrl: pdf.downloadUrl, coverUrl };
     }
-  } catch (err) {
-    console.warn("Upload direto indisponível, usando o servidor como intermediário.", err);
+  } catch { /* Storage fallback only: do not repeat a failed book-creation request. */ }
+  let book: Book;
+  if (direct) { onStage?.("saving"); book = await request<Book>("POST", "/books", { ...fields, ...direct }); }
+  else {
+    const form = new FormData(); for (const [key, value] of Object.entries(fields)) form.append(key, String(value));
+    form.append("pdf", data.pdfFile); if (data.coverFile) form.append("cover", data.coverFile);
+    onStage?.("pdf"); book = await upload<Book>("POST", "/books", form);
   }
-
-  const form = new FormData();
-  form.append("seriesId", data.seriesId || "");
-  form.append("seriesOrder", String(data.seriesOrder || 1));
-  form.append("title", data.title);
-  form.append("author", data.author);
-  form.append("description", data.description);
-  form.append("genre", data.genre);
-  form.append("isPublic", String(data.isPublic));
-  form.append("coverColor", data.coverColor);
-  form.append("pdf", data.pdfFile);
-  if (data.coverFile) form.append("cover", data.coverFile);
-
-  const book = await upload<Book>("POST", "/books", form);
-  invalidate("/books", "/home");
-  return book;
+  invalidate("/books", "/home"); return book;
 }
 
 export async function editBook(id: string, data: Record<string, unknown>): Promise<Book> {

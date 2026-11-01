@@ -16,7 +16,7 @@ self.onmessage = async (event: MessageEvent<ArrayBuffer>) => {
     let lastProgress = 2;
     const result = await renderEpubPdf(book, fontData, value => { if (value > lastProgress) { lastProgress = value; self.postMessage({ type: "progress", value }); } });
     const bytes = new Uint8Array(result.bytes).buffer;
-    self.postMessage({ type: "complete", bytes, pageCount: result.pageCount, title: book.title, author: book.author }, { transfer: [bytes] });
+    self.postMessage({ type: "complete", bytes, pageCount: result.pageCount, title: book.title, author: book.author, description: book.description, subjects: book.subjects }, { transfer: [bytes] });
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
     self.postMessage({ type: "error", message: /EPUB|imagem|capítulo|conversão|fonte|Arquivo|Caminho/i.test(message) ? message : "Não foi possível converter este EPUB. O arquivo está inválido ou contém um formato ainda não suportado." });

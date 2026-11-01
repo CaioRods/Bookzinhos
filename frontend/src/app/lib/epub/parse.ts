@@ -3,7 +3,7 @@ import { DOMParser, type Node, type Element } from "@xmldom/xmldom";
 
 export interface EpubRun { text: string; bold?: boolean; italic?: boolean }
 export type EpubBlock = { kind: "text"; runs: EpubRun[]; heading?: number } | { kind: "image"; path: string } | { kind: "chapter" };
-export interface EpubBook { title: string; author: string; blocks: EpubBlock[]; images: Record<string, Uint8Array> }
+export interface EpubBook { title: string; author: string; blocks: EpubBlock[]; description?: string; subjects?: string[]; images: Record<string, Uint8Array> }
 export const MAX_EPUB_BYTES = 40 * 1024 * 1024;
 const MAX_EXPANDED = 120 * 1024 * 1024;
 const tags = (element: Element | ReturnType<DOMParser["parseFromString"]>, name: string) => Array.from(element.getElementsByTagNameNS("*", name));
@@ -60,6 +60,8 @@ export function parseEpub(bytes: Uint8Array): EpubBook {
   const spine = tags(packageDoc, "itemref");
   if (!spine.length || spine.length > 2000) throw new Error("O EPUB não contém uma ordem de capítulos válida.");
   const book: EpubBook = { title: tags(packageDoc, "title")[0]?.textContent?.trim().slice(0, 500) || "", author: tags(packageDoc, "creator")[0]?.textContent?.trim().slice(0, 500) || "", blocks: [], images: Object.create(null) };
+  book.description = (tags(packageDoc, "description")[0]?.textContent || "").replace(/<[^>]+>/g, "").trim().slice(0, 10000);
+  book.subjects = tags(packageDoc, "subject").map(item => (item.textContent || "").trim()).filter(Boolean).slice(0, 30);
   let nodes = 0, characters = 0;
   const image = (base: string, reference: string, depth = 0) => {
     if (depth > 8) throw new Error("Imagens circulares ou complexas no EPUB.");

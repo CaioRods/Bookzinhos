@@ -1,6 +1,8 @@
 # INT-05 — Open Library como fonte complementar
 
-Estado: Planejado. Esforço M; reutiliza o DTO e a interface da INT-04.
+Estado: Implementado parcialmente — mock; validação com provedor pendente.
+
+Busca autenticada e consulta de descrição/gêneros de obras implementadas no adaptador compartilhado `server/integrations/book-metadata.js`, com prévia e fonte persistida. A busca automática usa esta fonte como alternativa ao Google. Resultados são identificados como obras; não se inferem ISBN, editora, ano ou páginas a partir de edições misturadas. Seleção específica de edição e capas continuam pendentes. Testes com mocks e navegador passaram; consultas reais não foram validadas neste ambiente (rede bloqueada).
 
 ## O que importa
 

@@ -4,7 +4,7 @@ export function bookFileKind(file: Pick<File, "name" | "type">): "pdf" | "epub" 
   if (file.type === "application/epub+zip") return "epub";
   return file.type === "application/pdf" ? "pdf" : null;
 }
-interface ConvertedEpub { file: File; title: string; author: string; pageCount: number }
+interface ConvertedEpub { file: File; title: string; author: string; description?: string; subjects?: string[]; pageCount: number }
 export async function convertEpub(file: File, signal: AbortSignal, progress: (value: number) => void): Promise<ConvertedEpub> {
   if (file.size > 40 * 1024 * 1024) throw new Error("O EPUB deve ter até 40 MB para conversão neste aparelho.");
   const buffer = await file.arrayBuffer();
@@ -20,7 +20,7 @@ export async function convertEpub(file: File, signal: AbortSignal, progress: (va
       if (data.type === "progress") progress(data.value);
       else if (data.type === "error") { cleanup(); reject(new Error(data.message)); }
       else if (data.type === "complete") {
-        cleanup(); resolve({ file: new File([data.bytes], file.name.replace(/\.epub$/i, "") + ".pdf", { type: "application/pdf" }), title: data.title, author: data.author, pageCount: data.pageCount });
+        cleanup(); resolve({ file: new File([data.bytes], file.name.replace(/\.epub$/i, "") + ".pdf", { type: "application/pdf" }), title: data.title, author: data.author, description: data.description, subjects: data.subjects, pageCount: data.pageCount });
       }
     };
     worker.postMessage(buffer, [buffer]);
