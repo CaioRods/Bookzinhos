@@ -196,6 +196,7 @@ const characters = require("./characters")({ app, db, sql, upload, uploadFileToC
 const booklists = require("./booklists")({ app, db, sql, currentUser, uploadFileToCloud });
 const privacySupport = registerPrivacySupportRoutes({ app, db, sql, currentUser, requireAdmin });
 const progression = require("./progression-service").createProgressionService({ db, sql });
+const activityPrivacy = require("./recent-activity")({app,db,sql,requireUser,currentUser});
 const activity = require("./activity")({ app, db, sql, currentUser, progression });
 const badges = require("./badges").createBadgeService({ db, sql });
 const progressionEvents = require("./progression-events").createProgressionEvents({ progression });
@@ -349,9 +350,12 @@ async function refreshBookRating(bookId) {
 }
 
 /** Monta resenhas com autor, curtidas e respostas — sem N+1. */
-async function loadReviews({ bookId = null, username = null, limit = 100, me = null }) {
+async function loadReviews({ bookId = null, username = null, limit = 100, me = null, activityAuthors }) {
   let reviews;
-  if (bookId) {
+  if (activityAuthors) {
+    if (!activityAuthors.length) return [];
+    reviews = await db.query({text:`SELECT * FROM book_reviews WHERE username COLLATE NOCASE IN (${activityAuthors.map(()=>'?').join(',')}) AND EXISTS(SELECT 1 FROM books b WHERE b.id=book_reviews.book_id AND b.is_public=1) ORDER BY created_at DESC LIMIT ?`,values:[...activityAuthors,limit]});
+  } else if (bookId) {
     reviews = await db.query(sql`SELECT * FROM book_reviews WHERE book_id = ${bookId} ORDER BY created_at DESC LIMIT ${limit}`);
   } else if (username) {
     reviews = await db.query(sql`SELECT * FROM book_reviews WHERE username = ${username} COLLATE NOCASE ORDER BY created_at DESC LIMIT ${limit}`);
@@ -1813,33 +1817,20 @@ app.get("/home", async (req, res) => {
 });
 
 // ─── FEED SOCIAL ──────────────────────────────────────────────────────────────
-// Atividade da rede: resenhas recentes + livros concluídos + livros novos.
+// Atividade consentida entre seguidores mútuos, mais publicações públicas de livros.
 app.get("/feed", async (req, res) => {
   try {
     const me = currentUser(req);
-    const scope = req.query.scope === "following" ? "following" : "all";
 
-    let allowed = null;
-    if (scope === "following" && me) {
-      const rows = await db.query(sql`SELECT following FROM follows WHERE follower = ${me} COLLATE NOCASE`);
-      allowed = new Set(rows.map((r) => String(r.following).toLowerCase()));
-      allowed.add(me.toLowerCase());
-    }
-
+    res.set("Cache-Control", "private, no-store");
+    const authors = await activityPrivacy.visibleAuthors(me);
     const [reviews, finished, reading, newBooks, users, bookRows] = await Promise.all([
-      loadReviews({ limit: 40, me }),
-      db.query(sql`
-        SELECT username, book_id, last_read_at FROM reading_progress
-        WHERE status = 'finalizado' ORDER BY last_read_at DESC LIMIT 40
-      `),
-      // Quem está lendo agora — alimenta o trilho "Atividade recente".
-      db.query(sql`
-        SELECT username, book_id, progress, last_read_at FROM reading_progress
-        WHERE status = 'lendo' ORDER BY last_read_at DESC LIMIT 30
-      `),
-      db.query(sql`SELECT id, title, author, cover_image_path, cover_color, added_at FROM books ORDER BY added_at DESC LIMIT 10`),
+      loadReviews({limit:40,me,activityAuthors:authors}),
+      activityPrivacy.reading(authors,"finalizado",40),
+      activityPrivacy.reading(authors,"lendo",30),
+      db.query(sql`SELECT id,title,author,cover_image_path,cover_color,added_at FROM books WHERE is_public=1 ORDER BY added_at DESC LIMIT 10`),
       db.query(sql`SELECT username, avatar FROM users`),
-      db.query(sql`SELECT id, title, author, cover_image_path, cover_color FROM books`),
+      db.query(sql`SELECT id,title,author,cover_image_path,cover_color FROM books WHERE is_public=1`),
     ]);
 
     const avatars = new Map(users.map((u) => [String(u.username).toLowerCase(), u.avatar]));
@@ -1850,12 +1841,10 @@ app.get("/feed", async (req, res) => {
     const items = [];
 
     for (const r of reviews) {
-      if (allowed && !allowed.has(String(r.username).toLowerCase())) continue;
       items.push({ type: "review", id: `review-${r.id}`, createdAt: r.createdAt, username: r.username, avatar: r.avatar, review: r, book: r.book });
     }
 
     for (const f of finished) {
-      if (allowed && !allowed.has(String(f.username).toLowerCase())) continue;
       const book = bookMap.get(f.book_id);
       if (!book) continue;
       items.push({
@@ -1869,7 +1858,6 @@ app.get("/feed", async (req, res) => {
     }
 
     for (const r of reading) {
-      if (allowed && !allowed.has(String(r.username).toLowerCase())) continue;
       const book = bookMap.get(r.book_id);
       if (!book) continue;
       items.push({
@@ -1883,7 +1871,7 @@ app.get("/feed", async (req, res) => {
       });
     }
 
-    if (scope === "all") {
+    {
       for (const b of newBooks) {
         items.push({
           type: "new-book",
@@ -2309,6 +2297,7 @@ app.get("/admin/overview", requireAdmin, async (_req, res) => {
 async function start() {
   await initDB();
   await authorRegistry.ready();
+  await activityPrivacy.ready();
   await appearance.ready();
   await community.ready();
   await privacySupport.ready();

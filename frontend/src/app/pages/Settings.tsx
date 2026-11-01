@@ -12,7 +12,7 @@ import {
 import { getSavedReaderMode, setSavedReaderMode, type ReaderMode } from "../lib/readerChoice";
 import { soundToggle } from "../lib/sounds";
 import { clearSession, getUsername, isAdmin as isAdminUser } from "../lib/session";
-import { invalidate, logout } from "../lib/api";
+import { fetchActivityPrivacy, saveActivityPrivacy, invalidate, logout } from "../lib/api";
 import { ConfirmDialog, PageHeader, toast } from "../components/Ui";
 
 const THEMES: { key: ThemeChoice; label: string; icon: typeof Sun }[] = [
@@ -39,6 +39,21 @@ export function Settings() {
     const id = window.setInterval(() => setPermission(desktopPermission()), 2000);
     return () => window.clearInterval(id);
   }, []);
+
+  const [sharing, setSharing] = useState(false), [privacyLoading, setPrivacyLoading] = useState(true), [privacyBusy, setPrivacyBusy] = useState(false), [privacyError, setPrivacyError] = useState("");
+  const [privacyRetry, setPrivacyRetry] = useState(0);
+  useEffect(() => {
+    let active = true; setPrivacyLoading(true); setSharing(false); setPrivacyError("");
+    if (!username) { setPrivacyLoading(false); return; }
+    void fetchActivityPrivacy().then(result => { if (active) setSharing(result.shareRecentActivity); }).catch(error => { if (active) setPrivacyError(error.message); }).finally(() => { if (active) setPrivacyLoading(false); });
+    return () => { active = false; };
+  }, [username, privacyRetry]);
+  const changeSharing = async (value: boolean) => {
+    setPrivacyBusy(true); setPrivacyError("");
+    try { const result = await saveActivityPrivacy(value); if (getUsername() === username) setSharing(result.shareRecentActivity); }
+    catch (error) { setPrivacyError((error as Error).message || "Não foi possível salvar."); }
+    finally { setPrivacyBusy(false); }
+  };
 
   const askPermission = async () => {
     const result = await requestDesktopPermission();
@@ -173,6 +188,16 @@ export function Settings() {
             </Field>
           </>
         )}
+      </Section>
+
+      <Section title="Privacidade da atividade" description="Controle quem pode acompanhar suas leituras. Esta preferência fica salva na sua conta." icon={<Shield size={18}/> }>
+        <fieldset disabled={!username || privacyLoading || privacyBusy || !!privacyError}>
+          <Toggle label="Exibir atividade recente para amigos próximos" hint="Compartilha leituras, conclusões e avaliações somente com pessoas que você segue e que seguem você de volta. Desativado por padrão. Publicações de livros continuam aparecendo." checked={sharing} onChange={value => void changeSharing(value)}/>
+        </fieldset>
+        {privacyLoading && username && <p role="status" className="text-xs">Carregando sua preferência…</p>}
+        {privacyBusy && <p role="status" className="text-xs">Salvando preferência…</p>}
+        {!username && <p className="text-xs">Entre na sua conta para configurar o compartilhamento.</p>}
+        {privacyError && <div role="alert"><p className="text-sm">{privacyError}</p><button type="button" className="mb-btn mb-btn-outline mt-2" onClick={() => setPrivacyRetry(value => value + 1)}>Tentar novamente</button></div>}
       </Section>
 
       {/* ── Leitura ────────────────────────────────────────────────────────── */}

@@ -289,6 +289,15 @@ export async function deleteBook(id: string): Promise<{ ok: boolean }> {
   return res;
 }
 
+export async function fetchActivityPrivacy(): Promise<{shareRecentActivity:boolean}> {
+  const result = await request<{shareRecentActivity:boolean}>("GET", "/me/activity-privacy");
+  if (!result || typeof result.shareRecentActivity !== "boolean") throw new Error("Esta configuração ainda não está disponível. É necessário atualizar a API.");
+  return result;
+}
+export async function saveActivityPrivacy(shareRecentActivity:boolean): Promise<{shareRecentActivity:boolean}> {
+  const result = await request<{shareRecentActivity:boolean}>("PUT", "/me/activity-privacy", {shareRecentActivity}); invalidate("/feed"); return result;
+}
+
 // ─── PROGRESSO ────────────────────────────────────────────────────────────────
 
 export function fetchAllProgress(force = false): Promise<ReadingProgress[]> {

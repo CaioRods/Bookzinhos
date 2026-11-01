@@ -93,6 +93,8 @@ export function BookReader() {
   }, []);
 
   const theme = THEMES[prefs.theme];
+  const darkChrome = prefs.theme === "sepia" || prefs.theme === "noite";
+  const chrome = darkChrome ? { background: "#29232d", color: "#f6f1f7", muted: "#d0c7d4" } : { background: "#fffdfb", color: "#29232d", muted: "#625b66" };
 
   const [currentPage, setCurrentPage] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -690,7 +692,7 @@ export function BookReader() {
             onClick={goPrev}
             disabled={currentPage === 0}
             aria-label="Página anterior"
-            className="absolute left-2 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full mb-glass flex items-center justify-center opacity-0 hover:opacity-100 focus:opacity-100 transition-opacity disabled:pointer-events-none"
+            data-reader-controls-theme={darkChrome ? "dark" : "light"} style={{ background: chrome.background, color: chrome.color }} className="mb-reader-controls absolute left-2 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full mb-glass flex items-center justify-center opacity-0 hover:opacity-100 focus:opacity-100 transition-opacity disabled:pointer-events-none"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
@@ -698,7 +700,7 @@ export function BookReader() {
             onClick={goNext}
             disabled={currentPage >= total - 1}
             aria-label="Próxima página"
-            className="absolute right-2 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full mb-glass flex items-center justify-center opacity-0 hover:opacity-100 focus:opacity-100 transition-opacity disabled:pointer-events-none"
+            data-reader-controls-theme={darkChrome ? "dark" : "light"} style={{ background: chrome.background, color: chrome.color }} className="mb-reader-controls absolute right-2 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full mb-glass flex items-center justify-center opacity-0 hover:opacity-100 focus:opacity-100 transition-opacity disabled:pointer-events-none"
           >
             <ChevronRight className="w-5 h-5" />
           </button>
@@ -714,14 +716,14 @@ export function BookReader() {
           showUi ? "translate-y-0 opacity-100" : "-translate-y-6 opacity-0 pointer-events-none"
         }`}
       >
-        <div className="mb-reader-toolbar mb-glass mx-auto max-w-3xl h-14 rounded-2xl flex items-center gap-1 px-2">
+        <div data-reader-controls-theme={darkChrome ? "dark" : "light"} style={{ background: chrome.background, color: chrome.color }} className="mb-reader-toolbar mb-reader-controls mb-glass mx-auto max-w-3xl h-14 rounded-2xl flex items-center gap-1 px-2">
           <button onClick={() => navigate(-1)} aria-label="Voltar" className="mb-btn mb-btn-ghost mb-btn-icon flex-shrink-0">
             <ArrowLeft className="w-5 h-5" />
           </button>
 
           <div className="flex-1 min-w-0 text-center px-1">
             <p className="text-[13.5px] font-semibold truncate">{book.title}</p>
-            <p className="text-[11px] truncate" style={{ color: theme.muted }}>
+            <p className="text-[11px] truncate" style={{ color: chrome.muted }}>
               {currentChapter
                 ? `Cap. ${currentChapter.number} · ${currentChapter.chapter.title}`
                 : `${Math.round(progressPct)}% lido`}
@@ -759,7 +761,7 @@ export function BookReader() {
           showUi ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0 pointer-events-none"
         }`}
       >
-        <div className="mb-glass mx-auto max-w-3xl rounded-2xl px-3 py-2.5 space-y-2.5">
+        <div data-reader-controls-theme={darkChrome ? "dark" : "light"} style={{ background: chrome.background, color: chrome.color }} className="mb-reader-controls mb-glass mx-auto max-w-3xl rounded-2xl px-3 py-2.5 space-y-2.5">
           {pdfUrl && <div className="flex items-center justify-center gap-2" aria-label="Zoom do PDF">
             <button aria-label="Diminuir zoom" disabled={prefs.pageScale <= 0.5} onClick={() => setPref("pageScale", Math.max(0.5, prefs.pageScale - 0.25))} className="mb-btn mb-btn-ghost mb-btn-icon mb-btn-sm"><Minus className="w-4 h-4" /></button>
             <button aria-label="Restaurar zoom para 100%" onClick={() => setPref("pageScale", 1)} className="mb-btn mb-btn-ghost mb-btn-sm tabular-nums">{Math.round(prefs.pageScale * 100)}%</button>
@@ -810,7 +812,7 @@ export function BookReader() {
                 aria-label="Ir para a página"
                 className="w-14 h-8 rounded-lg bg-black/5 dark:bg-white/10 text-center text-[12.5px] font-semibold tabular-nums outline-none focus:ring-2 focus:ring-[var(--primary)]/40"
               />
-              <span className="text-[12px] tabular-nums" style={{ color: theme.muted }}>de {total}</span>
+              <span className="text-[12px] tabular-nums" style={{ color: chrome.muted }}>de {total}</span>
             </form>
 
             <button onClick={goNext} disabled={currentPage >= total - 1} aria-label="Próxima" className="mb-btn mb-btn-ghost mb-btn-icon mb-btn-sm">

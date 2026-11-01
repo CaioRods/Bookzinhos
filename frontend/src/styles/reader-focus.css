@@ -38,3 +38,14 @@
   .mb-add-booklist-grid .already-included { filter:grayscale(1); opacity:.4; cursor:not-allowed; }
   @media(max-width:600px) { .mb-add-booklist-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .mb-reader-calibration > header,.mb-reader-calibration > footer { padding:13px; } }
 }
+@layer components {
+  .mb-reader .mb-reader-controls { --foreground:#29232d; --text:#29232d; --text-2:#4e4652; --text-3:#625b66; --surface:#fffdfb; --surface-2:#eeeaf0; --line:#d7d0da; --primary:#563c4d; --primary-soft:#ede5ea; --primary-foreground:#fff; --ring:#80647855; opacity:1; }
+  .mb-reader-controls input[type=number] { color:var(--foreground); background:var(--surface-2); }
+  .mb-reader-controls input[type=number]::placeholder { color:var(--text-2); opacity:1; }
+  .mb-reader-controls .mb-btn { color:var(--text-2); }
+  .mb-reader-controls .mb-btn:disabled { color:var(--text-3); opacity:.65; }
+}
+
+@layer components {
+  .mb-reader .mb-reader-controls[data-reader-controls-theme=dark] { --foreground:#f6f1f7; --text:#f6f1f7; --text-2:#d0c7d4; --text-3:#c1b6c7; --surface:#29232d; --surface-2:#403645; --line:#625369; --primary:#dbc4d5; --primary-soft:#403645; --primary-foreground:#29232d; --ring:#dbc4d566; }
+}

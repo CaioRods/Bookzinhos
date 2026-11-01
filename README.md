@@ -175,3 +175,17 @@ principal conforme o modo de aparência. O contraste do texto continua automáti
 A espessura da lombada cresce com a contagem real de páginas. Novos envios guardam
 essa contagem no catálogo; PDFs antigos aproveitam a contagem já registrada em
 leituras. Quando o total ainda é desconhecido, usam uma espessura padrão única.
+
+## Privacidade da atividade recente
+
+Em Configurações, “Exibir atividade recente para amigos próximos” é uma preferência
+da conta, desligada por padrão. O feed automático só compartilha leituras,
+conclusões e avaliações quando o autor da atividade ativou essa opção e ambos os
+leitores se seguem. Visitantes e pessoas sem essa relação veem somente publicações
+de livros públicos. A regra é aplicada pela API antes da ordenação/limite; não
+compartilha atividades de livros privados. Avaliações publicadas continuam nas
+páginas dos livros. Desativar a opção ou desfazer um dos seguimentos revoga a
+visibilidade nas próximas consultas do feed.
+
+Os controles do leitor têm fundo e texto próprios, com contraste legível em Claro,
+Creme, Sépia e Noite, independentemente das cores aplicadas às páginas do PDF.
