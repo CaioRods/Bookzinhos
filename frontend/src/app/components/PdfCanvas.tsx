@@ -27,14 +27,18 @@ function Raster({ doc, pageNumber, width, height, density, x = 0, y = 0, tileWid
         const page = await doc.getPage(pageNumber);
         if (cancelled) return;
         const base = page.getViewport({ scale: 1 });
-        const viewport = page.getViewport({ scale: width / base.width * density });
+        const viewport = page.getViewport({ scale: Math.min(width / base.width, height / base.height) * density });
+        const offsetX = (width * density - viewport.width) / 2;
+        const offsetY = (height * density - viewport.height) / 2;
         const canvas = document.createElement("canvas");
         canvas.width = Math.min(detail ? 1024 : Infinity, Math.ceil(tileWidth * density));
         canvas.height = Math.min(detail ? 1024 : Infinity, Math.ceil(tileHeight * density));
+        canvas.dataset.pdfRaster = detail ? "detail" : "overview";
+        canvas.dataset.pdfDensity = String(density);
         canvas.style.cssText = "display:block;width:100%;height:100%";
         const ctx = canvas.getContext("2d", { alpha: false });
         if (!ctx) return;
-        task = page.render({ canvasContext: ctx, viewport, transform: [1, 0, 0, 1, -x * density, -y * density] });
+        task = page.render({ canvasContext: ctx, viewport, transform: [1, 0, 0, 1, offsetX - x * density, offsetY - y * density] });
         await task.promise;
         if (!cancelled) target.replaceChildren(canvas);
       }).catch(error => {

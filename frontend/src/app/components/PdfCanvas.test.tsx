@@ -7,6 +7,7 @@ import { pdfResolution, schedulePdfRender } from "../lib/pdfRendering";
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 it("caps the overview but retains retina detail at calibrated zoom", () => {
   expect(pdfResolution(2000, 3000, 3, 2)).toBe(6);
+  expect(pdfResolution(2000, 3000, 4, 2)).toBe(8);
   const overview = pdfResolution(2000, 3000, 3, 2, true);
   expect(2000 * 3000 * overview ** 2).toBeLessThanOrEqual(1_000_001);
 });
@@ -29,8 +30,8 @@ it("bounds tile canvases and releases them when offscreen", async () => {
   const draws: any[] = [];
   const doc = { getPage: vi.fn(async () => ({ getViewport: ({ scale }: { scale: number }) => ({ width: 600 * scale, height: 900 * scale }), render: (args: any) => { draws.push(args); return { promise: Promise.resolve(), cancel: vi.fn() }; } })) };
   const view = render(<PdfCanvas doc={doc} pageNumber={1} width={1500} aspect={1.5} filter="none" />);
-  await waitFor(() => expect(draws.length).toBe(7));
-  await waitFor(() => expect(view.container.querySelectorAll("canvas")).toHaveLength(7));
+  await waitFor(() => expect(draws.length).toBe(13));
+  await waitFor(() => expect(view.container.querySelectorAll("canvas")).toHaveLength(13));
   for (const canvas of [...view.container.querySelectorAll("canvas")].slice(1)) {
     expect(canvas.width).toBeLessThanOrEqual(1024); expect(canvas.height).toBeLessThanOrEqual(1024);
   }

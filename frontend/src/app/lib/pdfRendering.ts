@@ -13,7 +13,7 @@ export async function schedulePdfRender<T>(render: () => Promise<T>): Promise<T>
 }
 
 export function pdfResolution(width: number, height: number, dpr: number, magnification: number, preview = false) {
-  const density = Math.max(1, Math.min(dpr || 1, 3)) * Math.max(1, magnification);
+  const density = Math.max(1.5, Number.isFinite(dpr) && dpr > 0 ? dpr : 1) * Math.max(1, magnification);
   // Only the overview is capped. Detail tiles retain the zoom's actual resolution.
   return preview ? Math.min(density, Math.sqrt(1_000_000 / Math.max(1, width * height))) : density;
 }
