@@ -133,3 +133,30 @@ do servidor. A integração foi testada com mocks; falta validar consultas reais
 O botão ao lado de Autor abre o cadastro pesquisável. Selecionar um autor mostra
 as capas vinculadas que a conta pode consultar. Autores salvos são preservados
 mesmo após a remoção de seu último livro. Separe coautores com ponto e vírgula.
+
+## Biblioteca e formatos offline
+
+A grade usa capas planas, prioriza as primeiras imagens e monta até 60 livros por
+vez; “Mostrar mais livros” amplia a coleção. A busca e os filtros continuam
+considerando o catálogo inteiro. A abertura da biblioteca não baixa PDFs para
+gerar capas e a página do livro usa o catálogo em cache enquanto atualiza os dados.
+
+“Meus livros” reúne leituras, favoritos e instalações, com busca, abas de status
+e Booklists em uma seção expansível. O círculo verde indica instalação concluída
+neste aparelho; cinza indica que o livro ainda não está instalado.
+
+Ao instalar, escolha entre os arquivos PDF e EPUB realmente disponíveis. Novos
+envios de EPUB preservam o original junto do PDF convertido e registram os tamanhos.
+O bucket de storage deve aceitar `application/epub+zip`. Envios antigos somente em
+PDF não ganham um EPUB automaticamente; é necessário fornecer o original.
+Para arquivos antigos sem tamanho salvo, o app consulta apenas os cabeçalhos;
+se o host bloquear essa consulta, informa “Tamanho indisponível”.
+
+Instalar EPUB baixa o original e gera o PDF localmente em um worker, permitindo
+usar o leitor offline existente. O espaço ocupado inclui ambos os arquivos e a
+capa, portanto pode ser maior que o tamanho do download. Falhas ao reinstalar
+preservam a instalação anterior. Instalações permanecem isoladas por conta.
+
+O tema automático da página usa uma cor real da capa, preservando capas neutras
+ou destacando uma cor com presença significativa. Falhas de leitura da imagem
+usam cinza; cores escolhidas manualmente na aparência continuam prevalecendo.

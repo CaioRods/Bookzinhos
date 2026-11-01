@@ -17,7 +17,7 @@ import {
   Download, Loader2, Bookmark, ChevronDown, ChevronRight, Calendar, Star, Palette,
 } from "lucide-react";
 import {
-  fetchAllUsers, fetchBooks, fetchBook, fetchProgress, fetchSavedIds, saveProgress, sendMessage, toggleSaved,
+  fetchAllUsers, fetchBooks, peekBook, fetchBook, fetchProgress, fetchSavedIds, saveProgress, sendMessage, toggleSaved,
 } from "../lib/api";
 import { getCoverGradient, getFullUrl } from "../lib/types";
 import type { Book, ReadingProgress, Review, UserProfile } from "../lib/types";
@@ -38,9 +38,9 @@ export function BookDetails() {
   const openBook = useOpenBook();
   const myUsername = getUsername();
 
-  const [book, setBook] = useState<Book | null>(null);
+  const [book, setBook] = useState<Book | null>(() => peekBook(id || ""));
   const [isSaved, setIsSaved] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(() => !peekBook(id || ""));
   const [progress, setProgress] = useState<ReadingProgress | null>(null);
   const [showShare, setShowShare] = useState(false);
   const [tab, setTab] = useState<"sobre" | "avaliacoes">("sobre");
@@ -55,26 +55,24 @@ export function BookDetails() {
   useEffect(() => {
     if (!id) return;
     let cancelled = false;
-    setIsLoading(true);
-
-    Promise.all([
-      fetchBook(id).catch(() => null),
-      fetchSavedIds().catch(() => [] as string[]),
-      fetchProgress(id).catch(() => null),
-      fetchAllUsers().catch(() => [] as UserProfile[]),
-      fetchBooks().catch(() => [] as Book[]),
-    ]).then(([b, savedIds, p, allUsers, catalog]) => {
-      if (cancelled) return;
-      setBook(b);
-      setRelated(catalog.filter(entry => entry.id !== id && (entry.author === b?.author || shareBookGenre(entry.genre, b?.genre || ""))).sort((a, entry) => Number(entry.author === b?.author) - Number(a.author === b?.author) || entry.rating - a.rating).slice(0, 5));
-      setIsSaved((savedIds || []).includes(id));
-      setProgress(p);
-      setUsers((allUsers || []).filter((u) => u.username.toLowerCase() !== myUsername?.toLowerCase()));
-      setIsLoading(false);
+    const snapshot = peekBook(id); setBook(snapshot); setIsLoading(!snapshot); setIsSaved(false); setProgress(null); setRelated([]);
+    const primary = fetchBook(id).catch(() => snapshot);
+    void primary.then(book => { if (!cancelled) { setBook(book); setIsLoading(false); } });
+    void fetchSavedIds().then(ids => { if (!cancelled) setIsSaved(ids.includes(id)); }).catch(() => {});
+    void fetchProgress(id).then(progress => { if (!cancelled) setProgress(progress); }).catch(() => {});
+    void Promise.all([primary, fetchBooks().catch(() => [] as Book[])]).then(([book, catalog]) => {
+      if (!cancelled) setRelated(catalog.filter(entry => entry.id !== id && (entry.author === book?.author || shareBookGenre(entry.genre, book?.genre || ""))).sort((a, entry) => Number(entry.author === book?.author) - Number(a.author === book?.author) || entry.rating - a.rating).slice(0, 5));
     });
 
     return () => { cancelled = true; };
   }, [id, myUsername]);
+
+  useEffect(() => {
+    if (!showShare) return;
+    let active = true;
+    void fetchAllUsers().then(users => { if (active) setUsers(users.filter(user => user.username.toLowerCase() !== myUsername?.toLowerCase())); }).catch(() => {});
+    return () => { active = false; };
+  }, [showShare, myUsername]);
 
   // Quem chega pelo link "#avaliar" cai direto na aba de avaliações.
   useEffect(() => {

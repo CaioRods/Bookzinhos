@@ -19,9 +19,33 @@ export interface SpineColor {
   ink: string;
 }
 
+function paletteFromRgb(r: number, g: number, b: number): SpineColor {
+  const hex = (channels: number[]) => `#${channels.map(value => Math.round(value).toString(16).padStart(2, "0")).join("")}`;
+  const channels = [r, g, b];
+  return { base: hex(channels), shade: hex(channels.map(value => value * .72)), tint: hex(channels.map(value => value + (255 - value) * .2)), ink: r * .2126 + g * .7152 + b * .0722 > 155 ? "#171717" : "#ffffff" };
+}
+export const NEUTRAL_COVER_COLOR = paletteFromRgb(105, 109, 113);
+/** Select an actual image color. A substantial colored accent may stand out over gray. */
+export function dominantCoverColor(data: Uint8ClampedArray | Uint8Array): SpineColor {
+  type Bucket = { count: number; r: number; g: number; b: number };
+  const all = new Map<string, Bucket>(), accents = new Map<string, Bucket>(); let total = 0;
+  const add = (buckets: Map<string, Bucket>, key: string, r: number, g: number, b: number) => {
+    const bucket = buckets.get(key) || { count: 0, r: 0, g: 0, b: 0 }; bucket.count++; bucket.r += r; bucket.g += g; bucket.b += b; buckets.set(key, bucket);
+  };
+  for (let i = 0; i < data.length; i += 4) {
+    if (data[i + 3] < 200) continue;
+    const r = data[i], g = data[i + 1], b = data[i + 2], [h, s, l] = rgbToHsl(r, g, b); total++;
+    add(all, `${Math.round(r / 24)}:${Math.round(g / 24)}:${Math.round(b / 24)}`, r, g, b);
+    if (s >= 25 && l >= 10 && l <= 90) add(accents, `${Math.round(h / 12) % 30}`, r, g, b);
+  }
+  const largest = (buckets: Map<string, Bucket>) => [...buckets.values()].sort((a,b) => b.count - a.count)[0];
+  const accent = largest(accents), dominant = accent && accent.count / total >= .08 ? accent : largest(all);
+  return dominant ? paletteFromRgb(dominant.r / dominant.count, dominant.g / dominant.count, dominant.b / dominant.count) : NEUTRAL_COVER_COLOR;
+}
+
 const memory = new Map<string, SpineColor>();
 const pending = new Map<string, Promise<SpineColor>>();
-const STORAGE_KEY = "mybooks-spine-colors-v3";
+const STORAGE_KEY = "mybooks-spine-colors-v4";
 
 /** Paleta de reserva para livros sem imagem de capa, por gradiente cadastrado. */
 const FALLBACK_HUES: Record<string, number> = {
@@ -101,7 +125,7 @@ export function getSpineColor(
   coverColor?: string | null,
   seed = ""
 ): Promise<SpineColor> {
-  const fallback = fallbackSpineColor(coverColor, seed);
+  const fallback = coverUrl ? NEUTRAL_COVER_COLOR : fallbackSpineColor(coverColor, seed);
   if (!coverUrl) return Promise.resolve(fallback);
 
   const cached = memory.get(coverUrl);
@@ -141,52 +165,12 @@ export function getSpineColor(
         canvas.width = W;
         canvas.height = H;
         const ctx = canvas.getContext("2d", { willReadFrequently: true });
-        if (!ctx) return finish(fallback);
+        if (!ctx) { pending.delete(coverUrl); resolve(fallback); return; }
 
         ctx.drawImage(img, 0, 0, W, H);
         const { data } = ctx.getImageData(0, 0, W, H);
 
-        // Agrupa por faixa de matiz, pesando pela saturação: um detalhe vivo
-        // pesa mais que uma área grande de bege lavado.
-        const buckets = new Map<number, { weight: number; h: number; s: number; l: number }>();
-        let total = 0;
-        let sumL = 0;
-
-        for (let i = 0; i < data.length; i += 4) {
-          if (data[i + 3] < 200) continue;
-          const [h, s, l] = rgbToHsl(data[i], data[i + 1], data[i + 2]);
-          total += 1;
-          sumL += l;
-          if (l > 94 || l < 6) continue;
-
-          const key = Math.round(h / 18);
-          const weight = 1 + (s / 100) * 2.2;
-          const slot = buckets.get(key) || { weight: 0, h: 0, s: 0, l: 0 };
-          slot.weight += weight;
-          slot.h += h * weight;
-          slot.s += s * weight;
-          slot.l += l * weight;
-          buckets.set(key, slot);
-        }
-
-        if (buckets.size === 0 || total === 0) {
-          // Capa praticamente monocromática: usa o brilho médio como cinza.
-          const avg = total ? sumL / total : 50;
-          return finish(fromHsl(26, 34, Math.min(Math.max(avg, 26), 54)));
-        }
-
-        let best = [...buckets.values()][0];
-        for (const slot of buckets.values()) if (slot.weight > best.weight) best = slot;
-
-        const h = best.h / best.weight;
-        // Um piso de saturação alto mantém a estante colorida mesmo quando a
-        // capa é discreta — lombadas acinzentadas somem umas nas outras.
-        const s = Math.min(Math.max(best.s / best.weight * 1.25, 42), 88);
-        // A lombada precisa de contraste com o texto: prendemos a luminosidade
-        // numa faixa média, senão vira uma tira branca ou preta.
-        const l = Math.min(Math.max(best.l / best.weight, 28), 55);
-
-        finish(fromHsl(Math.round(h), Math.round(s), Math.round(l)));
+        finish(dominantCoverColor(data));
       } catch {
         // getImageData falha em canvas "sujo" (imagem sem CORS liberado).
         pending.delete(coverUrl);

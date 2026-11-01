@@ -1,7 +1,7 @@
 import { bookGenres } from "../lib/genres";
 import { InstalledMark } from "./OfflineBookButton";
 import { useRef, useState, useEffect, useCallback, memo } from "react";
-import { BookOpen, Star, MoreVertical, Bookmark } from "lucide-react";
+import { BookOpen, Star, MoreVertical } from "lucide-react";
 import { useNavigate } from "react-router";
 import { getCoverGradient, getFullUrl } from "../lib/types";
 import { BookContextMenu } from "./BookContextMenu";
@@ -33,7 +33,7 @@ interface Props {
 
 function BookCardImpl({
   book, progress: initialProgress, variant = "grid", width = 128,
-  display = "cover", framed = false, index = 0, rank, onDeleted, onEdited, saved = false, onSavedChange,
+  display = "cover", index = 0, rank, onDeleted, onEdited, saved = false, onSavedChange,
 }: Props) {
   const navigate = useNavigate();
   const openBook = useOpenBook();
@@ -235,8 +235,8 @@ function BookCardImpl({
     const coverUrl = getFullUrl(book.coverImagePath);
     return (
       <>
-        <div {...pressHandlers} className="mb-card mb-card-hover p-3.5 flex gap-4 cursor-pointer select-none">
-          <div className="flex-shrink-0 w-[64px] aspect-[2/3] rounded-md overflow-hidden shadow-[var(--shadow-2)]">
+        <div {...pressHandlers} className="mb-book-list-row mb-card p-3.5 flex gap-4 cursor-pointer select-none">
+          <div className="flex-shrink-0 w-[64px] aspect-[2/3] rounded-md overflow-hidden">
             {coverUrl ? (
               <img src={coverUrl} alt="" loading="lazy" className="w-full h-full object-cover" />
             ) : (
@@ -271,15 +271,14 @@ function BookCardImpl({
   }
 
   const isSpine = display === "spine";
-  const cover = (
-        <Book3D
-          book={book}
-          width={width}
-          display={display}
-          index={index}
-          rank={rank}
-          progress={localProgress}
-        />
+  const coverUrl = getFullUrl(book.coverImagePath);
+  const cover = isSpine ? <Book3D book={book} width={width} display={display} index={index} rank={rank} progress={localProgress} still /> : (
+    <div className="mb-flat-cover">
+      {coverUrl ? <img src={coverUrl} alt={`Capa de ${book.title}`} width={400} height={600} loading={index < 8 ? "eager" : "lazy"} fetchPriority={index < 2 ? "high" : "auto"} decoding="async" /> : <div className="mb-flat-cover-fallback"><BookOpen size={30}/><strong>{book.title}</strong><span>{book.author}</span></div>}
+      <span className="mb-cover-install"><InstalledMark id={book.id}/></span>
+      {rank && <span className="mb-cover-rank">{rank}</span>}
+      <button className="mb-cover-options" aria-label={`Opções de ${book.title}`} onMouseDown={event => event.stopPropagation()} onTouchStart={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); const rect = event.currentTarget.getBoundingClientRect(); setMenuPos({ x: rect.left, y: rect.bottom }); setShowMenu(true); }}><MoreVertical size={18}/></button>
+    </div>
   );
 
   return (
@@ -289,23 +288,19 @@ function BookCardImpl({
       <div
         ref={rootRef}
         {...pressHandlers}
-        className={`mb-book-tile cursor-pointer select-none ${framed ? "mb-library-framed-card" : ""}`}
-        style={{ visibility: flyingId === book.id ? "hidden" : undefined, ...(framed ? { width: width + 48, "--book-wash": ["#dce7ef", "#f1dfc4", "#eed8d4", "#e1dce6", "#cce4de", "#f2e5be"][index % 6] } : {}) } as React.CSSProperties}
+        className={`mb-book-tile cursor-pointer select-none ${!isSpine ? "mb-poster-tile" : ""}`}
+        style={{ visibility: flyingId === book.id ? "hidden" : undefined, width } as React.CSSProperties}
       >
-        {framed ? <div className="mb-library-cover-stage">
-          {cover}
-          <button className="mb-library-bookmark" aria-label={saved ? `Remover ${book.title} dos favoritos` : `Salvar ${book.title} nos favoritos`} aria-pressed={saved} disabled={savingFavorite} onMouseDown={event=>event.stopPropagation()} onTouchStart={event=>event.stopPropagation()} onClick={event=>{event.stopPropagation();void handleToggleSaved()}}><Bookmark size={17} fill={saved ? "currentColor" : "none"} /></button>
-          {!!book.pdfPath && !book.coverImagePath && <span className="mb-library-pdf-badge">PDF</span>}
-        </div> : cover}
+        {cover}
 
         {isSpine && <InstalledMark id={book.id}/>}
         {/* A legenda some no modo estante: o nome já está na lombada. */}
         <div
           className="mb-book-caption"
-          style={{ display: isSpine ? "none" : undefined, width, marginTop: 12 }}
+          style={{ display: isSpine ? "none" : undefined, width, marginTop: 8 }}
         >
           <button className="mb-book-more" aria-label={`Opções de ${book.title}`} onMouseDown={e => e.stopPropagation()} onTouchStart={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); const rect = e.currentTarget.getBoundingClientRect(); setMenuPos({ x: rect.left, y: rect.bottom }); setShowMenu(true); }}><MoreVertical size={16} /></button>
-          <h4 className="text-[13px] font-semibold text-foreground line-clamp-2 leading-snug">{book.title}<InstalledMark id={book.id}/></h4>
+          <h4 className="text-[13px] font-semibold text-foreground line-clamp-2 leading-snug">{book.title}</h4>
           <p className="mb-book-author">{book.author || "Autor desconhecido"}</p>
           {book.seriesName && <p className="mb-book-series-label">{book.seriesName} · Vol. {book.seriesOrder}</p>}
           <div className="mb-library-book-rating" aria-label={book.rating > 0 ? `Nota ${book.rating.toFixed(1)} de 5` : "Livro ainda sem avaliações"}><Star size={12} fill={book.rating > 0 ? "currentColor" : "none"} /><span>{book.rating > 0 ? book.rating.toFixed(1) : "Sem nota"}</span></div>

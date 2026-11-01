@@ -1,12 +1,11 @@
 import { bookGenres, hasBookGenre } from "../lib/genres";
 import { useInstalled, useOffline } from "../lib/offline/device";
-import { LibraryBanner } from "../components/LibraryBanner";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { Search, LayoutGrid, List as ListIcon, Upload, SlidersHorizontal, Library as ShelfIcon } from "lucide-react";
 import { fetchAllProgress, fetchBooks, fetchSavedIds } from "../lib/api";
 import { useLiveData } from "../lib/useLiveData";
-import { triggerBackgroundCoverGeneration } from "../lib/coverExtractor";
+
 import type { Book, ReadingProgress } from "../lib/types";
 import { BookCard } from "../components/BookCard";
 import { BookGrid } from "../components/BookGrid";
@@ -74,17 +73,10 @@ export function Library() {
     { intervalMs: 120000 }
   );
 
-  const books = (booksData ?? []).filter(book => !offline || installedIds.has(book.id));
+  const books = useMemo(() => (booksData ?? []).filter(book => !offline || installedIds.has(book.id)), [booksData, offline, installedIds]);
   const savedIds = savedData ?? [];
   const progress = progressData ?? [];
 
-  // Gera capas em segundo plano para livros que chegaram sem imagem.
-  useEffect(() => {
-    if (offline || books.length === 0) return;
-    triggerBackgroundCoverGeneration(books, (updated) => {
-      setBooks((prev) => prev?.map((b) => (b.id === updated.id ? updated : b)) ?? prev);
-    });
-  }, [books.length, setBooks, offline]);
 
   useEffect(() => {
     if (params.get("focus") === "search") {
@@ -131,7 +123,7 @@ export function Library() {
       if (filter === "favoritos" && !savedIds.includes(book.id)) return false;
       if (filter === "pdfs" && !book.pdfPath) return false;
 
-      if (genre !== "Todos" && !hasBookGenre(book.genre, genre)) return false;
+      if (genre === "Ficção" ? !bookGenres(book.genre).some(value => /ficção|fantasia|romance|mistério|suspense|terror|distopia|aventura|drama|contos/i.test(value) && !/^não ficção$/i.test(value)) : genre !== "Todos" && !hasBookGenre(book.genre, genre)) return false;
 
       if (term && !(book.seriesName || "").toLowerCase().includes(term) && !book.title.toLowerCase().includes(term) && !(book.author || "").toLowerCase().includes(term) && !(book.genre || "").toLowerCase().includes(term)) {
         return false;
@@ -180,11 +172,11 @@ export function Library() {
         <div><p className="mb-eyebrow">UM UNIVERSO DE HISTÓRIAS</p><h1>Sua biblioteca.</h1><p>{isLoading ? "Carregando o acervo…" : `${books.length} livros. Sua próxima descoberta está aqui.`}</p></div>
         <Link to="/upload" className="mb-btn mb-btn-primary"><Upload size={16} /> Enviar livro</Link>
       </header>
-      <LibraryBanner books={books} />
+
 
       {/* ── Busca e visualização ───────────────────────────────────────────── */}
       <div className="mb-library-search flex gap-2 mb-in" style={{ "--i": 1 } as React.CSSProperties}>
-        <div className="mb-library-query relative flex-1">
+        <div className="mb-library-query relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-3)] pointer-events-none" />
           <input
             ref={searchRef}
@@ -223,6 +215,9 @@ export function Library() {
         <button className="mb-btn mb-btn-outline mb-btn-icon" aria-label="Filtros da biblioteca" aria-expanded={showFilters} aria-controls="library-extra-filters" onClick={() => setShowFilters(value => !value)}><SlidersHorizontal size={17} /></button>
       </div>
 
+      <div className="mb-genre-shortcuts" role="group" aria-label="Gêneros populares">
+        {["Todos", "Ficção", "Romance", "Fantasia", "Mistério", "Suspense", "Terror", "Ficção científica", "Biografia", "Poesia", "Não ficção"].map(item => <button key={item} type="button" aria-pressed={genre === item} onClick={() => setGenre(item)}>{item === "Todos" ? "Todos os gêneros" : item}</button>)}
+      </div>
       {/* ── Filtros ────────────────────────────────────────────────────────── */}
       {/* Quebra em linhas em vez de rolar na horizontal: no celular, o rolo
           cortava o primeiro e o último filtro. Assim todos aparecem inteiros. */}
@@ -280,7 +275,7 @@ export function Library() {
           action={<Link to="/upload" className="mb-btn mb-btn-primary">Enviar um livro</Link>}
         />
       ) : view === "list" ? (
-        <div className="mb-stagger space-y-2.5">
+        <div className="space-y-2.5">
           {visible.map((book) => (
             <BookCard
               key={book.id}

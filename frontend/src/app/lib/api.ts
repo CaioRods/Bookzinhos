@@ -191,9 +191,14 @@ export function fetchBooks(force = false): Promise<Book[]> {
   });
 }
 
+/** Immediate catalog snapshot for a detail screen; full content still revalidates. */
+export function peekBook(id: string): Book | null {
+  return (cache.get(cacheKey(`/books/${id}`))?.value as Book | undefined) || (cache.get(cacheKey("/books"))?.value as Book[] | undefined)?.find(book => book.id === id) || null;
+}
+
 export function fetchBook(id: string, force = false): Promise<Book | null> {
   if (isOffline()) return installedBook(id);
-  return cachedGet<Book | null>(`/books/${id}`, force ? 0 : DEFAULT_TTL);
+  return cachedGet<Book | null>(`/books/${id}`, force ? 0 : 60000);
 }
 
 /** Registra a abertura de um livro para o ranking "Mais lidos". */
@@ -206,7 +211,7 @@ export function registerBookOpen(id: string): void {
 export type BookUploadStage = "checking" | "pdf" | "cover" | "saving";
 export async function uploadBook(data: {
   title: string; author: string; description: string; genre: string; isPublic: boolean; coverColor: string;
-  seriesId?: string; seriesOrder?: number; pdfFile: File; coverFile?: File;
+  seriesId?: string; seriesOrder?: number; pdfFile: File; coverFile?: File; epubFile?: File;
   publisher?: string; publishedYear?: string; metadataSource?: string; metadataId?: string; isbn?: string; uploadRequestId?: string;
 }, onStage?: (stage: BookUploadStage) => void): Promise<Book> {
   onStage?.("checking");
@@ -214,7 +219,7 @@ export async function uploadBook(data: {
   const duplicate = existing.find(book => book.title.trim().toLowerCase() === data.title.trim().toLowerCase() && (book.author || "").trim().toLowerCase() === (data.author || "").trim().toLowerCase());
   // The API resolves retries by uploadRequestId, including uncertain previous responses.
   if (duplicate && (!data.uploadRequestId || duplicate.uploadRequestId !== data.uploadRequestId)) throw new Error("Já existe um livro com este título e autor!");
-  const fields = { title: data.title, author: data.author, description: data.description, genre: data.genre,
+  const fields = { pdfBytes: data.pdfFile.size, epubBytes: data.epubFile?.size || 0, title: data.title, author: data.author, description: data.description, genre: data.genre,
     isPublic: String(data.isPublic), coverColor: data.coverColor, seriesId: data.seriesId || "", seriesOrder: data.seriesOrder || 1,
     publisher: data.publisher || "", publishedYear: data.publishedYear || "", metadataSource: data.metadataSource || "", metadataId: data.metadataId || "", isbn: data.isbn || "", uploadRequestId: data.uploadRequestId || "" };
   if (duplicate && data.uploadRequestId && duplicate.uploadRequestId === data.uploadRequestId) {
@@ -222,7 +227,7 @@ export async function uploadBook(data: {
     const book = await request<Book>("POST", "/books", { ...fields, pdfUrl: duplicate.pdfPath || null });
     invalidate("/books", "/home"); return book;
   }
-  let direct: { pdfUrl: string; coverUrl: string | null } | null = null;
+  let direct: { pdfUrl: string; epubUrl: string | null; coverUrl: string | null } | null = null;
   try {
     const presigned = await fetch(`${API_BASE_URL}/books/presigned-url`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fileName: data.pdfFile.name, fileType: "application/pdf" }) });
     if (presigned.ok) {
@@ -239,13 +244,22 @@ export async function uploadBook(data: {
           if (response.ok) coverUrl = cover.downloadUrl;
         }
       }
-      direct = { pdfUrl: pdf.downloadUrl, coverUrl };
+      let epubUrl: string | null = null;
+      if (data.epubFile) {
+        const signed = await fetch(`${API_BASE_URL}/books/presigned-url`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fileName: data.epubFile.name, fileType: "application/epub+zip" }) });
+        if (!signed.ok) throw new Error("Não foi possível enviar o EPUB original.");
+        const epub = await signed.json(); const response = await fetch(epub.uploadUrl, { method: "PUT", headers: { "Content-Type": "application/epub+zip" }, body: data.epubFile });
+        if (!response.ok) throw new Error("Não foi possível enviar o EPUB original.");
+        epubUrl = epub.downloadUrl;
+      }
+      direct = { pdfUrl: pdf.downloadUrl, epubUrl, coverUrl };
     }
   } catch { /* Storage fallback only: do not repeat a failed book-creation request. */ }
   let book: Book;
   if (direct) { onStage?.("saving"); book = await request<Book>("POST", "/books", { ...fields, ...direct }); }
   else {
     const form = new FormData(); for (const [key, value] of Object.entries(fields)) form.append(key, String(value));
+    if (data.epubFile) form.append("epub", data.epubFile);
     form.append("pdf", data.pdfFile); if (data.coverFile) form.append("cover", data.coverFile);
     onStage?.("pdf"); book = await upload<Book>("POST", "/books", form);
   }
@@ -288,7 +302,7 @@ export function fetchProgress(bookId: string): Promise<ReadingProgress | null> {
 
 export async function saveProgress(p: Partial<ReadingProgress> & { bookId: string }): Promise<ReadingProgress> {
   const res = await request<ReadingProgress>("PUT", `/progress/${p.bookId}`, p);
-  invalidate("/progress", "/home", "/stats", "/books");
+  invalidate("/progress", "/home", "/stats");
   return res;
 }
 

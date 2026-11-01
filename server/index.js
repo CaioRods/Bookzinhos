@@ -228,6 +228,7 @@ function rowToBook(row) {
     coverColor: row.cover_color,
     addedAt: Number(row.added_at) || 0,
     pdfPath: row.pdf_path || null,
+    epubPath: row.epub_path || null, pdfBytes: Number(row.pdf_bytes) || null, epubBytes: Number(row.epub_bytes) || null,
     coverImagePath: row.cover_image_path || null,
     seriesId: row.series_id || null,
     seriesName: row.series_name || null,
@@ -498,8 +499,9 @@ app.post("/books/presigned-url", requireUser, async (req, res) => {
 
     const id = `user-${Date.now()}`;
     const isPdf = fileType === "application/pdf";
-    const folder = isPdf ? "pdfs" : "covers";
-    const extension = path.extname(fileName) || (isPdf ? ".pdf" : ".jpg");
+    const isEpub = fileType === "application/epub+zip";
+    const folder = isPdf ? "pdfs" : isEpub ? "epubs" : "covers";
+    const extension = path.extname(fileName) || (isPdf ? ".pdf" : isEpub ? ".epub" : ".jpg");
     const safeName = `${folder}/${id}-${Math.floor(Math.random() * 1000)}${extension}`;
 
     if (s3Client) {
@@ -528,7 +530,7 @@ app.post("/books/presigned-url", requireUser, async (req, res) => {
   }
 });
 
-app.post("/books", requireUser, upload.fields([{ name: "pdf", maxCount: 1 }, { name: "cover", maxCount: 1 }]), async (req, res) => {
+app.post("/books", requireUser, upload.fields([{ name: "pdf", maxCount: 1 }, { name: "epub", maxCount: 1 }, { name: "cover", maxCount: 1 }]), async (req, res) => {
   try {
     await startup;
     const { title, author, description, genre, isPublic, coverColor, publisher, publishedYear } = req.body;
@@ -551,11 +553,14 @@ app.post("/books", requireUser, upload.fields([{ name: "pdf", maxCount: 1 }, { n
 
     const id = `user-${Date.now()}`;
     const pdfFile = req.files?.pdf?.[0];
+    const epubFile = req.files?.epub?.[0];
     const coverFile = req.files?.cover?.[0];
 
+    let epubUrl = req.body.epubUrl || null;
     let pdfUrl = req.body.pdfUrl || null;
     let coverUrl = req.body.coverUrl || null;
 
+    if (!epubUrl && epubFile) epubUrl = await uploadFileToCloud(epubFile.buffer, `epubs/${id}-${Date.now()}.epub`, "application/epub+zip");
     if (!pdfUrl && pdfFile) {
       pdfUrl = await uploadFileToCloud(pdfFile.buffer, `pdfs/${id}-${Date.now()}.pdf`, "application/pdf");
     }
@@ -569,6 +574,8 @@ app.post("/books", requireUser, upload.fields([{ name: "pdf", maxCount: 1 }, { n
     `);
 
     if (series) await db.query(sql`UPDATE books SET series_id=${series.id}, series_name=${series.name}, series_order=${series.order} WHERE id=${id}`);
+    const fileSize = value => Number.isSafeInteger(Number(value)) && Number(value) > 0 && Number(value) <= 1024 * 1024 * 1024 ? Number(value) : null;
+    await db.query(sql`UPDATE books SET epub_path=${epubUrl}, pdf_bytes=${pdfFile?.size || fileSize(req.body.pdfBytes)}, epub_bytes=${epubFile?.size || fileSize(req.body.epubBytes)} WHERE id=${id}`);
     const metadata = metadataFields(req.body);
     await db.query(sql`UPDATE books SET metadata_source=${metadata.source}, metadata_id=${metadata.id}, metadata_url=${metadata.url}, isbn=${metadata.isbn} WHERE id=${id}`);
     await authorRegistry.replace(id, author || "", currentUser(req) || "");
@@ -643,9 +650,10 @@ app.delete("/books/:id", requireAdmin, async (req, res) => {
   try {
     await startup;
     const id = req.params.id;
-    const [row] = await db.query(sql`SELECT pdf_path, cover_image_path FROM books WHERE id = ${id}`);
+    const [row] = await db.query(sql`SELECT pdf_path, epub_path, cover_image_path FROM books WHERE id = ${id}`);
     if (!row) return res.status(404).json({ error: "Livro não encontrado" });
     if (row.pdf_path && !row.pdf_path.startsWith("http") && fs.existsSync(row.pdf_path)) fs.unlinkSync(row.pdf_path);
+    if (row.epub_path && !row.epub_path.startsWith("http") && fs.existsSync(row.epub_path)) fs.unlinkSync(row.epub_path);
     if (row.cover_image_path && !row.cover_image_path.startsWith("http") && fs.existsSync(row.cover_image_path)) fs.unlinkSync(row.cover_image_path);
 
     // Cascata explícita para compatibilidade com Turso/SQLite

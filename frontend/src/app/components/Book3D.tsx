@@ -1,6 +1,6 @@
 import { useEffect, useState, memo } from "react";
 import { getFullUrl } from "../lib/types";
-import { fallbackSpineColor, getSpineColor, type SpineColor } from "../lib/coverColor";
+import { NEUTRAL_COVER_COLOR, fallbackSpineColor, getSpineColor, type SpineColor } from "../lib/coverColor";
 import type { Book, ReadingProgress } from "../lib/types";
 
 /** A mesma curva de `--ease-flip`, escrita à mão: o atalho `transition` inline
@@ -29,11 +29,11 @@ export function useSpineColor(book: Book | null | undefined): SpineColor {
   const coverUrl = getFullUrl(book?.coverImagePath);
   const coverColor = book?.coverColor ?? null;
   const id = book?.id ?? "";
-  const [color, setColor] = useState<SpineColor>(() => fallbackSpineColor(coverColor, id));
+  const [color, setColor] = useState<SpineColor>(() => coverUrl ? NEUTRAL_COVER_COLOR : fallbackSpineColor(coverColor, id));
 
   useEffect(() => {
     let alive = true;
-    setColor(fallbackSpineColor(coverColor, id));
+    setColor(coverUrl ? NEUTRAL_COVER_COLOR : fallbackSpineColor(coverColor, id));
     getSpineColor(coverUrl, coverColor, id).then((c) => {
       if (alive) setColor(c);
     });

@@ -26,7 +26,7 @@ export function colorToHex(value: string): string {
   if (/^#[0-9a-f]{6}$/i.test(value)) return value;
   const match = value.match(/hsl\(([\d.]+) ([\d.]+)% ([\d.]+)%\)/);
   if (!match) return "#64344f";
-  const hue = Number(match[1]) / 30, saturation = Number(match[2]) / 100, lightness = Number(match[3]) / 100;
+  const hue = (Number(match[1]) % 360) / 60, saturation = Number(match[2]) / 100, lightness = Number(match[3]) / 100;
   const chroma = (1 - Math.abs(2 * lightness - 1)) * saturation, x = chroma * (1 - Math.abs(hue % 2 - 1)), m = lightness - chroma / 2;
   const channels = hue < 1 ? [chroma, x, 0] : hue < 2 ? [x, chroma, 0] : hue < 3 ? [0, chroma, x] : hue < 4 ? [0, x, chroma] : hue < 5 ? [x, 0, chroma] : [chroma, 0, x];
   return `#${channels.map(channel => Math.round((channel + m) * 255).toString(16).padStart(2, "0")).join("")}`;

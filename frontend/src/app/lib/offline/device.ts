@@ -4,6 +4,12 @@ import { API_BASE_URL } from "../config";
 import { getFullUrl, type Book, type ReadingProgress, type Note, type UserProfile, type BookChapter } from "../types";
 import { read, rows, write } from "./db";
 const recordReads = new Map<string, Promise<InstalledBook[]>>();
+const recordIds = new WeakMap<InstalledBook[], Set<string>>();
+function installedIds(records: InstalledBook[]) {
+  let ids = recordIds.get(records);
+  if (!ids) { ids = new Set(records.map(record => record.book.id)); recordIds.set(records, ids); }
+  return ids;
+}
 export const DEVICE_EVENT = "mybooks:device";
 let disconnected = typeof navigator !== "undefined" && !navigator.onLine;
 export const isOffline = () => disconnected || !navigator.onLine;
@@ -18,8 +24,9 @@ export function useOffline() {
   useEffect(() => { const sync = () => setOffline(isOffline()); window.addEventListener(DEVICE_EVENT, sync); window.addEventListener("offline", sync); window.addEventListener("online", sync); return () => { window.removeEventListener(DEVICE_EVENT, sync); window.removeEventListener("offline", sync); window.removeEventListener("online", sync); }; }, []);
   return offline;
 }
-export interface InstalledBook { book: Book; pdf?: Blob; cover?: Blob; chapters: BookChapter[]; bytes: number; installedAt: number }
-export interface DownloadState { loaded: number; total: number; percent: number | null; error?: string }
+export type InstallFormat = "pdf" | "epub";
+export interface InstalledBook { format?: InstallFormat; epub?: Blob; book: Book; pdf?: Blob; cover?: Blob; chapters: BookChapter[]; bytes: number; installedAt: number }
+export interface DownloadState { phase?: "download" | "converting"; loaded: number; total: number; percent: number | null; error?: string }
 const downloads = new Map<string, DownloadState>(), controllers = new Map<string, AbortController>();
 const urls = new Map<string, string>();
 export async function installedRecords(user = account()) { if (!user) return []; if (!recordReads.has(user)) recordReads.set(user, rows<InstalledBook>(prefix(user, "book")).then(items => items.map(row => row.value))); return recordReads.get(user)!; }
@@ -40,7 +47,7 @@ export async function removeInstalled(id: string) {
 }
 export function useInstalled(id?: string) {
   const [state, setState] = useState<{ ids: Set<string>; download?: DownloadState }>({ ids: new Set() });
-  useEffect(() => { let active = true; const sync = () => { const user = account(); void installedRecords(user).then(records => { if (active && account() === user) setState({ ids: new Set(records.map(row => row.book.id)), download: id ? downloads.get(`${user}:${id}`) : undefined }); }).catch(() => {}); }; sync(); window.addEventListener(DEVICE_EVENT, sync); window.addEventListener("mybooks:session", sync); return () => { active = false; window.removeEventListener(DEVICE_EVENT, sync); window.removeEventListener("mybooks:session", sync); }; }, [id]);
+  useEffect(() => { let active = true; const sync = () => { const user = account(); void installedRecords(user).then(records => { if (active && account() === user) setState(previous => { const ids = installedIds(records), download = id ? downloads.get(`${user}:${id}`) : undefined; return previous.ids === ids && previous.download === download ? previous : { ids, download }; }); }).catch(() => {}); }; sync(); window.addEventListener(DEVICE_EVENT, sync); window.addEventListener("mybooks:session", sync); return () => { active = false; window.removeEventListener(DEVICE_EVENT, sync); window.removeEventListener("mybooks:session", sync); }; }, [id]);
   return state;
 }
 async function fetchBlob(url: string, signal: AbortSignal, onProgress?: (loaded: number, total: number) => void) {
@@ -54,11 +61,11 @@ async function fetchBlob(url: string, signal: AbortSignal, onProgress?: (loaded:
   return new Blob(chunks as BlobPart[], { type: response.headers.get("content-type") || "application/pdf" });
 }
 const activeInstalls = new Map<string, Promise<void>>();
-export function installBook(id: string): Promise<void> {
+export function installBook(id: string, format: InstallFormat = "pdf"): Promise<void> {
   const key = `${account()}:${id}`, active = activeInstalls.get(key); if (active) return active;
-  const task = installBookNow(id).finally(() => activeInstalls.delete(key)); activeInstalls.set(key, task); return task;
+  const task = installBookNow(id, format).finally(() => activeInstalls.delete(key)); activeInstalls.set(key, task); return task;
 }
-async function installBookNow(id: string) {
+async function installBookNow(id: string, format: InstallFormat) {
   const user = account(); if (!user) throw new Error("Entre na conta para instalar livros.");
   if (isOffline()) throw new Error("Conecte-se à internet para instalar este livro.");
   const key = `${user}:${id}`; if (controllers.has(key)) return;
@@ -77,15 +84,26 @@ async function installBookNow(id: string) {
       try { const response = await fetch(API_BASE_URL + path, { credentials: "include", headers: { "X-Offline-Account": user }, signal: controller.signal }); if (response.ok) await rememberResponse(path, await response.json(), user); } catch (error) { if (controller.signal.aborted) throw error; }
     }
     const estimate = await navigator.storage?.estimate?.();
-    const pdf = book.pdfPath ? await fetchBlob(getFullUrl(book.pdfPath)!, controller.signal, (loaded, total) => { downloads.set(key, { loaded, total, percent: total ? Math.min(99, Math.round(loaded / total * 100)) : null }); deviceChanged(); }) : undefined;
+    const source = format === "epub" ? book.epubPath : book.pdfPath;
+    if (format === "epub" && !source) throw new Error("O EPUB original não está disponível para este livro.");
+    const file = source ? await fetchBlob(getFullUrl(source)!, controller.signal, (loaded, total) => { downloads.set(key, { phase: "download", loaded, total, percent: total ? Math.min(99, Math.round(loaded / total * 100)) : null }); window.dispatchEvent(new Event(DEVICE_EVENT)); }) : undefined;
+    const epub = format === "epub" ? file : undefined;
+    let pdf = format === "pdf" ? file : undefined;
+    if (epub) {
+      downloads.set(key, { phase: "converting", loaded: epub.size, total: epub.size, percent: 0 }); window.dispatchEvent(new Event(DEVICE_EVENT));
+      const { convertEpub } = await import("../epub/convert");
+      const converted = await convertEpub(new File([epub], `${book.title}.epub`, { type: "application/epub+zip" }), controller.signal, percent => { downloads.set(key, { phase: "converting", loaded: epub.size, total: epub.size, percent }); window.dispatchEvent(new Event(DEVICE_EVENT)); });
+      pdf = converted.file;
+    }
     if (pdf && !(await pdf.slice(0,1024).text()).includes("%PDF-")) throw new Error("O arquivo recebido não é um PDF válido. Tente instalar novamente.");
     const cover = book.coverImagePath ? await fetchBlob(getFullUrl(book.coverImagePath)!, controller.signal).catch(error => { if (controller.signal.aborted) throw error; return undefined; }) : undefined;
-    const bytes = (pdf?.size || 0) + (cover?.size || 0) + JSON.stringify(book).length;
+    const bytes = (epub?.size || 0) + (pdf?.size || 0) + (cover?.size || 0) + JSON.stringify(book).length;
     if (estimate?.quota && bytes > estimate.quota - (estimate.usage || 0)) throw new Error("Espaço insuficiente no aparelho. Remova um livro instalado e tente novamente.");
     if (controller.signal.aborted) throw new DOMException("Instalação cancelada.", "AbortError");
     if (account() !== user) throw new Error("A conta mudou durante a instalação. Tente novamente.");
     // The installed marker and all content become visible in one atomic transaction.
-    await write([{ key: deviceKey(user, "book", id), value: { book, pdf, cover, chapters, bytes, installedAt: Date.now() } satisfies InstalledBook }]);
+    await write([{ key: deviceKey(user, "book", id), value: { book, pdf, epub, format, cover, chapters, bytes, installedAt: Date.now() } satisfies InstalledBook }]);
+    for (const suffix of ["pdf", "cover"]) { const urlKey = `${user}:${id}:${suffix}`, previous = urls.get(urlKey); if (previous) URL.revokeObjectURL(previous); urls.delete(urlKey); }
     void navigator.storage?.persist?.(); downloads.delete(key); window.dispatchEvent(new Event("mybooks:offline-data"));
   } catch (error) {
     downloads.set(key, { loaded: 0, total: 0, percent: null, error: error instanceof DOMException && error.name === "QuotaExceededError" ? "Sem espaço no aparelho." : error instanceof Error && error.name === "AbortError" ? "Instalação cancelada." : error instanceof Error ? error.message : "Falha na instalação." });

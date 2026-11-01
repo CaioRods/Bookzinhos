@@ -64,6 +64,8 @@ export function BookContextMenu({
     if (addToList) return;
     panel.current?.querySelector<HTMLButtonElement>("button:not(:disabled)")?.focus();
     const keyboard = (event: KeyboardEvent) => {
+      const dialogs = document.querySelectorAll('[role="dialog"][aria-modal="true"]');
+      if (dialogs.length && dialogs[dialogs.length - 1] !== panel.current) return;
       if (event.key === "Escape") { event.preventDefault(); onClose(); }
       if (event.key === "Tab") {
         const buttons = Array.from(panel.current?.querySelectorAll<HTMLButtonElement>("button:not(:disabled)") || []);

@@ -143,7 +143,7 @@ export function Upload() {
     event.preventDefault(); if (!pdfFile || !current || ["published", "skipped"].includes(current.status) || !formData.title.trim() || isPreparing || posting.current) return;
     posting.current = true; setShowUploadProgress(true); setIsUploading(true); setUploadStage("checking"); setError(null); lookup.current?.abort(); setFindingGenre(false); patchItem(current.id, { status: "publishing" });
     try {
-      const book = await uploadBook({ ...formData, uploadRequestId: current.id, coverColor: randomCoverColor(), pdfFile, coverFile: coverFile || undefined }, setUploadStage);
+      const book = await uploadBook({ ...formData, uploadRequestId: current.id, coverColor: randomCoverColor(), pdfFile, coverFile: coverFile || undefined, epubFile: bookFileKind(current.file) === "epub" ? current.file : undefined }, setUploadStage);
       if (!mounted.current) return;
       patchItem(current.id, { status: "published", bookId: book.id });
       try { await saveProgress({ bookId: book.id, currentPage: 0, totalPages, progress: 0, status: "lendo", startedAt: Date.now(), lastReadAt: Date.now() }); }

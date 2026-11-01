@@ -22,6 +22,9 @@ export interface Book {
   coverColor: string;
   addedAt: number;
   pdfPath?: string | null;
+  epubPath?: string | null;
+  pdfBytes?: number | null;
+  epubBytes?: number | null;
   coverImagePath?: string | null;
   isUserBook?: boolean;
   reviews?: Review[];

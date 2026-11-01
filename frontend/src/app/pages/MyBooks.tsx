@@ -2,62 +2,45 @@ import { Booklists } from "../components/Booklists";
 import { useInstalled, useOffline } from "../lib/offline/device";
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
-import { Play, ArrowRight, LayoutGrid, Heart, Library as ShelfIcon } from "lucide-react";
+import { Play, ArrowRight, LayoutGrid, Search, Download, Library as ShelfIcon } from "lucide-react";
 import { fetchAllProgress, fetchBooks, fetchSavedIds } from "../lib/api";
 import { useLiveData } from "../lib/useLiveData";
-import { getCoverGradient, getFullUrl } from "../lib/types";
+import { getFullUrl } from "../lib/types";
 import type { Book, ReadingProgress } from "../lib/types";
 import { BookGrid } from "../components/BookGrid";
-import { EmptyState, PageHeader, Skeleton } from "../components/Ui";
+import { EmptyState, Skeleton } from "../components/Ui";
 import { useOpenBook } from "../lib/readerChoice";
 
-type TabKey = "lendo" | "favoritos" | "ler-depois" | "finalizado";
+type TabKey = "lendo" | "favoritos" | "ler-depois" | "finalizado" | "instalados" | "todos" | "pausado";
 
 const TABS: { key: TabKey; label: string }[] = [
+  { key: "todos", label: "Todos" },
   { key: "lendo", label: "Lendo" },
-  { key: "favoritos", label: "Favoritos" },
   { key: "ler-depois", label: "Ler depois" },
+  { key: "pausado", label: "Pausados" },
   { key: "finalizado", label: "Lidos" },
+  { key: "favoritos", label: "Favoritos" },
+  { key: "instalados", label: "Baixados" },
 ];
 
 export function MyBooks() {
   const openBook = useOpenBook();
   const offline = useOffline(), { ids: installedIds } = useInstalled();
-  const [tab, setTab] = useState<TabKey>("lendo");
+  const [tab, setTab] = useState<TabKey>("todos");
+  const [search, setSearch] = useState("");
   const [shelfMode, setShelfMode] = useState(false);
 
-  const { data, isLoading, setData } = useLiveData<{
-    books: Book[];
-    progress: ReadingProgress[];
-    savedIds: string[];
-  }>(
-    async (force) => {
-      const [books, progress, savedIds] = await Promise.all([
-        fetchBooks(force),
-        fetchAllProgress(force).catch(() => [] as ReadingProgress[]),
-        fetchSavedIds(force).catch(() => [] as string[]),
-      ]);
-      return { books: books || [], progress: progress || [], savedIds: savedIds || [] };
-    },
-    [],
-    { intervalMs: 45000 }
-  );
-
-  const books = (data?.books ?? []).filter(book => !offline || installedIds.has(book.id));
-  const progress = data?.progress ?? [];
-  const savedIds = data?.savedIds ?? [];
-
-  const handleSavedChange = (bookId: string, saved: boolean) =>
-    setData((current) => current ? {
-      ...current,
-      savedIds: saved
-        ? [bookId, ...current.savedIds.filter((id) => id !== bookId)]
-        : current.savedIds.filter((id) => id !== bookId),
-    } : current);
-
+  const { data: catalog, isLoading } = useLiveData<Book[]>(force => fetchBooks(force), [], { intervalMs: 300000, focusThrottleMs: 300000 });
+  const { data: progressData, isLoading: progressLoading } = useLiveData<ReadingProgress[]>(force => fetchAllProgress(force), [], { intervalMs: 120000 });
+  const { data: favorites, isLoading: favoritesLoading, setData: setFavorites } = useLiveData<string[]>(force => fetchSavedIds(force), [], { intervalMs: 120000 });
+  const books = useMemo(() => (catalog ?? []).filter(book => !offline || installedIds.has(book.id)), [catalog, offline, installedIds]);
+  const progress = progressData ?? [], savedIds = favorites ?? [];
+  const handleSavedChange = (bookId: string, saved: boolean) => setFavorites(current => saved ? [bookId, ...(current ?? []).filter(id => id !== bookId)] : (current ?? []).filter(id => id !== bookId));
   const progressOf = useMemo(() => new Map(progress.map((p) => [p.bookId, p])), [progress]);
 
   const listFor = (key: TabKey): Book[] => {
+    if (key === "todos") return books.filter(book => progressOf.has(book.id) || savedIds.includes(book.id) || installedIds.has(book.id)).sort((a,b) => (progressOf.get(b.id)?.lastReadAt || 0) - (progressOf.get(a.id)?.lastReadAt || 0));
+    if (key === "instalados") return books.filter(book => installedIds.has(book.id));
     if (key === "favoritos") {
       const order = new Map(savedIds.map((id, index) => [id, index]));
       return books.filter((b) => order.has(b.id)).sort((a, b) => order.get(a.id)! - order.get(b.id)!);
@@ -70,10 +53,10 @@ export function MyBooks() {
   const counts = useMemo(
     () => Object.fromEntries(TABS.map((t) => [t.key, listFor(t.key).length])) as Record<TabKey, number>,
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [books, progress, savedIds]
+    [books, progress, savedIds, installedIds]
   );
 
-  const visible = listFor(tab);
+  const visible = useMemo(() => listFor(tab).filter(book => `${book.title} ${book.author} ${book.seriesName || ""}`.toLocaleLowerCase("pt-BR").includes(search.toLocaleLowerCase("pt-BR"))), [books, progress, savedIds, installedIds, tab, search]);
   const reading = listFor("lendo");
   const heroBook = reading[0];
   const heroProgress = heroBook ? progressOf.get(heroBook.id) : undefined;
@@ -81,7 +64,7 @@ export function MyBooks() {
   return (
     <div className="mb-screen mb-screen--wide mb-mybooks space-y-6">
       <Booklists books={books} progressOf={progressOf} savedIds={savedIds} onSavedChange={handleSavedChange} heading={
-        <PageHeader title="Meus" highlight="livros." subtitle="Continue de onde parou ou visite seus favoritos." icon={<Heart className="w-5 h-5" />} gradient="linear-gradient(140deg,#e0a33c,#c07f1f)" />
+        <header className="mb-personal-heading"><div><p className="mb-eyebrow">SEU ESPAÇO DE LEITURA</p><h1>Meus livros</h1><p>Suas leituras, favoritos e livros baixados. Tudo no lugar.</p></div><Link to="/library" className="mb-btn mb-btn-outline">Explorar biblioteca <ArrowRight size={16}/></Link></header>
       }>
       {/* Destaque da leitura em andamento */}
       {isLoading ? (
@@ -92,13 +75,13 @@ export function MyBooks() {
           tabIndex={0}
           onClick={() => openBook(heroBook)}
           onKeyDown={(e) => e.key === "Enter" && openBook(heroBook)}
-          className="mb-reading-spotlight mb-card mb-card-hover cursor-pointer p-5 flex gap-5"
+          className="mb-reading-spotlight mb-card cursor-pointer p-5 flex gap-5"
         >
-          <div className="w-20 aspect-[2/3] rounded-lg overflow-hidden shadow-[var(--shadow-book)] flex-shrink-0 bg-[var(--surface-2)]">
+          <div className="w-16 aspect-[2/3] rounded-lg overflow-hidden flex-shrink-0 bg-[var(--surface-2)]">
             {heroBook.coverImagePath ? (
               <img src={getFullUrl(heroBook.coverImagePath)!} alt="" loading="lazy" className="w-full h-full object-cover" />
             ) : (
-              <div className={`w-full h-full bg-gradient-to-br ${getCoverGradient(heroBook)}`} />
+              <div className="w-full h-full flex items-center justify-center"><ShelfIcon/></div>
             )}
           </div>
           <div className="flex-1 min-w-0 flex flex-col justify-between">
@@ -122,6 +105,7 @@ export function MyBooks() {
         </div>
       ) : null}
 
+      <label className="mb-personal-search"><Search size={18}/><input type="search" aria-label="Buscar nos meus livros" placeholder="Busque um livro, autor ou saga" value={search} onChange={event => setSearch(event.target.value)}/></label>
       <div className="mb-mybooks-toolbar flex items-center gap-2 border-b border-[var(--line)] pb-2">
         <div className="mb-mybooks-tabs flex gap-1.5 overflow-x-auto flex-1" role="group" aria-label="Filtrar meus livros">
           {TABS.map((t) => (
@@ -145,7 +129,7 @@ export function MyBooks() {
         </button>
       </div>
 
-      {isLoading ? (
+      {isLoading || (tab !== "instalados" && (progressLoading || favoritesLoading)) ? (
         <div className="mb-stagger grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-x-4 gap-y-6">
           {Array.from({ length: 6 }).map((_, i) => (
             <div key={i}>
@@ -158,12 +142,12 @@ export function MyBooks() {
         <EmptyState
           emoji={tab === "favoritos" ? "💗" : "📚"}
           title={
-            tab === "lendo" ? "Nenhuma leitura em andamento"
+            search ? "Nenhum livro encontrado" : tab === "todos" ? "Sua coleção começa com uma leitura" : tab === "pausado" ? "Nenhuma leitura pausada" : tab === "instalados" ? "Seus livros baixados aparecerão aqui" : tab === "lendo" ? "Nenhuma leitura em andamento"
               : tab === "ler-depois" ? "Nada na fila ainda"
               : tab === "finalizado" ? "Nenhum livro concluído"
               : "Sem favoritos por enquanto"
           }
-          description="Segure um livro na biblioteca para salvar, pausar ou deixar para depois."
+          description="Use o menu de opções na capa para organizar suas leituras ou instalar um livro neste aparelho."
           action={<Link to="/library" className="mb-btn mb-btn-primary">Ir para a biblioteca <ArrowRight className="w-4 h-4" /></Link>}
         />
       ) : (

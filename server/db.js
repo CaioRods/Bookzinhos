@@ -433,6 +433,9 @@ async function initDB() {
   await ensureColumn("books", "series_name", "TEXT");
   await ensureColumn("books", "series_order", "REAL");
   await ensureColumn("books", "uploaded_by", "TEXT NOT NULL DEFAULT ''");
+  await ensureColumn("books", "epub_path", "TEXT");
+  await ensureColumn("books", "pdf_bytes", "INTEGER");
+  await ensureColumn("books", "epub_bytes", "INTEGER");
   for (const column of ["metadata_source", "metadata_id", "metadata_url", "isbn", "upload_request_id"]) await ensureColumn("books", column, "TEXT NOT NULL DEFAULT ''");
   await db.query("CREATE UNIQUE INDEX IF NOT EXISTS books_upload_request_idx ON books(uploaded_by, upload_request_id) WHERE upload_request_id <> ''");
   await ensureColumn("home_posts", "series_id", "TEXT");
