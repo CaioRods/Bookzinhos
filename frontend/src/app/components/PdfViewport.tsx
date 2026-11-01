@@ -38,11 +38,18 @@ export function PdfViewport({ zoom, baseZoom = 1, offsetX = 0, offsetY = 0, disa
       const rect = surface.getBoundingClientRect();
       return { x: x - rect.left - rect.width / 2 - settings.current.offsetX, y: y - rect.top - rect.height / 2 - settings.current.offsetY };
     };
+    const interaction = (active: boolean) => {
+      const value = String(active);
+      if (surface.dataset.pdfInteracting === value) return;
+      surface.dataset.pdfInteracting = value;
+      surface.dispatchEvent(new Event("pdf-interaction"));
+    };
     const schedulePaint = () => { if (!frame) frame = requestAnimationFrame(() => { frame = 0; paint(); }); };
-    const commit = () => { clearTimeout(timer); timer = undefined; settings.current.onZoom(camera.current.zoom); };
+    const commit = () => { clearTimeout(timer); timer = undefined; interaction(false); settings.current.onZoom(camera.current.zoom); };
     const wheel = (event: WheelEvent) => {
       if (!event.ctrlKey && !event.metaKey) return;
       event.preventDefault();
+      interaction(true);
       const delta = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? surface.clientHeight : 1);
       camera.current = zoomPdfCamera(camera.current, camera.current.zoom * Math.exp(-delta * 0.003), point(event.clientX, event.clientY));
       schedulePaint(); suppressUntil = Date.now() + 400;
@@ -52,6 +59,7 @@ export function PdfViewport({ zoom, baseZoom = 1, offsetX = 0, offsetY = 0, disa
       if (event.pointerType !== "mouse" && event.pointerType !== "pen") return;
       if (event.button !== 0) return;
       event.preventDefault();
+      interaction(true);
       drag = { x: event.clientX, y: event.clientY, camera: { ...camera.current }, id: event.pointerId };
       surface.setPointerCapture(event.pointerId); surface.style.cursor = "grabbing";
     };
@@ -62,14 +70,15 @@ export function PdfViewport({ zoom, baseZoom = 1, offsetX = 0, offsetY = 0, disa
       schedulePaint();
       if (Math.hypot(dx, dy) > 4) suppressUntil = Date.now() + 400;
     };
-    const up = () => { drag = null; surface.style.cursor = "grab"; };
+    const up = () => { drag = null; surface.style.cursor = "grab"; if (!touch && !timer) interaction(false); };
     const touchPosition = (touches: TouchList) => {
       const a = touches[0], b = touches[1] || a;
       return { x: (a.clientX + b.clientX) / 2, y: (a.clientY + b.clientY) / 2, distance: touches.length === 2 ? Math.max(1, Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY)) : 0 };
     };
     const startTouch = (event: TouchEvent) => {
-      if (event.touches.length > 2) { touch = null; return; }
+      if (event.touches.length > 2) { touch = null; interaction(false); return; }
       if (!event.touches.length) return;
+      interaction(true);
       touch = { ...touchPosition(event.touches), camera: { ...camera.current } };
     };
     const moveTouch = (event: TouchEvent) => {
@@ -99,7 +108,7 @@ export function PdfViewport({ zoom, baseZoom = 1, offsetX = 0, offsetY = 0, disa
     surface.addEventListener("touchend", endTouch); surface.addEventListener("touchcancel", endTouch);
     surface.addEventListener("click", click, true); window.addEventListener("blur", blur);
     return () => {
-      clearTimeout(timer); cancelAnimationFrame(frame);
+      clearTimeout(timer); cancelAnimationFrame(frame); interaction(false);
       surface.removeEventListener("wheel", wheel);
       surface.removeEventListener("pointerdown", down); surface.removeEventListener("pointermove", move);
       surface.removeEventListener("pointerup", up); surface.removeEventListener("pointercancel", up); surface.removeEventListener("lostpointercapture", up);
