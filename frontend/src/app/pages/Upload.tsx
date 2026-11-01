@@ -1,5 +1,6 @@
+import { bookFileKind, convertEpub } from "../lib/epub/convert";
 import { SeriesField } from "../components/SeriesField";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { ArrowLeft, Upload as UploadIcon } from "lucide-react";
 import { uploadBook, saveProgress } from "../lib/api";
@@ -8,61 +9,27 @@ import { GenreField } from "../components/GenreField";
 // @ts-ignore
 import pdfjsWorker from "pdfjs-dist/build/pdf.worker.mjs?url";
 
-async function extractPdfCover(pdfFile: File): Promise<{ cover: File | null; numPages: number } | null> {
-  const extractionPromise = (async () => {
-    try {
-      const pdfjs = await import("pdfjs-dist");
-      pdfjs.GlobalWorkerOptions.workerSrc = pdfjsWorker;
-
-      const arrayBuffer = await pdfFile.arrayBuffer();
-      const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
-      const numPages = pdf.numPages;
-      const page = await pdf.getPage(1);
-      const viewport = page.getViewport({ scale: 1.5 });
-      const canvas = document.createElement("canvas");
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
-      const ctx = canvas.getContext("2d")!;
-      await page.render({ canvasContext: ctx, viewport }).promise;
-
-      return new Promise<{ cover: File | null; numPages: number }>((resolve) => {
-        try {
-          canvas.toBlob(
-            (blob) => {
-              try {
-                if (!blob) {
-                  resolve({ cover: null, numPages });
-                  return;
-                }
-                const coverFile = new File([blob], "cover.jpg", { type: "image/jpeg" });
-                resolve({ cover: coverFile, numPages });
-              } catch (e) {
-                console.error("Error creating File in canvas.toBlob callback:", e);
-                resolve({ cover: null, numPages });
-              }
-            },
-            "image/jpeg",
-            0.85
-          );
-        } catch (e) {
-          console.error("Error executing canvas.toBlob:", e);
-          resolve({ cover: null, numPages });
-        }
-      });
-    } catch (err) {
-      console.error("PDF cover extraction failed:", err);
-      return null;
-    }
-  })();
-
-  const timeoutPromise = new Promise<{ cover: File | null; numPages: number } | null>((resolve) =>
-    setTimeout(() => {
-      console.warn("PDF cover extraction timed out (4s fallback limit hit)");
-      resolve(null);
-    }, 4000)
-  );
-
-  return Promise.race([extractionPromise, timeoutPromise]);
+async function extractPdfCover(pdfFile: File, signal: AbortSignal): Promise<{ cover: File | null; numPages: number } | null> {
+  let task: any, cancelled = false, timer: ReturnType<typeof setTimeout> | undefined;
+  let stop: () => void = () => {};
+  const interrupted = new Promise<null>(resolve => { stop = () => resolve(null); timer = setTimeout(stop, 4000); });
+  signal.addEventListener("abort", stop, { once: true });
+  const extraction = (async () => {
+    const pdfjs = await import("pdfjs-dist");
+    pdfjs.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+    const data = await pdfFile.arrayBuffer();
+    if (cancelled || signal.aborted) return null;
+    task = pdfjs.getDocument({ data });
+    const pdf = await task.promise;
+    const page = await pdf.getPage(1), viewport = page.getViewport({ scale: 1.5 });
+    const canvas = document.createElement("canvas"); canvas.width = viewport.width; canvas.height = viewport.height;
+    const context = canvas.getContext("2d"); if (!context) return { cover: null, numPages: pdf.numPages };
+    await page.render({ canvasContext: context, viewport }).promise;
+    const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, "image/jpeg", 0.85));
+    return { cover: blob ? new File([blob], "cover.jpg", { type: "image/jpeg" }) : null, numPages: pdf.numPages };
+  })().catch(() => null);
+  try { return await Promise.race([extraction, interrupted]); }
+  finally { cancelled = true; clearTimeout(timer); signal.removeEventListener("abort", stop); await task?.destroy().catch(() => {}); }
 }
 
 export function Upload() {
@@ -74,6 +41,15 @@ export function Upload() {
   const [totalPages, setTotalPages] = useState(1);
   const [isUploading, setIsUploading] = useState(false);
   const [isExtractingCover, setIsExtractingCover] = useState(false);
+  const [conversionProgress, setConversionProgress] = useState<number | null>(null);
+  const processing = useRef<AbortController | null>(null);
+  const coverUrl = useRef<string | null>(null);
+  const manualCover = useRef(false);
+  useEffect(() => () => { processing.current?.abort(); if (coverUrl.current) URL.revokeObjectURL(coverUrl.current); }, []);
+  const previewCover = (file: File) => {
+    if (coverUrl.current) URL.revokeObjectURL(coverUrl.current);
+    coverUrl.current = URL.createObjectURL(file); setCoverFile(file); setCoverPreview(coverUrl.current);
+  };
   const [error, setError] = useState<string | null>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
 
@@ -83,30 +59,39 @@ export function Upload() {
 
   const handlePdfChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = "";
     if (!file) return;
-    processPdfFile(file);
+    void processPdfFile(file);
   };
 
-  const processPdfFile = async (file: File) => {
-    setPdfFile(file);
-    if (!formData.title) {
-      const name = file.name.replace(/\.pdf$/i, "").replace(/[-_]/g, " ");
-      setFormData((f) => ({ ...f, title: name }));
-    }
-    setIsExtractingCover(true);
+  const processPdfFile = async (source: File) => {
+    if (isUploading) return;
+    processing.current?.abort();
+    const controller = new AbortController(); processing.current = controller;
+    setPdfFile(null); setError(null); setTotalPages(1); setIsExtractingCover(true); setConversionProgress(null);
+    if (!manualCover.current) { setCoverFile(null); setCoverPreview(null); if (coverUrl.current) { URL.revokeObjectURL(coverUrl.current); coverUrl.current = null; } }
     try {
-      const result = await extractPdfCover(file);
-      if (result) {
-        if (result.cover) {
-          setCoverFile(result.cover);
-          setCoverPreview(URL.createObjectURL(result.cover));
-        }
-        setTotalPages(result.numPages);
+      const kind = bookFileKind(source);
+      if (!kind) throw new Error("Selecione um arquivo PDF ou EPUB válido.");
+      let file = source, pageCount = 1, metadataTitle = "", metadataAuthor = "";
+      if (kind === "epub") {
+        setConversionProgress(0);
+        if (controller.signal.aborted) return;
+        const converted = await convertEpub(source, controller.signal, value => { if (!controller.signal.aborted) setConversionProgress(value); });
+        file = converted.file; pageCount = converted.pageCount; metadataTitle = converted.title; metadataAuthor = converted.author;
       }
-    } catch (err) {
-      console.error("Error processing PDF file cover:", err);
+      if (controller.signal.aborted) return;
+      setConversionProgress(null);
+      const result = await extractPdfCover(file, controller.signal);
+      if (controller.signal.aborted) return;
+      if (result?.cover && !manualCover.current) previewCover(result.cover);
+      setTotalPages(result?.numPages || pageCount);
+      setPdfFile(file);
+      setFormData(previous => ({ ...previous, title: previous.title || metadataTitle || source.name.replace(/\.(pdf|epub)$/i, "").replace(/[-_]/g, " "), author: previous.author || metadataAuthor }));
+    } catch (error) {
+      if (!controller.signal.aborted) setError(error instanceof Error ? error.message : "Não foi possível processar este arquivo.");
     } finally {
-      setIsExtractingCover(false);
+      if (!controller.signal.aborted) { setIsExtractingCover(false); setConversionProgress(null); }
     }
   };
 
@@ -124,11 +109,7 @@ export function Upload() {
     setIsDragOverPdf(false);
     const file = e.dataTransfer.files?.[0];
     if (!file) return;
-    if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
-      processPdfFile(file);
-    } else {
-      setError("Por favor, selecione um arquivo PDF válido.");
-    }
+    void processPdfFile(file);
   };
 
   const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -138,8 +119,8 @@ export function Upload() {
   };
 
   const processCoverFile = (file: File) => {
-    setCoverFile(file);
-    setCoverPreview(URL.createObjectURL(file));
+    manualCover.current = true;
+    previewCover(file);
   };
 
   const handleCoverDragOver = (e: React.DragEvent) => {
@@ -165,7 +146,7 @@ export function Upload() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!pdfFile || !formData.title) return;
+    if (!pdfFile || !formData.title || isExtractingCover) return;
     setIsUploading(true);
     setError(null);
     try {
@@ -197,7 +178,7 @@ export function Upload() {
   };
 
 
-  const canSubmit = !!pdfFile && !!formData.title.trim() && !isUploading;
+  const canSubmit = !!pdfFile && !!formData.title.trim() && !isUploading && !isExtractingCover;
 
   return (
     <div className="mb-screen mb-screen--narrow mb-upload space-y-6">
@@ -214,7 +195,7 @@ export function Upload() {
       <form onSubmit={handleSubmit} className="mb-upload-form space-y-5">
         {/* ── PDF ──────────────────────────────────────────────────────────── */}
         <section>
-          <span className="mb-label">Arquivo PDF</span>
+          <span className="mb-label">Arquivo PDF ou EPUB</span>
           <label
             onDragOver={handlePdfDragOver}
             onDragLeave={handlePdfDragLeave}
@@ -223,9 +204,9 @@ export function Upload() {
               isDragOverPdf ? "border-[var(--primary)] bg-[var(--primary-soft)]" : "border-[var(--line)] bg-[var(--surface-2)] hover:border-[var(--primary)]/40"
             }`}
           >
-            <input type="file" accept="application/pdf" className="hidden" onChange={handlePdfChange} />
+            <input type="file" accept=".pdf,.epub,application/pdf,application/epub+zip" disabled={isUploading} className="hidden" onChange={handlePdfChange} />
             <UploadIcon className="w-6 h-6 mx-auto text-[var(--text-3)]" />
-            {pdfFile ? (
+            {conversionProgress !== null ? <div role="status" className="mt-3 text-[13px] font-semibold">Convertendo EPUB para PDF… {conversionProgress}%</div> : isExtractingCover ? <div role="status" className="mt-3 text-[13px]">Preparando o PDF e a capa…</div> : pdfFile ? (
               <>
                 <p className="text-[13.5px] font-semibold text-foreground mt-2.5 break-all">{pdfFile.name}</p>
                 <p className="text-[12px] text-[var(--text-3)] mt-1">
@@ -234,11 +215,14 @@ export function Upload() {
               </>
             ) : (
               <>
-                <p className="text-[13.5px] font-semibold text-foreground mt-2.5">Arraste o PDF ou toque para escolher</p>
-                <p className="text-[12px] text-[var(--text-3)] mt-1">A capa é extraída da primeira página automaticamente.</p>
+                <p className="text-[13.5px] font-semibold text-foreground mt-2.5">Arraste o PDF ou EPUB, ou toque para escolher</p>
+                <p className="text-[12px] text-[var(--text-3)] mt-1">EPUBs de até 40 MB são convertidos para PDF automaticamente. A capa é extraída da primeira página.</p>
               </>
             )}
           </label>
+          {conversionProgress !== null && <button type="button" className="mb-btn mb-btn-outline mt-2" onClick={() => {
+            processing.current?.abort(); processing.current = null; setConversionProgress(null); setIsExtractingCover(false);
+          }}>Cancelar conversão</button>}
         </section>
 
         {/* ── Capa ─────────────────────────────────────────────────────────── */}

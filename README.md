@@ -101,3 +101,15 @@ frontend e API estão em projetos Vercel diferentes, então produção usa
 - O app aceita livro privado ou compartilhado.
 - Para conteúdo público, use apenas material com permissão de distribuição
   (domínio público ou autoria própria).
+
+## Importar EPUB
+
+Na tela de adicionar livro, selecione ou arraste um PDF ou EPUB. EPUBs de até
+40 MB são convertidos no navegador antes do upload, sem enviar o original a
+serviços de conversão. O PDF gerado segue o cadastro, capa e progresso habituais.
+Título e autor do EPUB preenchem somente campos vazios.
+
+A conversão gera páginas com texto selecionável, capítulos, ênfases e imagens
+compatíveis. A paginação e o estilo são reorganizados para PDF; não é uma cópia
+exata do CSS do EPUB. Livros com DRM, ilustrações SVG complexas, caracteres fora
+da fonte disponível ou recursos não suportados exibem um erro e não são enviados.
