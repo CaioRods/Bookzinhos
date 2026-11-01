@@ -1,3 +1,5 @@
+import { PdfCanvas } from "../components/PdfCanvas";
+import { installPdfZoom } from "../lib/pdfZoom";
 import { ReaderCalibration } from "../components/ReaderCalibration";
 import { ReaderTutorial } from "../components/ReaderTutorial";
 import { defaultPreset, hasSeenReaderTutorial, loadReaderPresets, rememberReaderTutorial, saveReaderPresets, type ReaderPresets } from "../lib/readerDevice";
@@ -62,67 +64,6 @@ function loadPrefs(fallbackLayout: Layout): Prefs {
   } catch {
     return base;
   }
-}
-
-// ─── Uma página do PDF desenhada num canvas ───────────────────────────────────
-
-function PdfCanvas({
-  doc, pageNumber, width, filter, className, style,
-}: {
-  doc: any;
-  pageNumber: number;
-  width: number;
-  filter: string;
-  className?: string;
-  style?: React.CSSProperties;
-}) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    if (!doc || width <= 0) return;
-    let task: any = null;
-    let cancelled = false;
-    setReady(false);
-
-    (async () => {
-      const page = await doc.getPage(pageNumber);
-      if (cancelled) return;
-      const base = page.getViewport({ scale: 1 });
-      const scale = width / base.width;
-      // 2× já cobre telas retina; acima disso o canvas fica pesado sem ganho visível.
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      const viewport = page.getViewport({ scale: scale * dpr });
-
-      const canvas = canvasRef.current;
-      const ctx = canvas?.getContext("2d");
-      if (!canvas || !ctx || cancelled) return;
-
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
-      canvas.style.width = `${width}px`;
-      canvas.style.height = `${width * (base.height / base.width)}px`;
-
-      task = page.render({ canvasContext: ctx, viewport });
-      await task.promise;
-      if (!cancelled) setReady(true);
-    })().catch((err) => {
-      if (err?.name !== "RenderingCancelledException") console.error("Falha ao renderizar página", err);
-    });
-
-    return () => {
-      cancelled = true;
-      try { task?.cancel(); } catch { /* já finalizou */ }
-    };
-  }, [doc, pageNumber, width]);
-
-  return (
-    <canvas
-      ref={canvasRef}
-      className={className}
-      style={{ ...style, filter, opacity: ready ? 1 : 0, transition: "opacity .25s ease" }}
-    />
-  );
 }
 
 // ─── Leitor ───────────────────────────────────────────────────────────────────
@@ -232,6 +173,8 @@ export function BookReader() {
   useEffect(() => {
     if (!pdfUrl) return;
     let cancelled = false;
+    let loadingTask: any;
+    setPdfDoc(null);
     (async () => {
       try {
         const pdfjs = await import("pdfjs-dist");
@@ -239,18 +182,26 @@ export function BookReader() {
 
         let doc;
         const savedPdf = id ? await installedPdf(id).catch(() => undefined) : undefined;
+        if (cancelled) return;
         if (savedPdf) {
-          doc = await pdfjs.getDocument({ data: await savedPdf.arrayBuffer() }).promise;
+          const data = await savedPdf.arrayBuffer();
+          if (cancelled) return;
+          loadingTask = pdfjs.getDocument({ data });
+          doc = await loadingTask.promise;
         } else if (pdfUrl.startsWith("blob:") || pdfUrl.startsWith("data:")) {
           const buffer = await (await fetch(pdfUrl)).arrayBuffer();
-          doc = await pdfjs.getDocument({ data: buffer }).promise;
+          if (cancelled) return;
+          loadingTask = pdfjs.getDocument({ data: buffer });
+          doc = await loadingTask.promise;
         } else {
-          doc = await pdfjs.getDocument(pdfUrl).promise;
+          loadingTask = pdfjs.getDocument(pdfUrl);
+          doc = await loadingTask.promise;
         }
         if (cancelled) return;
 
         const first = await doc.getPage(1);
         const vp = first.getViewport({ scale: 1 });
+        if (cancelled) return;
         setPageAspect(vp.height / vp.width);
         setPdfDoc(doc);
         setPdfTotal(doc.numPages);
@@ -259,7 +210,7 @@ export function BookReader() {
         if (!cancelled) setErrorMessage("Não foi possível abrir este PDF. O arquivo pode estar indisponível.");
       }
     })();
-    return () => { cancelled = true; };
+    return () => { cancelled = true; void loadingTask?.destroy().catch(() => {}); };
   }, [pdfUrl]);
 
   // ── Medidas da área de leitura ────────────────────────────────────────────
@@ -387,12 +338,21 @@ export function BookReader() {
     tap: wakeUi,
     swipe: next => { if (next) goNext(); else goPrev(); clearTimeout(uiTimerRef.current); setShowToggle(false); },
     adjust: () => { if (!showTutorial) { setPanel(null); setAdjusting(true); setShowToggle(false); } },
-    canSwipe: () => prefs.layout !== "scroll" && !adjusting && !showTutorial,
+    canSwipe: () => prefs.layout !== "scroll" && (!pdfUrl || (prefs.pageScale <= 1 && presets[prefs.layout].zoom <= 1)) && !adjusting && !showTutorial,
   };
   useEffect(() => {
     if (!stageEl || adjusting || showTutorial) return;
     return installReaderGestures(stageEl, { tap: () => gestureOptions.current.tap(), swipe: next => gestureOptions.current.swipe(next), adjust: () => gestureOptions.current.adjust(), canSwipe: () => gestureOptions.current.canSwipe() });
   }, [stageEl, adjusting, showTutorial]);
+  const zoomOptions = useRef({ scale: prefs.pageScale });
+  zoomOptions.current.scale = prefs.pageScale;
+  useEffect(() => {
+    if (!stageEl || !pdfUrl || adjusting || showTutorial) return;
+    return installPdfZoom(stageEl, {
+      getScale: () => zoomOptions.current.scale,
+      commit: scale => setPref("pageScale", scale),
+    });
+  }, [stageEl, pdfUrl, adjusting, showTutorial, setPref]);
   const closeTutorial = () => { try { rememberReaderTutorial(); } catch { /* O aceite no servidor ainda é registrado. */ } setShowTutorial(false); void markReaderTutorialSeen().catch(() => {}); };
 
   // ── Teclado ───────────────────────────────────────────────────────────────
@@ -408,7 +368,8 @@ export function BookReader() {
         case " ": e.preventDefault(); e.shiftKey ? goPrev() : goNext(); break;
         case "Home": e.preventDefault(); goToPage(0); break;
         case "End": e.preventDefault(); goToPage(total - 1); break;
-        case "+": case "=": setPref("pageScale", Math.min(prefs.pageScale + 0.1, 2.5)); break;
+        case "+": case "=": setPref("pageScale", Math.min(prefs.pageScale + 0.1, 5)); break;
+        case "0": setPref("pageScale", 1); break;
         case "-": setPref("pageScale", Math.max(prefs.pageScale - 0.1, 0.5)); break;
         case "Escape": setPanel(null); setShowUi(false); setShowToggle(false); break;
         case "h": case "H": setShowUi(value => !value); break;
@@ -552,11 +513,12 @@ export function BookReader() {
         return (
           <div
             ref={scrollRef}
+            data-pdf-scroll
             onScroll={handleScroll}
             className="h-full w-full overflow-auto no-scrollbar"
             style={{ scrollBehavior: "auto" }}
           >
-            <div style={{ height: total * rowHeight, position: "relative", width: "100%" }}>
+            <div data-pdf-content style={{ height: total * rowHeight, position: "relative", width: Math.max(viewport.w, pageWidth + 24) }}>
               {slots.map((i) => (
                 <div
                   key={i}
@@ -573,6 +535,8 @@ export function BookReader() {
                     doc={pdfDoc}
                     pageNumber={i + 1}
                     width={pageWidth}
+                    aspect={pageAspect}
+                    magnification={1}
                     filter={`${theme.filter} brightness(${prefs.brightness})`}
                     className="block"
                   />
@@ -591,8 +555,8 @@ export function BookReader() {
 
       const showRight = layout === "double" && page + 1 < total;
       return (
-        <div className="h-full w-full flex items-center justify-center overflow-auto no-scrollbar p-4">
-          <div className="flex items-start" style={{ gap: GAP }}>
+        <div data-pdf-scroll className="h-full w-full overflow-auto no-scrollbar p-4" style={{ overscrollBehavior: "contain" }}>
+          <div data-pdf-content className="flex items-start" style={{ gap: GAP, width: "max-content", margin: "auto", minHeight: "100%", alignItems: "center" }}>
             <div
               key={`L${page}`}
               className="rounded-md overflow-hidden animate-fade-in"
@@ -607,6 +571,8 @@ export function BookReader() {
                 doc={pdfDoc}
                 pageNumber={page + 1}
                 width={pageWidth}
+                aspect={pageAspect}
+                magnification={presets[layout].zoom}
                 filter={`${theme.filter} brightness(${prefs.brightness})`}
                 className="block"
               />
@@ -626,6 +592,8 @@ export function BookReader() {
                   doc={pdfDoc}
                   pageNumber={page + 2}
                   width={pageWidth}
+                  aspect={pageAspect}
+                  magnification={presets[layout].zoom}
                   filter={`${theme.filter} brightness(${prefs.brightness})`}
                   className="block"
                 />
@@ -687,10 +655,10 @@ export function BookReader() {
         className="absolute inset-0 mb-reader-stage"
         data-reader-stage
         data-reader-page={currentPage + 1}
-        style={{ touchAction: "pan-y" }}
+        style={{ touchAction: pdfUrl ? "pan-x pan-y" : "pan-y", cursor: pdfUrl && prefs.pageScale > 1 ? "grab" : undefined }}
         onClick={(e) => {
           // No desktop, clicar no meio alterna os controles; nas laterais, vira a página.
-          if (touchDevice || adjusting || showTutorial) return;
+          if (touchDevice || adjusting || showTutorial || (pdfUrl && prefs.pageScale > 1)) return;
           const x = e.clientX - (e.currentTarget.getBoundingClientRect().left || 0);
           const w = e.currentTarget.clientWidth;
           if (prefs.layout !== "scroll" && x < w * 0.22) goPrev();
@@ -778,6 +746,11 @@ export function BookReader() {
         }`}
       >
         <div className="mb-glass mx-auto max-w-3xl rounded-2xl px-3 py-2.5 space-y-2.5">
+          {pdfUrl && <div className="flex items-center justify-center gap-2" aria-label="Zoom do PDF">
+            <button aria-label="Diminuir zoom" disabled={prefs.pageScale <= 0.5} onClick={() => setPref("pageScale", Math.max(0.5, prefs.pageScale - 0.25))} className="mb-btn mb-btn-ghost mb-btn-icon mb-btn-sm"><Minus className="w-4 h-4" /></button>
+            <button aria-label="Restaurar zoom para 100%" onClick={() => setPref("pageScale", 1)} className="mb-btn mb-btn-ghost mb-btn-sm tabular-nums">{Math.round(prefs.pageScale * 100)}%</button>
+            <button aria-label="Aumentar zoom" disabled={prefs.pageScale >= 5} onClick={() => setPref("pageScale", Math.min(5, prefs.pageScale + 0.25))} className="mb-btn mb-btn-ghost mb-btn-icon mb-btn-sm"><Plus className="w-4 h-4" /></button>
+          </div>}
           {/* Trilha de progresso com marcadores de capítulo */}
           <div className="relative px-1 pt-1.5">
             <input
@@ -916,7 +889,7 @@ export function BookReader() {
                   <div className="flex items-center gap-3 mt-2">
                     <Minus className="w-4 h-4 text-[var(--text-3)]" />
                     <input
-                      type="range" min={0.5} max={2.5} step={0.05}
+                      type="range" min={0.5} max={5} step={0.05}
                       value={prefs.pageScale}
                       onChange={(e) => setPref("pageScale", Number(e.target.value))}
                       className="flex-1 accent-[var(--primary)]"
