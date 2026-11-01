@@ -3,7 +3,7 @@ import type { SceneTheme, ImageCrop } from "../lib/appearance";
 import { getFullUrl } from "../lib/types";
 export interface SceneAnchor { x: number; y: number; width: number; height: number }
 export function sourceSize(theme: SceneTheme) { return theme.atlas ? { width: 768, height: 1024 / 3 } : { width: theme.width || 1536, height: theme.height || 1024 }; }
-export function ThemeImage({ theme, crop, className = "", continuationAnchor }: { theme: SceneTheme; crop: ImageCrop; className?: string; continuationAnchor?: SceneAnchor }) {
+export function ThemeImage({ theme, crop, className = "", continuationAnchor, referenceSize }: { theme: SceneTheme; crop: ImageCrop; className?: string; continuationAnchor?: SceneAnchor; referenceSize?: { width: number; height: number } }) {
   const ref = useRef<SVGSVGElement>(null);
   const [frame, setFrame] = useState({ width: 1000, height: 190 });
   useLayoutEffect(() => {
@@ -12,9 +12,10 @@ export function ThemeImage({ theme, crop, className = "", continuationAnchor }: 
     measure(); const observer = new ResizeObserver(measure); observer.observe(element); return () => observer.disconnect();
   }, []);
   const source = sourceSize(theme);
-  const reference = continuationAnchor || frame;
+  const reference = continuationAnchor || referenceSize || frame;
   const scale = Math.max(reference.width / source.width, reference.height / source.height) * crop.zoom;
-  const width = frame.width / scale, height = frame.height / scale;
+  const viewport = referenceSize && !continuationAnchor ? referenceSize : frame;
+  const width = viewport.width / scale, height = viewport.height / scale;
   const cropX = Math.max(0, source.width - reference.width / scale) * crop.x / 100;
   const cropY = Math.max(0, source.height - reference.height / scale) * crop.y / 100;
   const x = cropX - (continuationAnchor?.x || 0) / scale;

@@ -189,3 +189,8 @@ visibilidade nas próximas consultas do feed.
 
 Os controles do leitor têm fundo e texto próprios, com contraste legível em Claro,
 Creme, Sépia e Noite, independentemente das cores aplicadas às páginas do PDF.
+
+No recorte do perfil, o editor e as miniaturas de seleção usam a mesma área da
+imagem que o banner real nesta tela. “Ampliar área de ajuste” abre um editor
+dedicado; campos numéricos e Alt + seta permitem ajustes finos. Ao mudar de PC
+para celular, a proporção disponível do perfil pode mudar.

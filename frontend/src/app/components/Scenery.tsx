@@ -1,3 +1,4 @@
+import { useProfileBannerSize } from "../lib/useProfileBannerSize";
 import { useEffect, useState } from "react";
 import { ArrowLeft, BookOpen, Check, Pencil, Plus, Trash2 } from "lucide-react";
 import { DEFAULT_SCENE, type SceneId } from "../lib/scenery";
@@ -20,6 +21,7 @@ export function Scenery({ scene, className = "", surface = "profile" }: { scene:
 }
 export function ScenePicker() {
   const [settings, update] = useSettings();
+  const profileSize = useProfileBannerSize(true);
   useEffect(()=>{const open=()=>setOpen(true);window.addEventListener("mybooks:open-personalization",open);return()=>window.removeEventListener("mybooks:open-personalization",open)},[]);
   const [books, setBooks] = useState<Book[]>([]), [open, setOpen] = useState(false);
   useEffect(() => { if (!open) return; let alive = true; fetchBooks().then(value => { if (alive) setBooks(value); }).catch(() => {}); return () => { alive = false; }; }, [open]);
@@ -39,7 +41,7 @@ export function ScenePicker() {
           <button className="mb-btn mb-btn-ghost mb-theme-back" onClick={() => setSelectedGroup(null)}><ArrowLeft size={16}/> Todos os livros</button>
           <h3 className="mb-theme-group-title">{group.title}</h3>
           <div className="mb-theme-banner-grid">{group.themes.map(theme => <article className="mb-theme-banner-card" key={theme.id}>
-            <button data-banner-src={theme.imageUrl} data-banner-name={theme.name} className="mb-theme-banner" onClick={() => update({ scene: theme.id as SceneId })} aria-label={`Usar tema ${theme.name}`} aria-pressed={settings.scene === theme.id}><ThemeImage theme={theme} crop={theme.profile}/>{settings.scene === theme.id && <span className="mb-theme-check"><Check size={15}/> Selecionado</span>}</button>
+            <button data-banner-src={theme.imageUrl} data-banner-name={theme.name} className="mb-theme-banner" style={profileSize ? {aspectRatio:`${profileSize.width} / ${profileSize.height}`} : undefined} onClick={() => update({ scene: theme.id as SceneId })} aria-label={`Usar tema ${theme.name}`} aria-pressed={settings.scene === theme.id}><ThemeImage theme={theme} crop={theme.profile} referenceSize={profileSize || undefined}/>{settings.scene === theme.id && <span className="mb-theme-check"><Check size={15}/> Selecionado</span>}</button>
             <h4>{theme.name}</h4><footer><small>{theme.scope === "personal" ? "Pessoal" : "Sistema"}</small>{member && <button className="mb-btn mb-btn-ghost mb-btn-sm" aria-label={`Editar tema ${theme.name}`} onClick={() => setEditing(theme)}><Pencil size={13}/>{admin || theme.scope === "personal" ? "Editar" : "Personalizar"}</button>}{(theme.scope === "personal" || (admin && theme.updatedAt)) && <button className="mb-btn mb-btn-ghost mb-btn-sm" aria-label={`Excluir ou restaurar tema ${theme.name}`} onClick={() => setDeleting(theme)}><Trash2 size={13}/></button>}</footer>
           </article>)}</div>
         </> : <div className="mb-theme-book-grid">{groups.map(entry => <button className="mb-theme-book-card" key={entry.id} onClick={() => setSelectedGroup(entry.id)}>
