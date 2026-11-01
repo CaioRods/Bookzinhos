@@ -1,3 +1,4 @@
+import { useSettings } from "../lib/settings";
 import { PdfViewport } from "../components/PdfViewport";
 import { containReaderZoom } from "../lib/pdfCamera";
 import { PdfCanvas } from "../components/PdfCanvas";
@@ -74,6 +75,7 @@ export function BookReader() {
   const { id } = useParams();
   const navigate = useNavigate();
   const tier = useDeviceTier();
+  const [appSettings, updateAppSettings] = useSettings();
 
   const [book, setBook] = useState<Book | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -347,12 +349,13 @@ export function BookReader() {
     if (!stageEl || adjusting || showTutorial) return;
     return installReaderGestures(stageEl, { tap: () => gestureOptions.current.tap(), swipe: next => gestureOptions.current.swipe(next), adjust: () => gestureOptions.current.adjust(), canSwipe: () => gestureOptions.current.canSwipe() });
   }, [stageEl, adjusting, showTutorial]);
-  const zoomOptions = useRef({ scale: prefs.pageScale });
-  zoomOptions.current.scale = prefs.pageScale;
+  const zoomOptions = useRef({ scale: prefs.pageScale, smooth: appSettings.smoothZoom });
+  zoomOptions.current = { scale: prefs.pageScale, smooth: appSettings.smoothZoom };
   useEffect(() => {
     if (!stageEl || !pdfUrl || prefs.layout !== "scroll" || adjusting || showTutorial) return;
     return installPdfZoom(stageEl, {
       getScale: () => zoomOptions.current.scale,
+      getSmoothZoom: () => zoomOptions.current.smooth,
       commit: scale => setPref("pageScale", scale),
     });
   }, [stageEl, pdfUrl, prefs.layout, adjusting, showTutorial, setPref]);
@@ -562,7 +565,7 @@ export function BookReader() {
 
       const showRight = layout === "double" && page + 1 < total;
       return (
-        <PdfViewport key={layout} disabled={adjusting} zoom={prefs.pageScale} baseZoom={calibration.zoom}
+        <PdfViewport key={layout} disabled={adjusting} smoothZoom={appSettings.smoothZoom} zoom={prefs.pageScale} baseZoom={calibration.zoom}
           offsetX={calibration.x * viewport.w} offsetY={calibration.y * viewport.h}
           onZoom={scale => setPref("pageScale", scale)}>
           <div className="flex items-start" style={{ gap: GAP, width: layout === "double" ? pageWidth * 2 + GAP : pageWidth, height: pageHeight }}>
@@ -892,6 +895,12 @@ export function BookReader() {
 
             {pdfUrl ? (
               <>
+                <button role="switch" aria-checked={appSettings.smoothZoom} aria-label="Zoom suave"
+                  onClick={() => updateAppSettings({ smoothZoom: !appSettings.smoothZoom })}
+                  className="w-full flex items-center justify-between gap-3 rounded-xl border border-[var(--line)] p-3 text-left">
+                  <span><span className="block text-[13px] font-semibold">Zoom suave</span><span className="block text-[12px] text-[var(--text-3)]">Transição gradual ao usar Ctrl + scroll no computador.</span></span>
+                  <span className="text-[12px] font-semibold text-[var(--primary)]">{appSettings.smoothZoom ? "Ativado" : "Desativado"}</span>
+                </button>
                 <div>
                   <div className="flex items-center justify-between">
                     <span className="mb-label mb-0">Tamanho da página</span>

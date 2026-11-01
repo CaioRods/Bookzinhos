@@ -178,9 +178,15 @@ export function Settings() {
       {/* ── Leitura ────────────────────────────────────────────────────────── */}
       <Section
         title="Leitura"
-        description="Como os livros abrem quando você toca em “Quero ler”."
+        description="Preferências do leitor e como os livros abrem neste aparelho."
         icon={<BookOpen className="w-[18px] h-[18px] text-[var(--primary)]" />}
       >
+        <Toggle
+          label="Zoom suave"
+          hint="Amplia e reduz o PDF gradualmente ao usar Ctrl + scroll no computador."
+          checked={settings.smoothZoom}
+          onChange={(value) => update({ smoothZoom: value })}
+        />
         <div className="space-y-2">
           {READER_MODES.map((mode) => (
             <button

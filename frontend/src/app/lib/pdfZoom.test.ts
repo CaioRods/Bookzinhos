@@ -39,3 +39,14 @@ it("cancels interrupted gestures and pending wheel commits on disposal", () => {
   dispose(); vi.runAllTimers(); expect(commit).not.toHaveBeenCalled();
 });
 it("bounds zoom to 50–500%", () => { expect(clampPdfZoom(0)).toBe(0.5); expect(clampPdfZoom(20)).toBe(5); });
+it("smooths desktop wheel preview in continuous-scroll mode and commits only at rest", () => {
+  vi.stubGlobal("requestAnimationFrame", (fn: FrameRequestCallback) => setTimeout(() => fn(performance.now()), 16));
+  vi.stubGlobal("cancelAnimationFrame", clearTimeout);
+  dispose(); dispose = installPdfZoom(stage, { getScale: () => 1, getSmoothZoom: () => true, commit });
+  stage.dispatchEvent(new WheelEvent("wheel", { ctrlKey: true, deltaY: -100, cancelable: true }));
+  const content = stage.querySelector<HTMLElement>("[data-pdf-content]")!;
+  expect(content.style.transform).toBe(""); vi.advanceTimersByTime(80);
+  const middle = Number(content.style.transform.match(/scale\((.+)\)/)?.[1]);
+  expect(middle).toBeGreaterThan(1); expect(middle).toBeLessThan(Math.exp(0.5)); expect(commit).not.toHaveBeenCalled();
+  vi.advanceTimersByTime(100); expect(commit).toHaveBeenCalledExactlyOnceWith(Math.exp(0.5));
+});

@@ -1,7 +1,8 @@
+import { createSmoothPdfZoom } from "./smoothPdfZoom";
 export const clampPdfZoom = (value: number) => Math.min(5, Math.max(0.5, value));
 
 /** Preview on the compositor while pinching; redraw once the gesture settles. */
-export function installPdfZoom(stage: HTMLElement, options: { getScale: () => number; commit: (scale: number) => void }) {
+export function installPdfZoom(stage: HTMLElement, options: { getScale: () => number; getSmoothZoom?: () => boolean; commit: (scale: number) => void }) {
   let pinch: { distance: number; scale: number; x: number; y: number } | null = null;
   let ratio = 1;
   let anchor: { x: number; y: number; localX: number; localY: number } | null = null;
@@ -28,7 +29,7 @@ export function installPdfZoom(stage: HTMLElement, options: { getScale: () => nu
   };
   const clear = () => { if (content) { content.style.transform = ""; content.style.willChange = ""; } };
   const finish = () => {
-    clearTimeout(wheelTimer);
+    clearTimeout(wheelTimer); animation.stop();
     const scale = clampPdfZoom(options.getScale() * ratio);
     const scroller = surface;
     const focus = anchor;
@@ -60,13 +61,16 @@ export function installPdfZoom(stage: HTMLElement, options: { getScale: () => nu
     preview(pinch.scale * distance(event.touches) / pinch.distance);
   };
   const end = () => { if (pinch) finish(); };
-  const cancel = () => { clearTimeout(wheelTimer); clear(); pinch = null; ratio = 1; wheelTimer = undefined; };
+  const cancel = () => { clearTimeout(wheelTimer); animation.stop(); clear(); pinch = null; ratio = 1; wheelTimer = undefined; };
+  const animation = createSmoothPdfZoom(() => options.getScale() * ratio, preview, finish);
   const wheel = (event: WheelEvent) => {
     if (!event.ctrlKey && !event.metaKey) return;
-    if (!wheelTimer && !begin(event.clientX, event.clientY)) return;
+    if (!wheelTimer && !animation.active && !begin(event.clientX, event.clientY)) return;
     event.preventDefault();
-    preview(options.getScale() * ratio * Math.exp(-event.deltaY * 0.005));
-    clearTimeout(wheelTimer); wheelTimer = setTimeout(finish, 120);
+    const target = clampPdfZoom(animation.target * Math.exp(-event.deltaY * 0.005));
+    clearTimeout(wheelTimer); wheelTimer = undefined;
+    if (options.getSmoothZoom?.()) animation.start(target);
+    else { animation.stop(); preview(target); wheelTimer = setTimeout(finish, 120); }
   };
   const click = (event: MouseEvent) => { if (Date.now() < suppressUntil) { event.preventDefault(); event.stopImmediatePropagation(); } };
   const down = (event: PointerEvent) => {

@@ -27,6 +27,8 @@ export interface Settings {
   reduceMotion: boolean;
   /** Sons sutis da interface (toques, abrir livro, trocar de menu). */
   soundsOn: boolean;
+  /** Suavizar o Ctrl + scroll do leitor PDF neste aparelho. */
+  smoothZoom: boolean;
 }
 
 export const NOTIFICATION_LABELS: Record<NotificationKind, string> = {
@@ -48,6 +50,7 @@ const DEFAULTS: Settings = {
   compactBooks: false,
   reduceMotion: false,
   soundsOn: true,
+  smoothZoom: false,
 };
 
 export function loadSettings(): Settings {

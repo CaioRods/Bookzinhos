@@ -1,17 +1,19 @@
+import { createSmoothPdfZoom } from "../lib/smoothPdfZoom";
 import { useLayoutEffect, useRef, type ReactNode } from "react";
 import { zoomPdfCamera, type PdfCamera } from "../lib/pdfCamera";
 import { clampPdfZoom } from "../lib/pdfZoom";
 
 /** A stable camera for an entire spread. Page changes replace only its children. */
-export function PdfViewport({ zoom, baseZoom = 1, offsetX = 0, offsetY = 0, disabled = false, onZoom, children }: {
-  zoom: number; baseZoom?: number; offsetX?: number; offsetY?: number; disabled?: boolean;
+export function PdfViewport({ zoom, baseZoom = 1, offsetX = 0, offsetY = 0, disabled = false, smoothZoom = false, onZoom, children }: {
+  zoom: number; baseZoom?: number; offsetX?: number; offsetY?: number; disabled?: boolean; smoothZoom?: boolean;
   onZoom: (zoom: number) => void; children: ReactNode;
 }) {
   const surfaceRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const camera = useRef<PdfCamera>({ zoom: clampPdfZoom(zoom), x: 0, y: 0 });
-  const settings = useRef({ baseZoom, offsetX, offsetY, onZoom });
-  settings.current = { baseZoom, offsetX, offsetY, onZoom };
+  const cancelWheel = useRef(() => {});
+  const settings = useRef({ baseZoom, offsetX, offsetY, onZoom, smoothZoom });
+  settings.current = { baseZoom, offsetX, offsetY, onZoom, smoothZoom };
   const paint = () => {
     const element = contentRef.current;
     if (!element) return;
@@ -24,7 +26,7 @@ export function PdfViewport({ zoom, baseZoom = 1, offsetX = 0, offsetY = 0, disa
   };
   // A toolbar/keyboard zoom is centred on the viewport; gestures already supplied their anchor.
   useLayoutEffect(() => {
-    if (camera.current.zoom !== zoom) camera.current = zoomPdfCamera(camera.current, zoom, { x: 0, y: 0 });
+    if (camera.current.zoom !== zoom) { cancelWheel.current(); camera.current = zoomPdfCamera(camera.current, zoom, { x: 0, y: 0 }); }
     paint();
   }, [zoom, baseZoom, offsetX, offsetY]);
   useLayoutEffect(() => {
@@ -46,19 +48,38 @@ export function PdfViewport({ zoom, baseZoom = 1, offsetX = 0, offsetY = 0, disa
     };
     const schedulePaint = () => { if (!frame) frame = requestAnimationFrame(() => { frame = 0; paint(); }); };
     const commit = () => { clearTimeout(timer); timer = undefined; interaction(false); settings.current.onZoom(camera.current.zoom); };
+    let wheelPoint = { x: 0, y: 0 };
+    const animation = createSmoothPdfZoom(() => camera.current.zoom, value => {
+      camera.current = zoomPdfCamera(camera.current, value, wheelPoint);
+      paint();
+    }, commit);
+    cancelWheel.current = () => { animation.stop(); clearTimeout(timer); timer = undefined; interaction(false); };
+    const interruptWheel = () => {
+      if (!animation.active && !timer) return;
+      animation.stop(); clearTimeout(timer); timer = undefined;
+      settings.current.onZoom(camera.current.zoom);
+    };
     const wheel = (event: WheelEvent) => {
       if (!event.ctrlKey && !event.metaKey) return;
       event.preventDefault();
       interaction(true);
       const delta = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? surface.clientHeight : 1);
-      camera.current = zoomPdfCamera(camera.current, camera.current.zoom * Math.exp(-delta * 0.003), point(event.clientX, event.clientY));
-      schedulePaint(); suppressUntil = Date.now() + 400;
-      clearTimeout(timer); timer = setTimeout(commit, 120);
+      wheelPoint = point(event.clientX, event.clientY);
+      const target = clampPdfZoom(animation.target * Math.exp(-delta * 0.003));
+      clearTimeout(timer); timer = undefined;
+      if (settings.current.smoothZoom) animation.start(target);
+      else {
+        animation.stop();
+        camera.current = zoomPdfCamera(camera.current, target, wheelPoint);
+        schedulePaint(); timer = setTimeout(commit, 120);
+      }
+      suppressUntil = Date.now() + 400;
     };
     const down = (event: PointerEvent) => {
       if (event.pointerType !== "mouse" && event.pointerType !== "pen") return;
       if (event.button !== 0) return;
       event.preventDefault();
+      interruptWheel();
       interaction(true);
       drag = { x: event.clientX, y: event.clientY, camera: { ...camera.current }, id: event.pointerId };
       surface.setPointerCapture(event.pointerId); surface.style.cursor = "grabbing";
@@ -78,6 +99,7 @@ export function PdfViewport({ zoom, baseZoom = 1, offsetX = 0, offsetY = 0, disa
     const startTouch = (event: TouchEvent) => {
       if (event.touches.length > 2) { touch = null; interaction(false); return; }
       if (!event.touches.length) return;
+      interruptWheel();
       interaction(true);
       touch = { ...touchPosition(event.touches), camera: { ...camera.current } };
     };
@@ -100,7 +122,7 @@ export function PdfViewport({ zoom, baseZoom = 1, offsetX = 0, offsetY = 0, disa
     const click = (event: MouseEvent) => {
       if (Date.now() < suppressUntil) { event.preventDefault(); event.stopPropagation(); }
     };
-    const blur = () => { up(); touch = null; if (timer) commit(); };
+    const blur = () => { up(); touch = null; if (timer || animation.active) { animation.stop(); commit(); } interaction(false); };
     surface.addEventListener("wheel", wheel, { passive: false });
     surface.addEventListener("pointerdown", down); surface.addEventListener("pointermove", move);
     surface.addEventListener("pointerup", up); surface.addEventListener("pointercancel", up); surface.addEventListener("lostpointercapture", up);
@@ -108,7 +130,7 @@ export function PdfViewport({ zoom, baseZoom = 1, offsetX = 0, offsetY = 0, disa
     surface.addEventListener("touchend", endTouch); surface.addEventListener("touchcancel", endTouch);
     surface.addEventListener("click", click, true); window.addEventListener("blur", blur);
     return () => {
-      clearTimeout(timer); cancelAnimationFrame(frame); interaction(false);
+      clearTimeout(timer); cancelAnimationFrame(frame); animation.stop(); cancelWheel.current = () => {}; interaction(false);
       surface.removeEventListener("wheel", wheel);
       surface.removeEventListener("pointerdown", down); surface.removeEventListener("pointermove", move);
       surface.removeEventListener("pointerup", up); surface.removeEventListener("pointercancel", up); surface.removeEventListener("lostpointercapture", up);
