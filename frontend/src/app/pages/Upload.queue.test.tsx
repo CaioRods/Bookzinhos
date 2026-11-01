@@ -64,3 +64,26 @@ it('allows skipping a failed conversion and counts only the successfully added b
   await waitFor(()=>expect(screen.getByLabelText('Título')).toHaveValue('Segundo'));fireEvent.click(publish());
   await screen.findByText('1 livro adicionado ao acervo');expect(mocks.upload).toHaveBeenCalledOnce();
 });
+it('automatically fills synopsis even with embedded genres and fetches Open Library details', async()=>{
+  const metadata={id:'/works/OL123W',source:'openlibrary',sourceUrl:'https://openlibrary.org/works/OL123W',title:'Primeiro',authors:['Autora'],description:'',genres:[],publisher:'',publishedYear:'',pageCount:null,isbn:null};
+  const fetcher=vi.fn(async (url:unknown)=>({ok:true,json:async()=>String(url).includes('/openlibrary/OL123W') ? {description:'Sinopse completa encontrada',genres:['Romance']} : String(url).includes('source=google') ? [] : [metadata]}));
+  vi.stubGlobal('fetch',fetcher);
+  try {
+    setup();
+    await waitFor(()=>expect(screen.getByLabelText('Sinopse')).toHaveValue('Sinopse completa encontrada'));
+    expect(screen.getByRole('button',{name:'Fantasia'})).toHaveAttribute('aria-pressed','true');
+    expect(fetcher.mock.calls.some(([url])=>String(url).includes('/openlibrary/OL123W'))).toBe(true);
+  } finally {vi.unstubAllGlobals();}
+});
+it('fills missing genres from the fallback and preserves a synopsis typed during lookup',async()=>{
+  let resolveGoogle!:(value:unknown)=>void;
+  vi.stubGlobal('fetch',vi.fn(async(url:unknown)=>({ok:true,json:async()=>String(url).includes('source=google') ? (String(url).includes('author=Autora') ? await new Promise(resolve=>{resolveGoogle=resolve;}) : []) : String(url).includes('/openlibrary/OL456W') ? {description:'Sinopse externa',genres:['Romance']} : [{id:'/works/OL456W',source:'openlibrary',title:'Primeiro',authors:['Autora'],description:'',genres:[]}]})));
+  mocks.prepare.mockImplementation(async file=>({file,cover:null,pageCount:5,title:'Primeiro',author:'Autora',description:'',genres:[]}));
+  try {
+    setup();await waitFor(()=>expect(resolveGoogle).toBeTypeOf('function'));
+    fireEvent.change(screen.getByLabelText('Sinopse'),{target:{value:'Minha sinopse'}});
+    await act(async()=>resolveGoogle([]));
+    await waitFor(()=>expect(screen.getByRole('button',{name:'Romance'})).toHaveAttribute('aria-pressed','true'));
+    expect(screen.getByLabelText('Sinopse')).toHaveValue('Minha sinopse');
+  } finally {vi.unstubAllGlobals();}
+});

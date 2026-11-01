@@ -122,7 +122,7 @@ qual livro está em processamento, o progresso da conversão e quantos foram
 adicionados. Falhas mantêm o livro atual para tentar novamente sem duplicá-lo.
 Mantenha a tela aberta: arquivos e rascunhos da fila não sobrevivem a recarregamentos.
 
-Gêneros podem ser sugeridos pelos metadados do arquivo ou por uma correspondência
+Sinopse e gêneros podem ser preenchidos pelos metadados do arquivo ou por uma correspondência
 conservadora no Google Books/Open Library. “Buscar dados do livro” permite revisar
 título, autores, sinopse e outros campos antes de aplicar; campos manuais não são
 substituídos sem seleção explícita. Somente a consulta bibliográfica é enviada aos

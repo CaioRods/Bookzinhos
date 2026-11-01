@@ -5,7 +5,7 @@ import { uploadBook, saveProgress, type BookUploadStage } from "../lib/api";
 import { randomCoverColor } from "../lib/types";
 import { bookFileKind } from "../lib/epub/convert";
 import { prepareBook } from "../lib/prepareBook";
-import { automaticGenreCandidate, searchBookMetadata, type BookMetadata } from "../lib/bookMetadata";
+import { automaticGenreCandidate, openLibraryDetails, searchBookMetadata, type BookMetadata } from "../lib/bookMetadata";
 import { SeriesField } from "../components/SeriesField";
 import { GenreField } from "../components/GenreField";
 import { AuthorField } from "../components/AuthorField";
@@ -59,20 +59,32 @@ export function Upload() {
   const suggestGenre = async (title: string, author: string, id: string) => {
     lookup.current?.abort(); const controller = new AbortController(); lookup.current = controller; setFindingGenre(true);
     try {
-      let match: BookMetadata | null = null, responded = false;
+      let responded = false, matched = false;
+      let description = "", genres: string[] = [], origin: BookMetadata | null = null;
       for (const source of ["google", "openlibrary"] as const) {
         try {
-          const records = await searchBookMetadata(title, author, source, controller.signal);
+          let records = await searchBookMetadata(title, author, source, controller.signal);
+          if (!automaticGenreCandidate(records, title, author) && author) records = await searchBookMetadata(title, "", source, controller.signal);
           if (controller.signal.aborted || activeId.current !== id) return;
-          match = automaticGenreCandidate(records, title, author); responded = true;
-          if (match?.genres.length) break;
+          let match = automaticGenreCandidate(records, title, author); responded = true;
+          if (!match) continue;
+          matched = true;
+          if (source === "openlibrary" && (!description || !genres.length)) {
+            try { const details = await openLibraryDetails(match.id, controller.signal); match = { ...match, description: details.description || match.description, genres: details.genres.length ? details.genres : match.genres }; }
+            catch { if (controller.signal.aborted) return; }
+          }
+          if (!description && match.description) { description = match.description; origin = match; }
+          if (!genres.length && match.genres.length) { genres = match.genres; origin ||= match; }
+          if (description && genres.length) break;
         } catch { if (controller.signal.aborted) return; }
       }
-      if (match?.genres.length && !touched.current.has("genre") && formRef.current.title === title && formRef.current.author === author) {
-        const genres = match.genres;
-        setFormData(previous => previous.genre === "Outros" || !previous.genre ? { ...previous, genre: genres.join(", "), metadataSource: match?.source || "", metadataId: match?.id || "" } : previous);
-        setMetadataNotice(`Gêneros sugeridos por ${match.source === "google" ? "Google Books" : "Open Library"}. Confira antes de publicar.`);
-      } else setMetadataNotice(responded ? "Não encontramos uma correspondência segura para o gênero. Você pode escolher manualmente ou buscar outra edição." : "Os catálogos estão indisponíveis agora. Escolha o gênero manualmente ou tente a busca mais tarde.");
+      if (controller.signal.aborted || activeId.current !== id || formRef.current.title !== title || formRef.current.author !== author) return;
+      setFormData(previous => {
+        const fillGenre = !touched.current.has("genre") && (!previous.genre || previous.genre === "Outros") && genres.length > 0;
+        const fillDescription = !touched.current.has("description") && !previous.description.trim() && !!description;
+        return { ...previous, ...(fillGenre ? { genre: genres.join(", ") } : {}), ...(fillDescription ? { description } : {}), ...((fillGenre || fillDescription) && origin ? { metadataSource: origin.source, metadataId: origin.id } : {}) };
+      });
+      setMetadataNotice(description || genres.length ? "Dados encontrados nos catálogos. Confira a sinopse e os gêneros antes de publicar." : matched ? "Livro encontrado, mas o catálogo não forneceu sinopse ou gêneros. Você pode preencher manualmente ou buscar outra edição." : responded ? "Não encontramos uma correspondência segura. Confira o título e o autor ou busque outra edição." : "Os catálogos estão indisponíveis agora. Tente Buscar dados do livro ou preencha manualmente.");
     } catch { if (!controller.signal.aborted && activeId.current === id) setMetadataNotice("A sugestão automática está indisponível. O cadastro manual e a busca por outra fonte continuam disponíveis."); }
     finally { if (!controller.signal.aborted && activeId.current === id) setFindingGenre(false); }
   };
@@ -88,12 +100,17 @@ export function Upload() {
       const next = { ...previous, title: previous.title || prepared.title, author: previous.author || prepared.author, description: previous.description || prepared.description,
         genre: !touched.current.has("genre") && (previous.genre === "Outros" || !previous.genre) && prepared.genres.length ? prepared.genres.join(", ") : previous.genre };
       formRef.current = next; setFormData(next); patchItem(item.id, { status: "ready" });
-      if (next.genre === "Outros" && !touched.current.has("genre") && next.title.trim()) void suggestGenre(next.title, next.author, item.id);
+      if (next.title.trim()) void suggestGenre(next.title, next.author, item.id);
       else if (prepared.genres.length) setMetadataNotice("Gêneros encontrados nos dados do arquivo. Você pode ajustar a seleção.");
     } catch (error) {
       if (!controller.signal.aborted && activeId.current === item.id) { setError((error as Error).message || "Não foi possível preparar este livro."); patchItem(item.id, { status: "error" }); }
     } finally { if (!controller.signal.aborted && activeId.current === item.id) { setIsPreparing(false); setConversionProgress(null); } }
   };
+  useEffect(() => {
+    if (!currentId || !pdfFile || isPreparing || isUploading || !formData.title.trim() || (!touched.current.has("title") && !touched.current.has("author"))) return;
+    const timer = window.setTimeout(() => void suggestGenre(formData.title, formData.author, currentId), 900);
+    return () => { window.clearTimeout(timer); lookup.current?.abort(); };
+  }, [formData.title, formData.author, currentId, pdfFile, isPreparing, isUploading]);
   const startItem = (item: QueueItem, preserveDraft = false) => {
     if (!preserveDraft) resetDraft(); activeId.current = item.id; setCurrentId(item.id); void processFile(item);
   };
@@ -153,7 +170,7 @@ export function Upload() {
           <div><label htmlFor="up-title" className="mb-label">Título</label><input id="up-title" value={formData.title} onChange={event => edit("title", event.target.value)} placeholder="Nome do livro" className="mb-input" /></div>
           <AuthorField value={formData.author} onChange={name => edit("author", name)} refreshKey={published} />
           <GenreField value={formData.genre} onChange={genre => edit("genre", genre)} />
-          {findingGenre && <p className="text-xs text-[var(--text-3)]" role="status">Buscando uma sugestão de gênero…</p>}{metadataNotice && <p className="text-xs text-[var(--text-3)]">{metadataNotice}</p>}
+          {findingGenre && <p className="text-xs text-[var(--text-3)]" role="status">Buscando sinopse e gêneros…</p>}{metadataNotice && <p className="text-xs text-[var(--text-3)]">{metadataNotice}</p>}
           <div><label htmlFor="up-desc" className="mb-label">Sinopse</label><textarea id="up-desc" value={formData.description} onChange={event => edit("description", event.target.value)} rows={4} placeholder="Do que trata o livro?" className="mb-input resize-y" /></div>
           {(formData.publisher || formData.publishedYear || formData.isbn) && <p className="text-xs text-[var(--text-3)]">{[formData.publisher, formData.publishedYear, formData.isbn && `ISBN ${formData.isbn}`].filter(Boolean).join(" · ")}</p>}
         </section>

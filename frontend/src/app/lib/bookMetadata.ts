@@ -13,7 +13,7 @@ export function localGenres(value: string | string[]) {
 export function automaticGenreCandidate(results: BookMetadata[], title: string, author: string): BookMetadata | null {
   const matches = results.filter(book => normalizeBookText(book.title) === normalizeBookText(title) && (!author || book.authors.some(name => normalizeBookText(name) === normalizeBookText(author))));
   if (!matches.length || !matches[0].authors.length || new Set(matches.map(book => book.authors.map(normalizeBookText).sort().join(";"))).size !== 1) return null;
-  return matches[0];
+  return [...matches].sort((a, b) => Number(!!b.description) + Number(!!b.genres.length) - Number(!!a.description) - Number(!!a.genres.length))[0];
 }
 export function automaticGenres(results: BookMetadata[], title: string, author: string) { return automaticGenreCandidate(results, title, author)?.genres || []; }
 async function metadataRequest<T>(path: string, signal?: AbortSignal): Promise<T> {
