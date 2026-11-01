@@ -1,3 +1,4 @@
+import { bookGenres, hasBookGenre } from "../lib/genres";
 import { useInstalled, useOffline } from "../lib/offline/device";
 import { LibraryBanner } from "../components/LibraryBanner";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -108,7 +109,7 @@ export function Library() {
   };
 
   const genres = useMemo(
-    () => ["Todos", ...Array.from(new Set(books.map((b) => b.genre).filter(Boolean))).sort()],
+    () => ["Todos", ...Array.from(new Set(books.flatMap((b) => bookGenres(b.genre)))).sort()],
     [books]
   );
 
@@ -130,7 +131,7 @@ export function Library() {
       if (filter === "favoritos" && !savedIds.includes(book.id)) return false;
       if (filter === "pdfs" && !book.pdfPath) return false;
 
-      if (genre !== "Todos" && book.genre !== genre) return false;
+      if (genre !== "Todos" && !hasBookGenre(book.genre, genre)) return false;
 
       if (term && !(book.seriesName || "").toLowerCase().includes(term) && !book.title.toLowerCase().includes(term) && !(book.author || "").toLowerCase().includes(term) && !(book.genre || "").toLowerCase().includes(term)) {
         return false;

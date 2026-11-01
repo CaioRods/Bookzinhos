@@ -1,3 +1,4 @@
+const { normalizeBookGenres } = require("./book-genres");
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
@@ -536,7 +537,7 @@ app.post("/books", requireUser, upload.fields([{ name: "pdf", maxCount: 1 }, { n
 
     await db.query(sql`
       INSERT INTO books (id,title,author,description,genre,publisher,published_year,rating,review_count,is_public,cover_color,added_at,pdf_path,cover_image_path,is_user_book,uploaded_by)
-      VALUES (${id},${title},${author || ""},${description || ""},${genre || "Outros"},${publisher || ""},${publishedYear || ""},0,0,${isPublic === "false" ? 0 : 1},${coverColor || "lavender-mint"},${Date.now()},${pdfUrl},${coverUrl},1,${currentUser(req) || ""})
+      VALUES (${id},${title},${author || ""},${description || ""},${normalizeBookGenres(genre)},${publisher || ""},${publishedYear || ""},0,0,${isPublic === "false" ? 0 : 1},${coverColor || "lavender-mint"},${Date.now()},${pdfUrl},${coverUrl},1,${currentUser(req) || ""})
     `);
 
     if (series) await db.query(sql`UPDATE books SET series_id=${series.id}, series_name=${series.name}, series_order=${series.order} WHERE id=${id}`);
@@ -571,7 +572,7 @@ app.put("/books/:id", requireAdmin, upload.fields([{ name: "cover", maxCount: 1 
         title=${title || existing.title},
         author=${author ?? existing.author},
         description=${description ?? existing.description},
-        genre=${genre || existing.genre},
+        genre=${genre === undefined ? existing.genre : normalizeBookGenres(genre)},
         publisher=${publisher ?? existing.publisher ?? ""},
         published_year=${publishedYear ?? existing.published_year ?? ""},
         is_public=${isPublic === "false" || isPublic === false ? 0 : 1},

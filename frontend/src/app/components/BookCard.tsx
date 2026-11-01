@@ -1,3 +1,4 @@
+import { bookGenres } from "../lib/genres";
 import { InstalledMark } from "./OfflineBookButton";
 import { useRef, useState, useEffect, useCallback, memo } from "react";
 import { BookOpen, Star, MoreVertical, Bookmark } from "lucide-react";
@@ -247,12 +248,12 @@ function BookCardImpl({
           <div className="flex-1 min-w-0 py-0.5">
             <h3 className="font-semibold text-foreground text-sm truncate">{book.title}<InstalledMark id={book.id}/></h3>
             <p className="text-[12px] text-[var(--text-3)] truncate mt-0.5">{book.author || "Autor desconhecido"}</p>
-            <div className="flex items-center gap-2 mt-2">
+            <div className="flex flex-wrap items-center gap-2 mt-2">
               <span className="inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--text-2)]">
                 <Star className="w-3.5 h-3.5 fill-[var(--gold)] text-[var(--gold)]" />
                 {book.rating > 0 ? book.rating.toFixed(1) : "—"}
               </span>
-              <span className="mb-chip">{book.genre}</span>
+              {bookGenres(book.genre).map(genre => <span key={genre} className="mb-chip">{genre}</span>)}
             </div>
             {localProgress && localProgress.progress > 0 && (
               <div className="mt-2.5">

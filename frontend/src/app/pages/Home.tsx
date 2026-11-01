@@ -1,3 +1,4 @@
+import { bookGenres, hasBookGenre } from "../lib/genres";
 import { ReaderName } from "../components/ReaderName";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
@@ -83,13 +84,13 @@ export function Home() {
   );
 
   const genres = useMemo(
-    () => Array.from(new Set(books.map((b) => b.genre).filter(Boolean))).slice(0, 5),
+    () => Array.from(new Set(books.flatMap((b) => bookGenres(b.genre)))).slice(0, 5),
     [books]
   );
 
   const recommended = useMemo(() => {
     if (chip === "tendencias") return data?.mostRead ?? [];
-    if (chip !== "para-voce") return books.filter((b) => b.genre === chip);
+    if (chip !== "para-voce") return books.filter((b) => hasBookGenre(b.genre, chip));
     // "Para você": o que ainda não foi lido nem está em andamento.
     return books.filter((b) => {
       const p = progressOf.get(b.id);
