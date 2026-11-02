@@ -9,14 +9,14 @@ import type { ImageCrop, SceneTheme } from "../lib/appearance";
 import type { Size } from "../lib/avatarCrop";
 const clamp = (value: number) => Math.max(0, Math.min(100, value));
 
-export function CropEditor({ theme, value, onChange, label, surface = "profile", opacity = 1, blur = 0, backgroundColor, artwork, allowExpand = true }: {
+export function CropEditor({ theme, value, onChange, label, surface = "profile", opacity = 1, blur = 0, backgroundColor, artwork, referenceSize, allowExpand = true }: {
   theme: SceneTheme; value: ImageCrop; onChange: (value: ImageCrop) => void; label: string;
-  surface?: CropSurface; opacity?: number; blur?: number; backgroundColor?: string; artwork?: ReactNode; allowExpand?: boolean;
+  surface?: CropSurface; opacity?: number; blur?: number; backgroundColor?: string; artwork?: ReactNode; allowExpand?: boolean; referenceSize?: Size;
 }) {
-  const profileSize = useProfileBannerSize(surface === "profile");
-  const targetSize = useCropSurfaceSize(surface, surface !== "profile");
+  const profileSize = useProfileBannerSize(!referenceSize && surface === "profile");
+  const targetSize = useCropSurfaceSize(surface, !referenceSize && surface !== "profile");
   const fallback = surface === "folder" ? {width:280,height:300} : surface === "sidebar" ? { width: 248, height: 600 } : { width: 1400, height: surface === "profile" ? 420 : 250 };
-  const reference = profileSize || targetSize || fallback;
+  const reference = referenceSize || profileSize || targetSize || fallback;
   const [expanded, setExpanded] = useState(false);
   const frame = useRef<HTMLDivElement>(null);
   const drag = useRef<{ id: number; x: number; y: number; crop: ImageCrop; viewport: Size } | null>(null);
@@ -65,5 +65,5 @@ export function CropEditor({ theme, value, onChange, label, surface = "profile",
     </div>
     <div className="mb-crop-sliders">{([{ key: "x", text: "Horizontal", min: 0, max: 100, step: .1 }, { key: "y", text: "Vertical", min: 0, max: 100, step: .1 }, { key: "zoom", text: "Zoom", min: 1, max: 4, step: .01 }] as const).map(control => <label key={control.key}>{control.text}<input type="range" aria-label={`${label}: ${control.text}`} min={control.min} max={control.max} step={control.step} value={value[control.key]} onChange={event => onChange({ ...value, [control.key]: Number(event.target.value) })} /><input className="mb-crop-number" type="number" aria-label={`${label}: ${control.text} exato`} min={control.min} max={control.max} step={control.step} value={Number(value[control.key].toFixed(2))} onChange={event => { const number = event.target.valueAsNumber; if (Number.isFinite(number)) onChange({ ...value, [control.key]: Math.min(control.max, Math.max(control.min, number)) }); }}/></label>)}</div>
     <div className="mb-crop-actions"><button type="button" className="mb-btn mb-btn-outline mb-btn-sm" onClick={() => onChange({ x: 50, y: 50, zoom: 1 })}>Centralizar e redefinir zoom</button>{allowExpand && <button type="button" className="mb-btn mb-btn-outline mb-btn-sm" onClick={() => setExpanded(true)}>Ampliar área de ajuste</button>}</div>
-  </fieldset>{expanded && <Modal open title={title} description="A moldura mantém o mesmo enquadramento da área final." size="xl" onClose={() => setExpanded(false)} footer={<button type="button" className="mb-btn mb-btn-primary" onClick={() => setExpanded(false)}>Concluir ajuste</button>}><CropEditor theme={theme} value={value} onChange={onChange} label={label} surface={surface} opacity={opacity} blur={blur} backgroundColor={backgroundColor} artwork={artwork} allowExpand={false}/></Modal>}</>;
+  </fieldset>{expanded && <Modal open title={title} description="A moldura mantém o mesmo enquadramento da área final." size="xl" onClose={() => setExpanded(false)} footer={<button type="button" className="mb-btn mb-btn-primary" onClick={() => setExpanded(false)}>Concluir ajuste</button>}><CropEditor theme={theme} value={value} onChange={onChange} label={label} surface={surface} opacity={opacity} blur={blur} backgroundColor={backgroundColor} artwork={artwork} referenceSize={referenceSize} allowExpand={false}/></Modal>}</>;
 }

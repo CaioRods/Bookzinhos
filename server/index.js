@@ -135,6 +135,7 @@ app.use(securityHeaders({
   imageSources: parseList(process.env.CSP_IMAGE_SOURCES),
 }));
 app.use(cors(createCorsOptions({ origins: frontendOrigins })));
+app.use("/notebooks", express.json({ limit: "4mb" }));
 app.use(express.json({ limit: "256kb" }));
 app.use("/uploads", express.static(path.join(__dirname, "uploads"), { maxAge: "1y", immutable: true }));
 
@@ -193,6 +194,7 @@ app.get("/health", (_req, res) => res.json({ ok: true, ts: Date.now() }));
 const appearance = require("./appearance")({ app, db, sql, upload, uploadFileToCloud, currentUser, requireAdmin });
 const community = require("./community")({ app, db, sql, upload, uploadFileToCloud, currentUser, requireAdmin });
 const characters = require("./characters")({ app, db, sql, upload, uploadFileToCloud, requireAdmin, currentUser, isAdmin });
+const notebooks = require("./notebooks")({ app, db, sql, currentUser });
 const booklists = require("./booklists")({ app, db, sql, currentUser, uploadFileToCloud });
 const privacySupport = registerPrivacySupportRoutes({ app, db, sql, currentUser, requireAdmin });
 const progression = require("./progression-service").createProgressionService({ db, sql });
@@ -2351,6 +2353,7 @@ async function start() {
   await community.ready();
   await privacySupport.ready();
   await booklists.ready();
+  await notebooks.ready();
   if (!process.env.VERCEL) {
     const { initWatcher } = require("./watcher");
     initWatcher(db, sql, PORT, uploadFileToCloud);

@@ -157,7 +157,7 @@ export function Chat() {
                     </div>
                   </Link>
                 )}
-                <p className="text-[13.5px] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                {/\/notes\?share=([a-f0-9-]{36})/.test(msg.content) ? <Link className="block rounded-xl border border-current/20 p-3" to={`/notes?share=${msg.content.match(/\/notes\?share=([a-f0-9-]{36})/)![1]}`}><span className="block text-sm font-semibold">{msg.content.split("\n")[0]}</span><small>Abrir anotações · somente leitura →</small></Link> : <p className="text-[13.5px] leading-relaxed whitespace-pre-wrap">{msg.content}</p>}
                 <p className={`text-[10.5px] mt-1 text-right ${isMe ? "text-white/60" : "text-[var(--text-3)]"}`}>
                   {new Date(msg.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                 </p>

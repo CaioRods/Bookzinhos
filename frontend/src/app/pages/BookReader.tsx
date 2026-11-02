@@ -12,7 +12,7 @@ import { installReaderGestures } from "../lib/readerGestures";
 import { markReaderTutorialSeen } from "../lib/api";
 import { installedPdf, isOffline } from "../lib/offline/device";
 import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from "react";
-import { useParams, useNavigate } from "react-router";
+import { useParams, useNavigate, useSearchParams } from "react-router";
 import {
   ArrowLeft, Settings, ChevronLeft, ChevronRight, PenLine, PauseCircle, PlayCircle,
   CheckCircle, Maximize2, Minimize2, List, Download, Loader2, Sun, Plus, Minus,
@@ -91,6 +91,13 @@ function loadPrefs(fallbackLayout: Layout): Prefs {
 
 export function BookReader() {
   const { id } = useParams();
+  const [linkParams] = useSearchParams();
+  const requestedPage = Number(linkParams.get("page"));
+  const linkedPage = Number.isInteger(requestedPage) && requestedPage > 0 && requestedPage <= 100000 ? requestedPage : null;
+  const sourceClip = useMemo(() => {
+    try { const value = JSON.parse(linkParams.get("clip") || "null"); if (value && [value.x,value.y,value.width,value.height].every(n => typeof n === "number" && Number.isFinite(n) && n >= 0 && n <= 1) && value.width > 0 && value.height > 0) return value as {x:number;y:number;width:number;height:number}; } catch {}
+    return null;
+  }, [linkParams]);
   const navigate = useNavigate();
   const tier = useDeviceTier();
   const [appSettings, updateAppSettings] = useSettings();
@@ -189,8 +196,9 @@ export function BookReader() {
       .then(([b, p]) => {
         if (!active) return;
         setBook(b);
+        if (linkedPage && !p) setCurrentPage(linkedPage - 1);
         if (p) {
-          setCurrentPage(Math.max(0, p.currentPage));
+          setCurrentPage(linkedPage ? linkedPage - 1 : Math.max(0, p.currentPage));
           setIsPaused(p.status === "pausado");
           setIsFinished(p.status === "finalizado");
         }
@@ -203,7 +211,7 @@ export function BookReader() {
       // Sem isto, qualquer erro de rede deixaria a tela girando para sempre.
       .finally(() => { if (active) setIsLoading(false); });
     return () => { active = false; };
-  }, [id]);
+  }, [id, linkedPage]);
 
   const loadChapters = useCallback(() => {
     if (!id) return;
@@ -247,6 +255,7 @@ export function BookReader() {
         setPageAspect(vp.height / vp.width);
         setPdfDoc(doc);
         setPdfTotal(doc.numPages);
+        setCurrentPage(current => Math.min(current, doc.numPages - 1));
       } catch (err) {
         console.error("Falha ao carregar o PDF", err);
         if (!cancelled) setErrorMessage("Não foi possível abrir este PDF. O arquivo pode estar indisponível.");
@@ -629,7 +638,7 @@ export function BookReader() {
           <div className="flex items-start" style={{ gap: GAP, width: layout === "double" ? pageWidth * 2 + GAP : pageWidth, height: pageHeight }}>
             <div
               key="left-slot"
-              className="rounded-md overflow-hidden shrink-0"
+              className="relative rounded-md overflow-hidden shrink-0"
               style={{
                 width: pageWidth,
                 height: pageHeight,
@@ -647,11 +656,12 @@ export function BookReader() {
                 filter={`${theme.filter} brightness(${prefs.brightness})`}
                 className="block"
               />
+              {sourceClip && linkedPage === page + 1 && <span className="nb-reader-source-highlight" style={{left:`${sourceClip.x*100}%`,top:`${sourceClip.y*100}%`,width:`${sourceClip.width*100}%`,height:`${sourceClip.height*100}%`}}/>}
             </div>
             {showRight && (
               <div
                 key="right-slot"
-                className="rounded-md overflow-hidden shrink-0"
+                className="relative rounded-md overflow-hidden shrink-0"
                 style={{
                   width: pageWidth,
                   height: pageHeight,
@@ -669,6 +679,7 @@ export function BookReader() {
                   filter={`${theme.filter} brightness(${prefs.brightness})`}
                   className="block"
                 />
+                {sourceClip && linkedPage === page + 2 && <span className="nb-reader-source-highlight" style={{left:`${sourceClip.x*100}%`,top:`${sourceClip.y*100}%`,width:`${sourceClip.width*100}%`,height:`${sourceClip.height*100}%`}}/>}
               </div>
             )}
           </div>
@@ -879,7 +890,7 @@ export function BookReader() {
               <CheckCircle className="w-4 h-4" />
               <span className="hidden sm:inline">{isFinished ? "Lido" : "Concluir"}</span>
             </button>
-            <button onClick={() => navigate(`/notes?bookId=${id}`)} aria-label="Diário" className="mb-btn mb-btn-ghost mb-btn-icon mb-btn-sm">
+            <button onClick={() => navigate(`/notes?bookId=${id}`)} aria-label="Anotações" className="mb-btn mb-btn-ghost mb-btn-icon mb-btn-sm">
               <PenLine className="w-4 h-4" />
             </button>
             {pdfUrl && (

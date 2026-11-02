@@ -195,28 +195,9 @@ export function SocialSkeleton() {
   );
 }
 
-/** Diário de leitura: trilho de capas e a lista de anotações. */
+/** Anotações: cabeçalho e capas de cadernos. */
 export function NotesSkeleton() {
-  return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
-      <PageHeaderSkeleton />
-      <div className="flex gap-[1.125rem] pt-2 pb-5 overflow-hidden">
-        {[0, 1, 2, 3, 4].map((i) => (
-          <div key={i} className="w-[116px] flex-shrink-0">
-            <CoverSkeleton />
-          </div>
-        ))}
-      </div>
-      <section className="mb-card p-5 space-y-4">
-        <Skeleton className="h-[19px] w-48 rounded" />
-        <Skeleton className="h-24 w-full rounded-xl" />
-        <Skeleton className="h-10 w-36 rounded-xl ml-auto" />
-      </section>
-      <div className="space-y-3">
-        {[0, 1, 2].map((i) => <FeedCardSkeleton key={i} />)}
-      </div>
-    </div>
-  );
+  return <div className="nb-library"><PageHeaderSkeleton/><div className="mt-8 mb-6"><Skeleton className="h-12 w-full rounded-xl"/></div><div className="nb-notebook-grid">{[0,1,2,3].map(i=><div key={i}><Skeleton className="aspect-[520/720] w-full rounded-xl"/><Skeleton className="h-4 w-3/4 mt-5 rounded"/><Skeleton className="h-3 w-1/2 mt-3 rounded"/></div>)}</div></div>;
 }
 
 /** Perfil (próprio ou de outra pessoa): capa, números e estante. */

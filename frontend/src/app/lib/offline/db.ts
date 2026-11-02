@@ -48,3 +48,9 @@ export async function removeRevision(key: string, revision: string) {
     request.onsuccess = () => { if (request.result?.value?.revision === revision) store.delete(key); };
   });
 }
+
+/** Read identifiers without hydrating large private documents or attachments. */
+export async function keys(prefix: string): Promise<string[]> {
+  const db = await database();
+  return new Promise((resolve,reject) => { const request=db.transaction("records").objectStore("records").getAllKeys(IDBKeyRange.bound(prefix,prefix+"\uffff"));request.onsuccess=()=>resolve(request.result.map(String));request.onerror=()=>reject(request.error); });
+}

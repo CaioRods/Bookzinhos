@@ -37,7 +37,7 @@ export const PRIVACY_POLICY_SECTIONS = [
     title: "5. Conteúdo público e visibilidade",
     paragraphs: [
       "Seu apelido, nome de exibição, foto, biografia, nível, selos, estante pública, seguidores, avaliações, comentários, curtidas e publicações podem ser visíveis a outras pessoas. Conteúdo publicado na comunidade poderá ser compartilhado por link e visualizado conforme as regras da plataforma.",
-      "Notas do diário de leitura são tratadas como privadas, salvo quando você escolher transformá-las em conteúdo público. Mensagens do chat também são privadas entre os participantes. Nunca publique documentos, senhas, endereços, dados financeiros ou informações sensíveis em áreas públicas.",
+      "Cadernos e anotações são privados. Ao compartilhar uma página ou um caderno pelo chat, somente a pessoa escolhida recebe acesso de leitura ao conteúdo selecionado; ela não pode editá-lo. Cópias instaladas ou exportadas permanecem no aparelho de quem as recebeu. Mensagens do chat também são privadas entre os participantes. Nunca publique documentos, senhas, endereços, dados financeiros ou informações sensíveis em áreas públicas.",
       "Mesmo após uma exclusão, cópias temporárias podem permanecer em cache ou backup pelo período necessário à segurança e restauração. Republicações ou capturas realizadas legitimamente por outras pessoas fora do controle do myBooks podem não ser removidas automaticamente.",
     ],
   },

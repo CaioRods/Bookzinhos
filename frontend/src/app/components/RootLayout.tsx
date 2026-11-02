@@ -1,6 +1,7 @@
 import { OfflineStatus } from "./OfflineStatus";
 import { ReaderNamesProvider } from "./ReaderName";
 import { useProfileScene } from "../lib/profileScene";
+import { NotebookSync } from "./notebooks/NotebookSync";
 import { CropArtwork } from "./CropArtwork";
 import { useThemeCatalog, DEFAULT_THEMES } from "../lib/themeCatalog";
 import { accentVariables } from "../lib/appearance";
@@ -147,7 +148,7 @@ export function RootLayout() {
       { path: "/library", icon: Library, label: "Biblioteca" },
       { path: "/social", icon: Users, label: "Comunidade", badge: unreadCount },
       { path: "/my-books", icon: BookOpen, label: "Meus livros" },
-      { path: "/notes", icon: PenLine, label: "Diário de leitura" },
+      { path: "/notes", icon: PenLine, label: "Anotações" },
     ];
     return items;
   }, [unreadCount, admin]);
@@ -164,7 +165,7 @@ export function RootLayout() {
         <ReaderChoiceProvider>
           <OfflineStatus />
           <div key={location.pathname} className="mb-page h-full">
-            <Outlet />
+            <NotebookSync/><Outlet />
           </div>
   {/* Enquanto o módulo da próxima tela desce, o esqueleto dela cobre a
               atual. Depois, com a rota já trocada, um segundo véu segura o
@@ -273,7 +274,7 @@ export function RootLayout() {
             <div className="relative">
             {/* A chave por rota reinicia a animação a cada navegação. */}
             <div key={location.pathname} className="mb-page">
-              <Outlet />
+              <NotebookSync/><Outlet />
             </div>
 
 {/* Enquanto o módulo da próxima tela desce, o esqueleto dela cobre a

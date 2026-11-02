@@ -250,7 +250,7 @@ export function Profile() {
               <Users className="w-3.5 h-3.5" /> Comunidade
             </Link>
             <Link to="/notes" className="mb-btn mb-btn-outline mb-btn-sm">
-              <Star className="w-3.5 h-3.5" /> Meu diário
+              <Star className="w-3.5 h-3.5" /> Minhas anotações
             </Link>
             <Link to="/settings" className="mb-btn mb-btn-outline mb-btn-sm">
               <SlidersHorizontal className="w-3.5 h-3.5" /> Configurações
