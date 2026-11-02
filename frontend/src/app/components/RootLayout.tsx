@@ -208,7 +208,7 @@ export function RootLayout() {
                 end={end}
                 onClick={soundTap}
                 className={({ isActive }) =>
-                  `mb-nav-item flex items-center gap-3 px-3.5 h-11 rounded-[10px] text-[14px] transition-all ${
+                  `mb-nav-item ${path === "/my-books" ? "mb-nav-featured" : ""} flex items-center gap-3 px-3.5 h-11 rounded-[10px] text-[14px] transition-all ${
                     isActive
                       ? "text-[var(--primary)] font-semibold"
                       : "text-[var(--text-2)] font-medium hover:bg-[var(--surface-2)] hover:text-foreground"
@@ -299,6 +299,7 @@ export function RootLayout() {
             <MobileTab to="/library" icon={Library} label="Biblioteca" />
 
             <MobileTab to="/my-books" icon={BookOpen} label="Meus livros" />
+            <MobileTab to="/notes" icon={PenLine} label="Anotações" />
 
             <MobileTab to="/social" icon={Users} label="Social" badge={unreadCount} />
             <MobileTab to="/profile" icon={User} label="Perfil" />
@@ -325,7 +326,7 @@ function MobileTab({
       onClick={soundTap}
       aria-label={label}
       className={({ isActive }) =>
-        `mb-tab flex-1 flex flex-col items-center justify-center gap-1 transition-colors ${
+        `mb-tab ${to === "/my-books" ? "mb-nav-featured" : ""} flex-1 flex flex-col items-center justify-center gap-1 transition-colors ${
           isActive ? "text-[var(--primary)]" : "text-[var(--text-3)]"
         }`
       }
