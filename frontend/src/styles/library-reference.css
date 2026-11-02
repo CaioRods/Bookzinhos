@@ -1,13 +1,4 @@
 @layer components {
-  /* The library has a warm editorial accent; account scenery remains personalized. */
-  .mb-app-window:has(.mb-library-reference) {
-    --primary: #b5912f;
-    --primary-deep: #9d7a23;
-    --primary-hover: #9c7924;
-    --primary-soft: #b5912f16;
-    --primary-foreground: #ffffff;
-    --ring: #b5912f40;
-  }
   .mb-library-reference {
     --library-serif:
       "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Palatino, Georgia,
@@ -45,12 +36,12 @@
     margin-top: 6px;
   }
   .mb-library-reference .mb-btn-primary {
-    background: linear-gradient(135deg, #c3a048, #ad8929);
-    color: white;
-    box-shadow: 0 4px 10px -5px #77531955;
+    background: var(--primary);
+    color: var(--primary-foreground);
+    box-shadow: 0 4px 10px -5px color-mix(in srgb, var(--primary) 35%, transparent);
   }
   .mb-library-reference .mb-btn-primary:hover:not(:disabled) {
-    background: #9d7c27;
+    background: var(--primary-hover);
   }
   .mb-library-editorial-heading > .mb-btn {
     min-height: 40px;
@@ -195,8 +186,8 @@
     font-size: 11px;
   }
   .mb-library-reference .mb-library-tabs .mb-btn[aria-pressed="true"] {
-    color: #fff;
-    background: linear-gradient(135deg, #c3a048, #ad8929);
+    color: var(--primary-foreground);
+    background: var(--primary);
   }
   .mb-library-reference .mb-library-tabs .mb-btn span {
     background: transparent;
@@ -223,7 +214,7 @@
   }
   .mb-library-reference .mb-view-switch .mb-btn-primary {
     background: var(--surface);
-    color: #b18a26;
+    color: var(--primary);
     box-shadow: 0 2px 6px #38222912;
   }
   .mb-library-reference .mb-library-search > select {
@@ -311,7 +302,7 @@
     background: #d9d0cd;
   }
   .mb-library-framed-card .mb-book-progress i {
-    background: #b68f2c;
+    background: var(--primary);
   }
   .mb-library-framed-card .mb-book-progress small {
     min-width: auto;
@@ -352,7 +343,8 @@
   }
   .mb-library-bookmark:hover,
   .mb-library-bookmark[aria-pressed="true"] {
-    background: #b18c2d;
+    background: var(--primary);
+    color: var(--primary-foreground);
   }
   .mb-library-bookmark:disabled {
     opacity: 0.6;
@@ -375,12 +367,6 @@
   .mb-library-cover-stage:has(.mb-library-pdf-badge) .mb-library-bookmark {
     top: 30px;
   }
-  .dark .mb-app-window:has(.mb-library-reference) {
-    --primary: #d4b76b;
-    --primary-deep: #e0c787;
-    --primary-hover: #e4cb8c;
-    --primary-soft: #d4b76b20;
-  }
   .dark .mb-library-framed-card {
     --book-wash: #3d3036 !important;
     background: linear-gradient(var(--book-wash), var(--background));
@@ -389,8 +375,9 @@
     background: var(--surface-2);
     color: var(--text-2);
   }
-  .dark .mb-library-reference .mb-library-tabs [aria-pressed="true"] {
-    color: #fff;
+  .dark .mb-library-reference .mb-library-tabs .mb-btn[aria-pressed="true"] {
+    background: var(--primary);
+    color: var(--primary-foreground);
   }
   @media (min-width: 1024px) {
     .mb-library-reference {
