@@ -36,3 +36,5 @@ Testes em `server/tests/notebooks.test.js`, `frontend/src/app/lib/notebooks/*.te
 ## Controles do ateliê
 
 Ctrl+rolagem aproxima a folha sem alterar o zoom do navegador. A mão move a câmera; a lateral do aplicativo fica reduzida enquanto o caderno está aberto. A borracha recorta apenas o trecho tocado e a caneta suaviza curvas. Ctrl+Z desfaz, Ctrl+Y refaz; Delete e Backspace removem o elemento selecionado, preservando a edição nativa de texto. As páginas podem ser reorganizadas pelo arraste da miniatura ou pela alça (com suporte às setas do teclado).
+
+O ateliê ocupa a altura disponível da tela, sem navegação inferior sobre a folha. A lista de páginas começa recolhida e abre pelo botão no topo (sobreposta em celulares). Nome do caderno e título da folha ficam na mesma barra; ações secundárias ficam no menu de três pontos e ferramentas usam rolagem horizontal quando necessário.
