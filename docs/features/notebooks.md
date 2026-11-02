@@ -4,7 +4,7 @@ O endereço `/notes` substitui o diário por cadernos privados. Notas antigas co
 
 ## Conteúdo e interface
 
-- Capa com cor/símbolo ou foto recortada na proporção 520 × 720, usando a geometria compartilhada do editor de recortes.
+- Capa com cor/ícone vetorial ou foto recortada na proporção 520 × 720, usando a geometria compartilhada do editor de recortes.
 - Folhas 800 × 1100, lisas, pautadas ou de pergaminho. Somente a página aberta é renderizada; a fila lateral usa resumos pequenos.
 - Texto estruturado, sem HTML: fonte, tamanho, cor, negrito, itálico, sublinhado e alinhamento. Traços SVG com caneta, marca-texto, borracha, desfazer/refazer e rejeição de toque enquanto a caneta está ativa.
 - Imagens comprimidas no aparelho, com posicionamento e redimensionamento. A importação de livros renderiza uma página por vez e preserva livro, página e retângulo de origem. O toque prolongado abre uma confirmação antes de navegar para `/read/:id?page=N&clip=...`.

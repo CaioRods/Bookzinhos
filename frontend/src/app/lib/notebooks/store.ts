@@ -67,7 +67,7 @@ async function importCachedDiary(user:string,onlyIds?:Set<string>){
   const digest=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(user));
   const hash=Array.from(new Uint8Array(digest)).map(n=>n.toString(16).padStart(2,"0")).join("");
   const id=`legacy-${hash.slice(0,24)}`,key=metaKey(user,id);
-  if(!await read(key)){const value:Notebook={id,name:"Anotações anteriores",description:"",color:"#657b72",icon:"📖",image:"",revision:"legacy",updatedAt:Date.now()};await persist(key,{value,dirty:true,baseRevision:"legacy"},[{key:pendingKey(key),value:{key,revision:value.revision}}]);}
+  if(!await read(key)){const value:Notebook={id,name:"Anotações anteriores",description:"",color:"#657b72",icon:"book",image:"",revision:"legacy",updatedAt:Date.now()};await persist(key,{value,dirty:true,baseRevision:"legacy"},[{key:pendingKey(key),value:{key,revision:value.revision}}]);}
   for(const note of notes.values()){
    const pageId=`legacy-${note.id}`,key=pageKey(user,id,pageId);if(await read(key))continue;
    const installed=await read<{book:{title:string}}>(`${user}::book::${note.bookId}`);

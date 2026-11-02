@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate, Link, useLocation } from "react-router";
-import { ArrowLeft, Send, Settings } from "lucide-react";
+import { ArrowLeft, Send, Settings, BookOpen } from "lucide-react";
 import { fetchChat, sendMessage, setNickname, fetchBooks, fetchConversations, fetchUserProfile } from "../lib/api";
 import { getFullUrl } from "../lib/types";
 import type { Book, ChatMessage, ChatConversation, UserProfile } from "../lib/types";
@@ -157,7 +157,7 @@ export function Chat() {
                     </div>
                   </Link>
                 )}
-                {/\/notes\?share=([a-f0-9-]{36})/.test(msg.content) ? <Link className="block rounded-xl border border-current/20 p-3" to={`/notes?share=${msg.content.match(/\/notes\?share=([a-f0-9-]{36})/)![1]}`}><span className="block text-sm font-semibold">{msg.content.split("\n")[0]}</span><small>Abrir anotações · somente leitura →</small></Link> : <p className="text-[13.5px] leading-relaxed whitespace-pre-wrap">{msg.content}</p>}
+                {/\/notes\?share=([a-f0-9-]{36})/.test(msg.content) ? <Link className="block rounded-xl border border-current/20 p-3" to={`/notes?share=${msg.content.match(/\/notes\?share=([a-f0-9-]{36})/)![1]}`}><span className="flex items-center gap-2 text-sm font-semibold"><BookOpen size={18} aria-hidden="true"/>{msg.content.split("\n")[0].replace(/^📓\s*/,"")}</span><small>Abrir anotações · somente leitura →</small></Link> : <p className="text-[13.5px] leading-relaxed whitespace-pre-wrap">{msg.content}</p>}
                 <p className={`text-[10.5px] mt-1 text-right ${isMe ? "text-white/60" : "text-[var(--text-3)]"}`}>
                   {new Date(msg.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                 </p>

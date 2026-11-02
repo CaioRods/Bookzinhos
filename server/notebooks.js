@@ -30,8 +30,11 @@ function normalizePage(input) {
   });
   return { title: text(input.title,100).trim() || 'Página sem título', paper: input.paper, elements };
 }
+const ICON_IDS=new Set(['sparkles','moon','flower','heart','coffee','book','feather','map','leaf','zap']);
+const LEGACY_ICONS={'✦':'sparkles','☾':'moon','❀':'flower','♡':'heart','☕':'coffee','📖':'book','🪶':'feather','🗺️':'map','🗺':'map','🌿':'leaf','⚡':'zap'};
+const normalizeIcon=value=>ICON_IDS.has(value)?value:Object.prototype.hasOwnProperty.call(LEGACY_ICONS,value)?LEGACY_ICONS[value]:'sparkles';
 function normalizeCover(input) {
-  return { name: text(input.name,100).replace(/[\r\n]/g,' ').trim() || 'Meu caderno', color: color(input.color), icon: text(input.icon,8) || '✦', image: image(input.image), description: text(input.description,200) };
+  return { name: text(input.name,100).replace(/[\r\n]/g,' ').trim() || 'Meu caderno', color: color(input.color), icon: normalizeIcon(input.icon), image: image(input.image), description: text(input.description,200) };
 }
 module.exports = function registerNotebooks({ app, db, sql, currentUser }) {
   let pending;
@@ -55,7 +58,7 @@ module.exports = function registerNotebooks({ app, db, sql, currentUser }) {
     } catch (error) { res.status(500).json({error:error.message}); }
   };
   const owned = async (id,owner) => (await db.query(sql`SELECT * FROM notebooks WHERE id=${id} AND owner=${owner} COLLATE NOCASE`))[0];
-  const decode = row => ({ ...JSON.parse(row.data), id:row.id, revision:row.revision, updatedAt:Number(row.updated_at), ...(row.position==null?{}:{position:Number(row.position)}) });
+  const decode = row => {const data=JSON.parse(row.data);return {...data,...(data.icon!==undefined?{icon:normalizeIcon(data.icon)}:{}),id:row.id,revision:row.revision,updatedAt:Number(row.updated_at),...(row.position==null?{}:{position:Number(row.position)})};};
   const summaries = async (id,pageId = null) => (await db.query(sql`SELECT id,json_extract(data,'$.title') AS title,json_extract(data,'$.paper') AS paper,revision,position,updated_at AS updatedAt FROM notebook_pages WHERE notebook_id=${id} AND (${pageId} IS NULL OR id=${pageId}) ORDER BY position, id`));
   async function importLegacy(owner) {
     const [done] = await db.query(sql`SELECT owner FROM notebook_imports WHERE owner=${owner} COLLATE NOCASE`);
@@ -63,7 +66,7 @@ module.exports = function registerNotebooks({ app, db, sql, currentUser }) {
     const [count] = await db.query(sql`SELECT COUNT(*) AS n FROM notes WHERE username=${owner} COLLATE NOCASE`);
     if (count.n) {
       const id = `legacy-${crypto.createHash('sha256').update(owner.toLowerCase()).digest('hex').slice(0,24)}`;
-      await db.query(sql`INSERT OR IGNORE INTO notebooks(id,owner,data,revision,updated_at) VALUES(${id},${owner},${JSON.stringify(normalizeCover({name:'Anotações anteriores',color:'#657b72',icon:'📖'}))},'legacy',${Date.now()})`);
+      await db.query(sql`INSERT OR IGNORE INTO notebooks(id,owner,data,revision,updated_at) VALUES(${id},${owner},${JSON.stringify(normalizeCover({name:'Anotações anteriores',color:'#657b72',icon:'book'}))},'legacy',${Date.now()})`);
       await db.query(sql`INSERT OR IGNORE INTO notebook_pages(id,notebook_id,data,revision,position,updated_at) SELECT 'legacy-' || n.id,${id},json_object('title',COALESCE(b.title,'Leitura') || ' · ' || n.date_label,'paper','ruled','elements',json_array(json_object('id','legacy-text','type','text','x',65,'y',80,'width',670,'height',900,'text',n.feedback || char(10) || char(10) || 'Avaliação na época: ' || n.rating || '/5','color','#354d49','size',22,'font','sans','bold',0,'italic',0,'underline',0,'align','left'))),'legacy',n.created_at,n.created_at FROM notes n LEFT JOIN books b ON b.id=n.book_id WHERE n.username=${owner} COLLATE NOCASE`);
     }
     await db.query(sql`INSERT OR IGNORE INTO notebook_imports(owner) VALUES(${owner})`);
@@ -107,7 +110,7 @@ module.exports = function registerNotebooks({ app, db, sql, currentUser }) {
     if(pageId){const [page]=await db.query(sql`SELECT id FROM notebook_pages WHERE id=${pageId} AND notebook_id=${notebook.id}`);if(!page)return res.sendStatus(404);}
     const id=crypto.randomUUID(),title=JSON.parse(notebook.data).name;
     await db.query(sql`INSERT INTO notebook_shares(id,owner,recipient,notebook_id,page_id,created_at) VALUES(${id},${req.notebookOwner},${recipient.username},${notebook.id},${pageId},${Date.now()})`);
-    await db.query(sql`INSERT INTO chat_messages(sender,receiver,content,created_at) VALUES(${req.notebookOwner},${recipient.username},${`📓 ${pageId?'Página de':'Caderno'}: ${title}\n/notes?share=${id}`},${Date.now()})`);
+    await db.query(sql`INSERT INTO chat_messages(sender,receiver,content,created_at) VALUES(${req.notebookOwner},${recipient.username},${`${pageId?'Página de':'Caderno'}: ${title}\n/notes?share=${id}`},${Date.now()})`);
     res.status(201).json({id});
   }catch(e){res.status(500).json({error:e.message});}});
   async function allowedShare(req){return (await db.query(sql`SELECT * FROM notebook_shares WHERE id=${req.params.share} AND (recipient=${req.notebookOwner} COLLATE NOCASE OR owner=${req.notebookOwner} COLLATE NOCASE)`))[0];}

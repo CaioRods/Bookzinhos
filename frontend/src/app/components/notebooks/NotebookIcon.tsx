@@ -1,0 +1,2 @@
+import { notebookIcon } from "../../lib/notebooks/icons";
+export function NotebookIcon({name,size=24}:{name:string;size?:number}){const icon=notebookIcon(name);return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{icon.paths.map((path,index)=><path key={index} d={path}/>)}</svg>;}

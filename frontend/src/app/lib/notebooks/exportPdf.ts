@@ -12,6 +12,7 @@ import monoRegular from "../../../assets/epub-fonts/DejaVuSansMono.ttf?url";
 import monoBold from "../../../assets/epub-fonts/DejaVuSansMono-Bold.ttf?url";
 import monoItalic from "../../../assets/epub-fonts/DejaVuSansMono-Oblique.ttf?url";
 import monoBoldItalic from "../../../assets/epub-fonts/DejaVuSansMono-BoldOblique.ttf?url";
+import { notebookIcon } from "./icons";
 import { imageData } from "./images";
 import { coverInk, paperColor, strokePath, wrapText, type Notebook, type NotebookPage } from "./model";
 const ink=(hex:string)=>rgb(parseInt(hex.slice(1,3),16)/255,parseInt(hex.slice(3,5),16)/255,parseInt(hex.slice(5,7),16)/255);
@@ -23,7 +24,7 @@ export async function exportNotebookPdf(notebook:Notebook,pages:NotebookPage[]|A
  const fonts=await Promise.all([fontFor("serif",0),fontFor("serif",1)]);
  const clean=(value:string,font:PDFFont)=>{const chars=new Set(font.getCharacterSet());return [...value].map(char=>chars.has(char.codePointAt(0)!)?char:"□").join("");};
  const embed=async(src:string)=>{const image=await imageData(src,undefined,1800,"auto-pdf");return image.src.startsWith("data:image/png")?pdf.embedPng(image.src):pdf.embedJpg(image.src);};
- if(includeCover){const titleInk=coverInk(notebook.color)==="#263c35"?"#263c35":notebook.color,coverHeight=800*720/520,cover=pdf.addPage([800,coverHeight]);cover.drawRectangle({x:0,y:0,width:800,height:coverHeight,color:ink(notebook.color)});if(notebook.image){const image=await embed(notebook.image);cover.drawImage(image,{x:0,y:0,width:800,height:coverHeight});}cover.drawRectangle({x:65,y:400,width:670,height:260,color:rgb(1,.99,.96),opacity:.92});const name=clean(notebook.name,fonts[1]);wrapText(name,590,38,s=>fonts[1].widthOfTextAtSize(s,38)).slice(0,4).forEach((line,i)=>cover.drawText(line,{x:105,y:580-i*50,size:38,font:fonts[1],color:ink(titleInk)}));cover.drawText('BOOKZINHOS  /  ANOTAÇÕES',{x:105,y:440,size:14,font:fonts[0],color:ink(titleInk)});}
+ if(includeCover){const titleInk=coverInk(notebook.color)==="#263c35"?"#263c35":notebook.color,coverHeight=800*720/520,cover=pdf.addPage([800,coverHeight]);cover.drawRectangle({x:0,y:0,width:800,height:coverHeight,color:ink(notebook.color)});if(notebook.image){const image=await embed(notebook.image);cover.drawImage(image,{x:0,y:0,width:800,height:coverHeight});}cover.drawRectangle({x:65,y:400,width:670,height:260,color:rgb(1,.99,.96),opacity:.92});for(const path of notebookIcon(notebook.icon).paths)cover.drawSvgPath(path,{x:380,y:650,scale:1.7,borderColor:ink(titleInk),borderWidth:1});const name=clean(notebook.name,fonts[1]);wrapText(name,590,38,s=>fonts[1].widthOfTextAtSize(s,38)).slice(0,4).forEach((line,i)=>cover.drawText(line,{x:105,y:580-i*50,size:38,font:fonts[1],color:ink(titleInk)}));cover.drawText('BOOKZINHOS  /  ANOTAÇÕES',{x:105,y:440,size:14,font:fonts[0],color:ink(titleInk)});}
  const images=new Map<string,any>();
  let index=0;
  for await(const source of pages){
