@@ -1,3 +1,5 @@
+import { useCropSurfaceSize } from "../lib/useCropSurfaceSize";
+import { ThemeProfilePreview } from "./ThemeProfilePreview";
 import { useProfileBannerSize } from "../lib/useProfileBannerSize";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, BookOpen, Check, Pencil, Plus, Trash2 } from "lucide-react";
@@ -19,12 +21,14 @@ export function Scenery({ scene, className = "", surface = "profile" }: { scene:
   if (theme.id === "none") return null;
   return <ThemeImage theme={theme} crop={surface === "sidebar" ? theme.sidebar : theme.profile} className={className} />;
 }
+const DEFAULT_SIDEBAR_PREVIEW = { width: 231, height: 606 };
 const DEFAULT_PROFILE_PREVIEW = { width: 1400, height: 420 };
 export function ScenePicker() {
   const [settings, update] = useSettings();
   useEffect(()=>{const open=()=>setOpen(true);window.addEventListener("mybooks:open-personalization",open);return()=>window.removeEventListener("mybooks:open-personalization",open)},[]);
   const [books, setBooks] = useState<Book[]>([]), [open, setOpen] = useState(false);
   const profileSize = useProfileBannerSize(open) || DEFAULT_PROFILE_PREVIEW;
+  const sidebarSize = useCropSurfaceSize("sidebar", open) || DEFAULT_SIDEBAR_PREVIEW;
   useEffect(() => { if (!open) return; let alive = true; fetchBooks().then(value => { if (alive) setBooks(value); }).catch(() => {}); return () => { alive = false; }; }, [open]);
   const { themes, error, upsert, remove } = useThemeCatalog();
   const [editing, setEditing] = useState<SceneTheme | null | undefined>(undefined), [deleting, setDeleting] = useState<SceneTheme | null>(null), [busy, setBusy] = useState(false);
@@ -42,7 +46,7 @@ export function ScenePicker() {
           <button className="mb-btn mb-btn-ghost mb-theme-back" onClick={() => setSelectedGroup(null)}><ArrowLeft size={16}/> Todos os livros</button>
           <h3 className="mb-theme-group-title">{group.title}</h3>
           <div className="mb-theme-banner-grid">{group.themes.map(theme => <article className="mb-theme-banner-card" key={theme.id}>
-            <button data-banner-src={theme.imageUrl} data-banner-name={theme.name} className="mb-theme-banner" style={{aspectRatio:`${profileSize.width} / ${profileSize.height}`}} onClick={() => update({ scene: theme.id as SceneId })} aria-label={`Usar tema ${theme.name}`} aria-pressed={settings.scene === theme.id}><ThemeImage theme={theme} crop={theme.profile} referenceSize={profileSize} lazy/>{settings.scene === theme.id && <span className="mb-theme-check"><Check size={15}/> Selecionado</span>}</button>
+            <button data-banner-src={theme.imageUrl} data-banner-name={theme.name} className="mb-theme-banner" onClick={() => update({ scene: theme.id as SceneId })} aria-label={`Usar tema ${theme.name}`} aria-pressed={settings.scene === theme.id}><ThemeProfilePreview theme={theme} profileSize={profileSize} sidebarSize={sidebarSize}/>{settings.scene === theme.id && <span className="mb-theme-check"><Check size={15}/> Selecionado</span>}</button>
             <h4>{theme.name}</h4><footer><small>{theme.scope === "personal" ? "Pessoal" : "Sistema"}</small>{member && <button className="mb-btn mb-btn-ghost mb-btn-sm" aria-label={`Editar tema ${theme.name}`} onClick={() => setEditing(theme)}><Pencil size={13}/>{admin || theme.scope === "personal" ? "Editar" : "Personalizar"}</button>}{(theme.scope === "personal" || (admin && theme.updatedAt)) && <button className="mb-btn mb-btn-ghost mb-btn-sm" aria-label={`Excluir ou restaurar tema ${theme.name}`} onClick={() => setDeleting(theme)}><Trash2 size={13}/></button>}</footer>
           </article>)}</div>
         </> : <div className="mb-theme-book-grid">{groups.map(entry => <button className="mb-theme-book-card" key={entry.id} onClick={() => setSelectedGroup(entry.id)}>

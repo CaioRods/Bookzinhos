@@ -7,7 +7,7 @@ const { update } = vi.hoisted(() => ({ update: vi.fn() }));
 vi.mock("../lib/settings", () => ({ useSettings: () => [{ scene: "one" }, update] }));
 vi.mock("../lib/session", () => ({ getUsername: () => "ana", isAdmin: () => false }));
 vi.mock("../lib/api", () => ({ fetchBooks: async () => [{ id: "book1", title: "O Povo do Ar", coverImagePath: "/cover.jpg" }] }));
-vi.mock("../lib/themeCatalog", () => ({ DEFAULT_THEMES: [], useThemeCatalog: () => ({ themes: [{ id: "one", name: "Jardim", scope: "system", reference: { bookId: "book1" } }, { id: "two", name: "Entardecer", scope: "system", reference: { bookId: "book1" } }], upsert: vi.fn(), remove: vi.fn() }) }));
+vi.mock("../lib/themeCatalog", () => ({ DEFAULT_THEMES: [], useThemeCatalog: () => ({ themes: [{ id: "one", name: "Jardim", scope: "system", mainColor: "#456789", profile: { x: 25, y: 40, zoom: 1.5 }, sidebar: { x: 80, y: 60, zoom: 2 }, sidebarOpacity: .6, reference: { bookId: "book1" } }, { id: "two", name: "Entardecer", scope: "system", mainColor: "#456789", profile: { x: 25, y: 40, zoom: 1.5 }, sidebar: { x: 80, y: 60, zoom: 2 }, sidebarOpacity: .6, reference: { bookId: "book1" } }], upsert: vi.fn(), remove: vi.fn() }) }));
 vi.mock("./ThemeImage", () => ({ ThemeImage: () => <svg data-testid="banner"/> }));
 vi.mock("./ThemeEditor", () => ({ ThemeEditor: () => null }));
 afterEach(cleanup);
@@ -19,6 +19,9 @@ it("opens only on request, groups themes behind book covers and keeps names belo
   fireEvent.click(await within(dialog).findByRole("button", { name: "O Povo do Ar 2 temas disponíveis" }));
   const banner = within(dialog).getByRole("button", { name: "Usar tema Entardecer" });
   expect(banner).not.toHaveTextContent("Entardecer");
+  expect(within(banner).getAllByTestId("banner")).toHaveLength(2);
+  expect(banner.querySelector(".mb-theme-profile-preview")).toHaveStyle({ "--primary": "#456789" });
+  expect(banner.querySelector(".mb-theme-preview-sidebar-art .mb-crop-image-layer")).toHaveStyle({ opacity: "0.6" });
   expect(within(dialog).getByRole("heading", { name: "Entardecer" })).toBeInTheDocument();
   fireEvent.click(banner); expect(update).toHaveBeenCalledWith({ scene: "two" });
   fireEvent.click(within(dialog).getByRole("button", { name: "Todos os livros" }));
