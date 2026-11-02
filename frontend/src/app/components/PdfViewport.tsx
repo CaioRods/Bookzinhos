@@ -4,16 +4,16 @@ import { zoomPdfCamera, type PdfCamera } from "../lib/pdfCamera";
 import { clampPdfZoom } from "../lib/pdfZoom";
 
 /** A stable camera for an entire spread. Page changes replace only its children. */
-export function PdfViewport({ zoom, baseZoom = 1, offsetX = 0, offsetY = 0, disabled = false, smoothZoom = false, onZoom, children }: {
-  zoom: number; baseZoom?: number; offsetX?: number; offsetY?: number; disabled?: boolean; smoothZoom?: boolean;
+export function PdfViewport({ zoom, baseZoom = 1, offsetX = 0, offsetY = 0, disabled = false, movementLocked = false, smoothZoom = false, onZoom, children }: {
+  zoom: number; baseZoom?: number; offsetX?: number; offsetY?: number; disabled?: boolean; movementLocked?: boolean; smoothZoom?: boolean;
   onZoom: (zoom: number) => void; children: ReactNode;
 }) {
   const surfaceRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const camera = useRef<PdfCamera>({ zoom: clampPdfZoom(zoom), x: 0, y: 0 });
   const cancelWheel = useRef(() => {});
-  const settings = useRef({ baseZoom, offsetX, offsetY, onZoom, smoothZoom });
-  settings.current = { baseZoom, offsetX, offsetY, onZoom, smoothZoom };
+  const settings = useRef({ baseZoom, offsetX, offsetY, onZoom, smoothZoom, movementLocked });
+  settings.current = { baseZoom, offsetX, offsetY, onZoom, smoothZoom, movementLocked };
   const paint = () => {
     const element = contentRef.current;
     if (!element) return;
@@ -27,8 +27,9 @@ export function PdfViewport({ zoom, baseZoom = 1, offsetX = 0, offsetY = 0, disa
   // A toolbar/keyboard zoom is centred on the viewport; gestures already supplied their anchor.
   useLayoutEffect(() => {
     if (camera.current.zoom !== zoom) { cancelWheel.current(); camera.current = zoomPdfCamera(camera.current, zoom, { x: 0, y: 0 }); }
+    if (movementLocked) { cancelWheel.current(); camera.current = { ...camera.current, x: 0, y: 0 }; }
     paint();
-  }, [zoom, baseZoom, offsetX, offsetY]);
+  }, [zoom, baseZoom, offsetX, offsetY, movementLocked]);
   useLayoutEffect(() => {
     const surface = surfaceRef.current!;
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -64,7 +65,7 @@ export function PdfViewport({ zoom, baseZoom = 1, offsetX = 0, offsetY = 0, disa
       event.preventDefault();
       interaction(true);
       const delta = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? surface.clientHeight : 1);
-      wheelPoint = point(event.clientX, event.clientY);
+      wheelPoint = settings.current.movementLocked ? { x: 0, y: 0 } : point(event.clientX, event.clientY);
       const target = clampPdfZoom(animation.target * Math.exp(-delta * 0.003));
       clearTimeout(timer); timer = undefined;
       if (settings.current.smoothZoom) animation.start(target);
@@ -76,6 +77,7 @@ export function PdfViewport({ zoom, baseZoom = 1, offsetX = 0, offsetY = 0, disa
       suppressUntil = Date.now() + 400;
     };
     const down = (event: PointerEvent) => {
+      if (settings.current.movementLocked) return;
       if (event.pointerType !== "mouse" && event.pointerType !== "pen") return;
       if (event.button !== 0) return;
       event.preventDefault();
@@ -85,7 +87,7 @@ export function PdfViewport({ zoom, baseZoom = 1, offsetX = 0, offsetY = 0, disa
       surface.setPointerCapture(event.pointerId); surface.style.cursor = "grabbing";
     };
     const move = (event: PointerEvent) => {
-      if (!drag || drag.id !== event.pointerId) return;
+      if (settings.current.movementLocked || !drag || drag.id !== event.pointerId) return;
       const dx = event.clientX - drag.x, dy = event.clientY - drag.y;
       camera.current = { ...drag.camera, x: drag.camera.x + dx, y: drag.camera.y + dy };
       schedulePaint();
@@ -98,20 +100,20 @@ export function PdfViewport({ zoom, baseZoom = 1, offsetX = 0, offsetY = 0, disa
     };
     const startTouch = (event: TouchEvent) => {
       if (event.touches.length > 2) { touch = null; interaction(false); return; }
-      if (!event.touches.length) return;
+      if (!event.touches.length || (settings.current.movementLocked && event.touches.length === 1)) return;
       interruptWheel();
       interaction(true);
       touch = { ...touchPosition(event.touches), camera: { ...camera.current } };
     };
     const moveTouch = (event: TouchEvent) => {
-      if (!touch || event.touches.length > 2 || !event.touches.length) return;
+      if ((settings.current.movementLocked && event.touches.length === 1) || !touch || event.touches.length > 2 || !event.touches.length) return;
       event.preventDefault();
       const next = touchPosition(event.touches);
       const original = touch.camera;
       camera.current = touch.distance && next.distance
-        ? zoomPdfCamera(original, original.zoom * next.distance / touch.distance, point(touch.x, touch.y))
+        ? zoomPdfCamera(original, original.zoom * next.distance / touch.distance, settings.current.movementLocked ? { x: 0, y: 0 } : point(touch.x, touch.y))
         : { ...original };
-      camera.current.x += next.x - touch.x; camera.current.y += next.y - touch.y;
+      if (!settings.current.movementLocked) { camera.current.x += next.x - touch.x; camera.current.y += next.y - touch.y; }
       schedulePaint(); suppressUntil = Date.now() + 400;
     };
     const endTouch = (event: TouchEvent) => {
@@ -139,7 +141,7 @@ export function PdfViewport({ zoom, baseZoom = 1, offsetX = 0, offsetY = 0, disa
       surface.removeEventListener("click", click, true); window.removeEventListener("blur", blur);
     };
   }, []);
-  return <div ref={surfaceRef} data-pdf-camera className="h-full w-full overflow-hidden relative" style={{ touchAction: "none", cursor: "grab", overscrollBehavior: "contain", pointerEvents: disabled ? "none" : undefined }}>
+  return <div ref={surfaceRef} data-pdf-camera data-movement-locked={movementLocked} className="h-full w-full overflow-hidden relative" style={{ touchAction: "none", cursor: movementLocked ? "default" : "grab", overscrollBehavior: "contain", pointerEvents: disabled ? "none" : undefined }}>
     <div ref={contentRef} data-pdf-content style={{ position: "absolute", left: "50%", top: "50%", width: "max-content", willChange: "transform" }}>{children}</div>
   </div>;
 }

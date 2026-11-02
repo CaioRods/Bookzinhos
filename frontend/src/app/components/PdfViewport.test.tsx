@@ -57,3 +57,23 @@ it("smooths wheel zoom while keeping the cursor anchored at every frame and comm
   expect(onZoom).toHaveBeenCalledExactlyOnceWith(Math.exp(0.3));
   expect(surface.dataset.pdfInteracting).toBe("false");
 });
+it("locks page movement without swallowing the swipe and restores panning when unlocked", () => {
+  const onZoom = vi.fn();
+  const view = render(<PdfViewport zoom={1} movementLocked onZoom={onZoom}>Page</PdfViewport>);
+  const surface = view.container.querySelector<HTMLElement>("[data-pdf-camera]")!;
+  const content = view.container.querySelector<HTMLElement>("[data-pdf-content]")!;
+  surface.setPointerCapture = vi.fn();
+  const touch = (type: string, x: number) => {
+    const event = new Event(type, { bubbles: true, cancelable: true });
+    Object.assign(event, { touches: type === "touchend" ? [] : [{ clientX: x, clientY: 100 }], changedTouches: [{ clientX: x, clientY: 100 }] });
+    surface.dispatchEvent(event);
+    return event;
+  };
+  act(() => { touch("touchstart", 200); const move = touch("touchmove", 60); expect(move.defaultPrevented).toBe(false); touch("touchend", 60); vi.runOnlyPendingTimers(); });
+  expect(content.dataset.pdfPanX).toBe("0");
+  view.rerender(<PdfViewport zoom={1} movementLocked={false} onZoom={onZoom}>Page</PdfViewport>);
+  act(() => { touch("touchstart", 200); touch("touchmove", 60); touch("touchend", 60); vi.runOnlyPendingTimers(); });
+  expect(content.dataset.pdfPanX).toBe("-140");
+  view.rerender(<PdfViewport zoom={1} movementLocked onZoom={onZoom}>Page</PdfViewport>);
+  expect(content.dataset.pdfPanX).toBe("0");
+});

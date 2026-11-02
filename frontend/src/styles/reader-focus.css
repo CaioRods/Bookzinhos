@@ -49,3 +49,9 @@
 @layer components {
   .mb-reader .mb-reader-controls[data-reader-controls-theme=dark] { --foreground:#f6f1f7; --text:#f6f1f7; --text-2:#d0c7d4; --text-3:#c1b6c7; --surface:#29232d; --surface-2:#403645; --line:#625369; --primary:#dbc4d5; --primary-soft:#403645; --primary-foreground:#29232d; --ring:#dbc4d566; }
 }
+
+@layer components {
+  .mb-reader-quick-actions { position:absolute; z-index:35; right:22px; bottom:calc(env(safe-area-inset-bottom) + 22px); display:flex; gap:8px; }
+  .show-chrome .mb-reader-quick-actions { bottom:calc(env(safe-area-inset-bottom) + 140px); }
+  .mb-reader-quick-actions .mb-reader-chrome-toggle { position:static; }
+}

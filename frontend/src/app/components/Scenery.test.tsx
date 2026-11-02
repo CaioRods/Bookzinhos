@@ -1,9 +1,12 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within, waitFor } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
+import type { Book } from "../lib/types";
 import { ScenePicker } from "./Scenery";
-const { update } = vi.hoisted(() => ({ update: vi.fn() }));
+const { update, saveTheme } = vi.hoisted(() => ({ update: vi.fn(), saveTheme: vi.fn().mockResolvedValue({}) }));
+vi.mock("../lib/appearanceApi", () => ({ saveProfileTheme: saveTheme, deleteTheme: vi.fn() }));
+vi.mock("../lib/authGate", () => ({ requireAuth: () => true }));
 vi.mock("../lib/settings", () => ({ useSettings: () => [{ scene: "one" }, update] }));
 vi.mock("../lib/session", () => ({ getUsername: () => "ana", isAdmin: () => false }));
 vi.mock("../lib/api", () => ({ fetchBooks: async () => [{ id: "book1", title: "O Povo do Ar", coverImagePath: "/cover.jpg" }] }));
@@ -37,4 +40,18 @@ it("opens the current theme editor directly from the profile event", () => {
   render(<ScenePicker/>);
   act(() => window.dispatchEvent(new Event("mybooks:edit-current-theme")));
   expect(screen.getByRole("dialog", { name: "Editar Jardim" })).toBeInTheDocument();
+});
+
+it("only offers linked book themes and persists the selected profile theme", async () => {
+  update.mockClear(); saveTheme.mockClear();
+  const { rerender } = render(<ScenePicker book={{ id: "unlinked", title: "Sem tema" } as Book}/>);
+  expect(screen.queryByRole("button", { name: "Temas deste livro" })).not.toBeInTheDocument();
+  rerender(<ScenePicker book={{ id: "book1", title: "O Povo do Ar" } as Book}/>);
+  fireEvent.click(screen.getByRole("button", { name: "Temas deste livro" }));
+  const modal = screen.getByRole("dialog", { name: "Temas de O Povo do Ar" });
+  expect(within(modal).queryByRole("button", { name: "Todos os livros" })).not.toBeInTheDocument();
+  fireEvent.click(within(modal).getByRole("button", { name: "Usar tema Entardecer" }));
+  await waitFor(() => expect(saveTheme).toHaveBeenCalledWith("two"));
+  await waitFor(() => expect(update).toHaveBeenCalledWith({ scene: "two" }));
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 });

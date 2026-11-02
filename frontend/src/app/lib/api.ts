@@ -443,7 +443,7 @@ export function loginWithGoogle(credential: string): Promise<UserProfile & { isN
   return request<UserProfile & { isNew?: boolean }>("POST", "/auth/google", { credential });
 }
 
-export async function updateProfile(data: { bio: string; avatar: string; shelf: string[]; displayName?: string; handle?: string; favoriteGenres?: string[]; instagram?: string; tiktok?: string }): Promise<UserProfile> {
+export async function updateProfile(data: { bio?: string; avatar: string; shelf?: string[]; displayName?: string; handle?: string; favoriteGenres?: string[]; instagram?: string; tiktok?: string }): Promise<UserProfile> {
   const res = await request<UserProfile>("PUT", "/auth/me", data);
   invalidate("/users", "/home");
   return res;
