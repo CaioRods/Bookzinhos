@@ -621,3 +621,11 @@
     }
   }
 }
+
+@layer components {
+  .mb-profile-scene-actions { position:absolute; right:52px; bottom:44px; display:flex; gap:8px; }
+  .mb-profile-scene-actions .mb-profile-change-scene { position:static; max-width:none; }
+  @media(max-width:1199px) { .mb-profile-scene-actions { right:30px; bottom:32px; } }
+  @media(max-width:767px) { .mb-profile-scene-actions { right:20px; bottom:35px; } }
+  @media(max-width:479px) { .mb-profile-scene-actions { right:15px; } }
+}

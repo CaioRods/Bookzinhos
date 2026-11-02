@@ -129,6 +129,9 @@ export interface UserProfile {
 }
 
 export interface CharacterAvatar {
+  scope?: "personal" | "system";
+  owner?: string | null;
+  publicationStatus?: "none" | "pending" | "approved" | "rejected";
   id: string;
   name: string;
   bookIds: string[];

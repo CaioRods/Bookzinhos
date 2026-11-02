@@ -161,6 +161,7 @@ export function Profile() {
     <div className="mb-profile mb-profile-cinematic">
       <ProfilePortrait profile={profile} theme={profileTheme} progression={progression} own
         onEdit={()=>setIsEditing(true)}
+        onEditScene={()=>window.dispatchEvent(new Event("mybooks:edit-current-theme"))}
         onChangeScene={()=>{window.dispatchEvent(new Event("mybooks:open-personalization"));}}
         actions={<button onClick={()=>setIsEditing(true)} className="mb-btn"><Pencil size={16}/>Editar perfil</button>} />
       <div className="mb-profile-cinematic-body">
@@ -309,7 +310,7 @@ export function Profile() {
         </div>
       </Modal>
 
-      <Modal open={isChoosingCharacter} onClose={() => setIsChoosingCharacter(false)} title="Escolha um personagem" description="Fotos adicionadas pela curadoria do myBooks." size="lg"><CharacterPicker value={draftAvatar} onChange={(imageUrl) => { setDraftAvatar(imageUrl); setIsChoosingCharacter(false); }} /></Modal>
+      <Modal open={isChoosingCharacter} onClose={() => setIsChoosingCharacter(false)} title="Escolha um personagem" description="Escolha um avatar da comunidade ou crie um só seu." size="lg"><CharacterPicker value={draftAvatar} onChange={(imageUrl) => { setDraftAvatar(imageUrl); setIsChoosingCharacter(false); }} /></Modal>
       <Modal open={isChoosingEmote} onClose={() => setIsChoosingEmote(false)} title="Escolha um emote" description="Um símbolo simples para representar você."><div className="grid grid-cols-6 gap-2">{AVATARS.map((emote) => <button type="button" key={emote} onClick={() => { setDraftAvatar(emote); setIsChoosingEmote(false); }} className={`aspect-square rounded-xl text-2xl ${draftAvatar === emote ? "bg-[var(--primary-soft)] ring-1 ring-[var(--primary)]" : "bg-[var(--surface-2)] hover:bg-[var(--surface-3)]"}`}>{emote}</button>)}</div></Modal>
 
       {/* ── Organizar estante ──────────────────────────────────────────────── */}

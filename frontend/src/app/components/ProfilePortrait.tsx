@@ -24,6 +24,7 @@ export function ProfilePortrait({
   actions,
   onEdit,
   onChangeScene,
+  onEditScene,
 }: {
   profile: UserProfile;
   theme: SceneTheme;
@@ -32,6 +33,7 @@ export function ProfilePortrait({
   actions?: ReactNode;
   onEdit?: () => void;
   onChangeScene?: () => void;
+  onEditScene?: () => void;
 }) {
   const illustrated = theme.id !== "none" && !!theme.imageUrl;
   return (
@@ -127,10 +129,10 @@ export function ProfilePortrait({
         nos levam mais longe.”
       </blockquote>
       {own && onChangeScene && (
-        <button className="mb-profile-change-scene" onClick={onChangeScene}>
+        <div className="mb-profile-scene-actions"><button className="mb-profile-change-scene" onClick={onChangeScene}>
           <Camera size={17} />
           Alterar cenário
-        </button>
+        </button>{onEditScene && <button className="mb-profile-change-scene" aria-label="Editar cenário atual" title="Editar cenário atual" onClick={onEditScene}><Pencil size={17}/></button>}</div>
       )}
     </header>
   );

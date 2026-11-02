@@ -29,7 +29,7 @@ afterEach(cleanup);
 describe("shared profile portrait", () => {
   it("keeps the owner's editing actions connected", () => {
     const edit = vi.fn(),
-      scene = vi.fn();
+      scene = vi.fn(), editScene = vi.fn();
     render(
       <ProfilePortrait
         profile={profile}
@@ -37,6 +37,7 @@ describe("shared profile portrait", () => {
         own
         progression={progression}
         onEdit={edit}
+        onEditScene={editScene}
         onChangeScene={scene}
       />,
     );
@@ -46,6 +47,8 @@ describe("shared profile portrait", () => {
     fireEvent.click(screen.getByRole("button", { name: "Alterar cenário" }));
     expect(edit).toHaveBeenCalledOnce();
     expect(scene).toHaveBeenCalledOnce();
+    fireEvent.click(screen.getByRole("button", { name: "Editar cenário atual" }));
+    expect(editScene).toHaveBeenCalledOnce();
     expect(screen.getByRole("progressbar")).toBeTruthy();
   });
   it("never shows editing actions or private XP on a public portrait", () => {

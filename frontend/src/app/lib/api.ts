@@ -454,10 +454,12 @@ export function fetchCharacters(bookId?: string, force = false): Promise<Charact
   return cachedGet<CharacterCatalog>(`/characters${query}`, force ? 0 : 60000);
 }
 
-export async function createCharacter(data: { name: string; characterId?: string; bookIds: string[]; image?: Blob }): Promise<CharacterAvatar> {
+export async function createCharacter(data: { name: string; characterId?: string; scope?: "personal" | "system"; requestPublication?: boolean; bookIds: string[]; image?: Blob }): Promise<CharacterAvatar> {
   const form = new FormData();
   form.set("name", data.name);
   form.set("characterId", data.characterId || "");
+  if (data.scope) form.set("scope", data.scope);
+  form.set("requestPublication", String(!!data.requestPublication));
   form.set("bookIds", JSON.stringify(data.bookIds));
   if (data.image) form.set("image", data.image, "avatar.webp");
   const result = await upload<CharacterAvatar>("POST", "/characters", form);
@@ -798,3 +800,13 @@ export async function deleteChapter(bookId: string, startPage: number) {
 if (typeof window !== "undefined") window.addEventListener("mybooks:synced", () => invalidate());
 
 export function markReaderTutorialSeen() { return request<{ ok: true }>("POST", "/reader/tutorial-seen"); }
+
+export const fetchCharacterSubmissions = () => request<CharacterAvatar[]>("GET", "/admin/character-submissions");
+export async function submitCharacter(id: string) {
+  await request("POST", `/characters/${encodeURIComponent(id)}/submissions`, {});
+  invalidate("/characters");
+}
+export async function decideCharacter(id: string, decision: "approved" | "rejected") {
+  await request("POST", `/admin/character-submissions/${encodeURIComponent(id)}/decision`, { decision });
+  invalidate("/characters");
+}
