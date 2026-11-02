@@ -7,7 +7,7 @@ import { SeriesShelf } from "../components/SeriesShelf";
 import { BookGallery } from "../components/Community";
 import { EditBookModal } from "../components/EditBookModal";
 import { BookAppearanceEditor } from "../components/BookAppearanceEditor";
-import { ThemeImage } from "../components/ThemeImage";
+import { CropArtwork } from "../components/CropArtwork";
 import { accentVariables, colorToHex, DEFAULT_BOOK_APPEARANCE, type SceneTheme } from "../lib/appearance";
 import { useSettings } from "../lib/settings";
 import { useCallback, useEffect, useState } from "react";
@@ -169,7 +169,7 @@ export function BookDetails() {
     <div className="mb-book-details mb-reference-details mb-book-personalized" style={pageColors as React.CSSProperties}>
 
       <nav className="mb-book-breadcrumb" aria-label="Caminho de navegação"><button aria-label="Voltar" onClick={() => navigate(-1)}><ArrowLeft size={20} /></button><Link to="/library">Biblioteca</Link><ChevronRight size={15} /><span>{book.title}</span>{isAdmin() && !offline && <button className="mb-book-appearance-trigger" aria-label="Personalizar aparência do livro" onClick={() => setAppearanceEditor(true)}><Palette size={17} /> Aparência</button>}</nav>
-      <section data-banner-src={artwork.imageUrl} data-banner-name={book.title} className="mb-book-banner" style={{backgroundColor: appearance.mainColor || autoColor}}><div style={{ filter: `blur(${appearance.blur}px)`, opacity: appearance.opacity }}><ThemeImage theme={artwork} crop={appearance.crop}/></div><span className="mb-book-banner-label">{book.seriesName || "CADA LIVRO, UM NOVO UNIVERSO"}</span>{isAdmin()&&!offline&&<button className="mb-btn" onClick={()=>setAppearanceEditor(true)}><Palette size={16}/> Editar banner</button>}</section>
+      <section data-banner-src={artwork.imageUrl} data-banner-name={book.title} className="mb-book-banner" style={{backgroundColor: appearance.mainColor || autoColor}}><CropArtwork theme={artwork} crop={appearance.crop} surface="banner" blur={appearance.blur} opacity={appearance.opacity}/><span className="mb-book-banner-label">{book.seriesName || "CADA LIVRO, UM NOVO UNIVERSO"}</span>{isAdmin()&&!offline&&<button className="mb-btn" onClick={()=>setAppearanceEditor(true)}><Palette size={16}/> Editar banner</button>}</section>
       <div className="mb-detail-columns"><div className="min-w-0">
         <section className="mb-reference-book-hero">
           <div className="mb-reference-book-cover" data-book-cover={book.id}>{cover ? <img src={cover} alt={`Capa de ${book.title}`} /> : <Book3D book={book} width={240} still />}</div>

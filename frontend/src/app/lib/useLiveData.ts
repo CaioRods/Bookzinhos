@@ -16,7 +16,7 @@ export function useLiveData<T>(
   const { intervalMs = 30000, focusThrottleMs = 5000, enabled = true } = options;
 
   const [data, setStoredData] = useState<T | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(enabled);
   const [error, setError] = useState<Error | null>(null);
 
   const loaderRef = useRef(loader);
@@ -24,6 +24,9 @@ export function useLiveData<T>(
   const mountedRef = useRef(true);
   const lastLoadRef = useRef(0);
   const mutationVersionRef = useRef(0);
+  const generationRef = useRef(0);
+  const requestIdRef = useRef(0);
+  const inFlightRef = useRef<{ promise: Promise<void>; generation: number; version: number } | null>(null);
 
   // Uma mutação otimista invalida respostas de recargas iniciadas antes dela;
   // assim uma resposta atrasada nunca desfaz editar, excluir ou favoritar.
@@ -34,25 +37,40 @@ export function useLiveData<T>(
 
   const load = useCallback(async (force = false) => {
     if (!enabled) return;
-    lastLoadRef.current = Date.now();
+    const generation = generationRef.current;
     const versionAtStart = mutationVersionRef.current;
-    try {
-      const result = await loaderRef.current(force);
-      if (!mountedRef.current) return;
-      if (versionAtStart !== mutationVersionRef.current) return;
-      setStoredData(result);
-      setError(null);
-    } catch (err) {
-      if (!mountedRef.current) return;
-      setError(err instanceof Error ? err : new Error(String(err)));
-    } finally {
-      if (mountedRef.current) setIsLoading(false);
-    }
+    const running = inFlightRef.current;
+    if (running?.generation === generation && running.version === versionAtStart) return running.promise;
+    lastLoadRef.current = Date.now();
+    const requestId = ++requestIdRef.current;
+    const isCurrent = () => mountedRef.current && generation === generationRef.current && requestId === requestIdRef.current;
+    const promise = (async () => {
+      try {
+        const result = await loaderRef.current(force);
+        if (!isCurrent()) return;
+        if (versionAtStart !== mutationVersionRef.current) return;
+        setStoredData(result);
+        setError(null);
+      } catch (err) {
+        if (!isCurrent() || versionAtStart !== mutationVersionRef.current) return;
+        setError(err instanceof Error ? err : new Error(String(err)));
+      }
+    })().finally(() => {
+      if (isCurrent()) {
+        inFlightRef.current = null;
+        setIsLoading(false);
+      }
+    });
+    inFlightRef.current = { promise, generation, version: versionAtStart };
+    return promise;
   }, [enabled]);
 
   useEffect(() => {
     mountedRef.current = true;
-    setIsLoading(true);
+    generationRef.current += 1;
+    setStoredData(null);
+    setError(null);
+    setIsLoading(enabled);
     load(false);
 
     if (!enabled) return () => { mountedRef.current = false; };
@@ -84,7 +102,7 @@ export function useLiveData<T>(
       window.removeEventListener("mybooks:synced", tick);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps);
+  }, [enabled, intervalMs, focusThrottleMs, ...deps]);
 
   return { data, isLoading, error, reload: () => load(true), setData };
 }

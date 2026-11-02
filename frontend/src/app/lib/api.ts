@@ -40,11 +40,15 @@ function cacheKey(path: string): string {
 export function invalidate(...fragments: string[]): void {
   if (fragments.length === 0) {
     cache.clear();
+    inFlight.clear();
     localStorage.removeItem(BOOKS_STORAGE_KEY);
     return;
   }
-  for (const key of [...cache.keys()]) {
-    if (fragments.some((f) => key.includes(f))) cache.delete(key);
+  for (const key of new Set([...cache.keys(), ...inFlight.keys()])) {
+    if (fragments.some((f) => key.includes(f))) {
+      cache.delete(key);
+      inFlight.delete(key);
+    }
   }
   if (fragments.some((fragment) => fragment.includes("/books"))) {
     localStorage.removeItem(BOOKS_STORAGE_KEY);
@@ -55,16 +59,17 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   const user = account();
   if (isOffline()) {
     if (method !== "GET") return queueMutation<T>(method, path, body);
-    const stored = await deviceResponse<T>(path);
+    const stored = await deviceResponse<T>(path, user);
     if (stored !== undefined) return stored;
     throw new Error("Este conteúdo precisa de internet.");
   }
   if (method === "GET" && typeof indexedDB !== "undefined" && /^\/(progress|saved|notes\/book)/.test(path) && (await pendingMutations()).length) {
-    const stored = await deviceResponse<T>(path); if (stored !== undefined) return stored;
+    const stored = await deviceResponse<T>(path, user); if (stored !== undefined) return stored;
   }
   if (method !== "GET" && typeof indexedDB !== "undefined" && (await pendingMutations()).some(item => item.path === path)) {
     const result = await queueMutation<T>(method, path, body); void synchronize(); return result;
   }
+  if (account() !== user) throw new Error("A conta mudou durante a requisição. Tente novamente.");
   const url = `${API_BASE_URL}${path}`;
 
   let res: Response;
@@ -76,13 +81,15 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   });
 
   } catch (error) {
+    if (account() !== user) throw new Error("A conta mudou durante a requisição. Tente novamente.");
     if (!(error instanceof TypeError) && navigator.onLine) throw error;
     connectionLost();
     if (method !== "GET") return queueMutation<T>(method, path, body);
-    const stored = await deviceResponse<T>(path); if (stored !== undefined) return stored;
+    const stored = await deviceResponse<T>(path, user); if (stored !== undefined) return stored;
     throw error;
   }
-  if (res.status === 404) return null as T;
+  if (account() !== user) throw new Error("A conta mudou durante a requisição. Tente novamente.");
+  if (res.status === 404 && method === "GET") return null as T;
   if (!res.ok) {
     if (res.status === 401 && !path.startsWith("/auth/")) {
       clearSession();
@@ -111,11 +118,11 @@ async function cachedGet<T>(path: string, ttl = DEFAULT_TTL): Promise<T> {
 
   const promise = request<T>("GET", path)
     .then((value) => {
-      cache.set(key, { value, at: Date.now() });
+      if (inFlight.get(key) === promise) cache.set(key, { value, at: Date.now() });
       return value;
     })
     .finally(() => {
-      inFlight.delete(key);
+      if (inFlight.get(key) === promise) inFlight.delete(key);
     });
 
   inFlight.set(key, promise);
@@ -125,11 +132,13 @@ async function cachedGet<T>(path: string, ttl = DEFAULT_TTL): Promise<T> {
 /** Upload multipart (arquivos) — nunca passa pelo cache. */
 async function upload<T>(method: string, path: string, form: FormData): Promise<T> {
   if (isOffline()) throw new Error("Conecte-se para enviar arquivos e validar suas permissões.");
+  const user = account();
   const res = await fetch(`${API_BASE_URL}${path}`, {
     method,
     credentials: "include",
     body: form,
   });
+  if (account() !== user) throw new Error("A conta mudou durante o envio. Tente novamente.");
   if (!res.ok) {
     if (res.status === 401 && !path.startsWith("/auth/")) {
       clearSession();
@@ -168,13 +177,15 @@ export function fetchHome(force = false): Promise<HomeData> {
 
 export function fetchBooks(force = false): Promise<Book[]> {
   if (isOffline()) return installedBooks();
+  const user = account();
+  const key = cacheKey("/books");
   if (!force) {
     try {
       localStorage.removeItem("mybooks:catalog:v1");
       const stored = JSON.parse(localStorage.getItem(BOOKS_STORAGE_KEY) || "null") as
-        | { at: number; books: Book[] }
+        | { at: number; books: Book[]; user: string }
         | null;
-      if (stored?.books && Date.now() - stored.at < BOOKS_STORAGE_TTL) {
+      if (stored?.user === user && Array.isArray(stored.books) && Date.now() - stored.at < BOOKS_STORAGE_TTL) {
         cache.set(cacheKey("/books"), { value: stored.books, at: Date.now() });
         return Promise.resolve(stored.books);
       }
@@ -184,7 +195,9 @@ export function fetchBooks(force = false): Promise<Book[]> {
   }
   return cachedGet<Book[]>("/books", force ? 0 : DEFAULT_TTL).then((books) => {
     try {
-      localStorage.setItem(BOOKS_STORAGE_KEY, JSON.stringify({ at: Date.now(), books }));
+      if (account() === user && cache.get(key)?.value === books && Array.isArray(books)) {
+        localStorage.setItem(BOOKS_STORAGE_KEY, JSON.stringify({ at: Date.now(), books, user }));
+      }
     } catch {
       /* Sem espaço: o cache em memória continua funcionando. */
     }

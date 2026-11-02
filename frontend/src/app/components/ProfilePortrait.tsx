@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import type { ProgressionSummary, UserProfile } from "../lib/types";
 import type { SceneTheme } from "../lib/appearance";
-import { ThemeImage } from "./ThemeImage";
+import { CropArtwork } from "./CropArtwork";
 import { Avatar } from "./Ui";
 import { ProfileProgressAvatar } from "./ProfileProgressAvatar";
 
@@ -43,10 +43,10 @@ export function ProfilePortrait({
     >
       {illustrated && (
         <div className="mb-profile-portrait-art">
-          <ThemeImage theme={theme} crop={theme.profile} />
+          <CropArtwork theme={theme} crop={theme.profile} surface="profile" />
         </div>
       )}
-      <div className="mb-profile-portrait-shade" />
+      {!illustrated && <div className="mb-profile-portrait-shade" />}
       <div className="mb-profile-portrait-content">
         <p className="mb-profile-portrait-kicker">
           {own ? "MEU PERFIL" : "UM LEITOR, MUITAS HISTÓRIAS"}

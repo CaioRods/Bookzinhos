@@ -4,12 +4,13 @@ import type { Booklist } from "../lib/booklists";
 import type { SceneTheme } from "../lib/appearance";
 import { ThemeImage } from "./ThemeImage";
 export const BOOKLIST_ICONS = { heart: Heart, sparkles: Sparkles, bookmark: Bookmark, castle: Castle, coffee: Coffee, zap: Zap, book: BookOpen, moon: Moon, flower: Flower2, library: Library };
+const FOLDER_SIZE = { width: 280, height: 300 };
 export function FolderArtwork({ list }: { list: Booklist }) {
   const artId = useId().replace(/:/g, "");
   const Icon = BOOKLIST_ICONS[list.icon as keyof typeof BOOKLIST_ICONS] || Heart;
   const theme: SceneTheme = { id: list.id, name: list.name, scope: "personal", imageUrl: list.imageUrl, width: list.imageWidth, height: list.imageHeight, mainColor: list.color, profile: list.crop, sidebar: list.crop, sidebarOpacity: 1 };
   return <div className={`mb-folder-art ${list.imageUrl ? "has-image" : ""}`} style={{ "--folder-color": list.color } as CSSProperties}>
-    {list.imageUrl && <ThemeImage theme={theme} crop={list.crop}/>}
+    {list.imageUrl && <ThemeImage theme={theme} crop={list.crop} referenceSize={FOLDER_SIZE}/>}
     <div className="mb-folder-glow"/><svg className="mb-folder-shape" viewBox="0 0 280 300" aria-hidden="true"><defs>
       <linearGradient id={`${artId}-back`} x1="0" y1="0" x2="1" y2="1"><stop stopColor={list.imageUrl ? "#ffffff" : list.color} stopOpacity={list.imageUrl ? .16 : .85}/><stop offset="1" stopColor={list.imageUrl ? "#ffffff" : list.color} stopOpacity={list.imageUrl ? .04 : .5}/></linearGradient>
       <linearGradient id={`${artId}-glass`} x1="0" y1="0" x2="1" y2=".35"><stop stopColor="#ffffff" stopOpacity={list.imageUrl ? .15 : .55}/><stop offset=".2" stopColor={list.imageUrl ? "#ffffff" : list.color} stopOpacity={list.imageUrl ? .05 : .5}/><stop offset=".75" stopColor={list.imageUrl ? "#ffffff" : list.color} stopOpacity={list.imageUrl ? .01 : .7}/><stop offset="1" stopColor="#ffffff" stopOpacity={list.imageUrl ? .13 : .65}/></linearGradient>

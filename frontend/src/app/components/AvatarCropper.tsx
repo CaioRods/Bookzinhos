@@ -1,10 +1,9 @@
-import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type WheelEvent } from "react";
-import { avatarSourceRect, cropToTransform, type Size } from "../lib/avatarCrop";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type WheelEvent } from "react";
+import { cropToTransform, type Size } from "../lib/avatarCrop";
+import { imageCropRect } from "../lib/imageCrop";
 
 type Crop = { x: number; y: number; zoom: number };
 const APERTURE = 240;
-const STAGE = 320;
-const INSET = (STAGE - APERTURE) / 2;
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
 
 export async function cropAvatar(source: string, x: number, y: number, zoom: number): Promise<Blob> {
@@ -13,7 +12,7 @@ export async function cropAvatar(source: string, x: number, y: number, zoom: num
   await image.decode();
   const sourceSize = { width: image.naturalWidth, height: image.naturalHeight };
   const viewport = { width: APERTURE, height: APERTURE };
-  const rect = avatarSourceRect(cropToTransform({ x, y, zoom }, sourceSize, viewport), sourceSize, viewport);
+  const rect = imageCropRect(sourceSize, viewport, { x, y, zoom });
   const canvas = document.createElement("canvas");
   canvas.width = 720;
   canvas.height = 720;
@@ -28,15 +27,27 @@ export async function cropAvatar(source: string, x: number, y: number, zoom: num
 export function AvatarCropper({ source, onChange }: { source: string; onChange: (crop: Crop) => void }) {
   const [crop, setCrop] = useState<Crop>({ x: 50, y: 50, zoom: 1 });
   const [imageSize, setImageSize] = useState<Size | null>(null);
+  const stage = useRef<HTMLDivElement>(null);
+  const [stageWidth, setStageWidth] = useState(320);
+  const aperture = stageWidth * .75;
+  const inset = stageWidth * .125;
+  useLayoutEffect(() => {
+    const element = stage.current;
+    if (!element) return;
+    const measure = () => { const width = element.getBoundingClientRect().width; if (width > 0) setStageWidth(width); };
+    measure();
+    const observer = new ResizeObserver(measure); observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
   const pointers = useRef(new Map<number, { x: number; y: number }>());
   const gesture = useRef<{ crop: Crop; x: number; y: number; distance: number } | null>(null);
 
   useEffect(() => onChange(crop), [crop, onChange]);
-  useEffect(() => { setCrop({ x: 50, y: 50, zoom: 1 }); }, [source]);
+  useEffect(() => { setCrop({ x: 50, y: 50, zoom: 1 }); setImageSize(null); }, [source]);
 
   const transform = useMemo(() => imageSize
-    ? cropToTransform(crop, imageSize, { width: APERTURE, height: APERTURE })
-    : null, [crop, imageSize]);
+    ? cropToTransform(crop, imageSize, { width: aperture, height: aperture })
+    : null, [crop, imageSize, aperture]);
 
   const beginGesture = (event: ReactPointerEvent<HTMLDivElement>) => {
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -60,9 +71,9 @@ export function AvatarCropper({ source, onChange }: { source: string; onChange: 
       setCrop((current) => ({ ...current, zoom: clamp(start.crop.zoom * distance / start.distance, 1, 4) }));
       return;
     }
-    const startTransform = cropToTransform(start.crop, imageSize, { width: APERTURE, height: APERTURE });
-    const travelX = Math.max(1, imageSize.width * startTransform.scale - APERTURE);
-    const travelY = Math.max(1, imageSize.height * startTransform.scale - APERTURE);
+    const startTransform = cropToTransform(start.crop, imageSize, { width: aperture, height: aperture });
+    const travelX = Math.max(1, imageSize.width * startTransform.scale - aperture);
+    const travelY = Math.max(1, imageSize.height * startTransform.scale - aperture);
     setCrop((current) => ({
       ...current,
       x: travelX <= 1 ? 50 : clamp(start.crop.x - (event.clientX - start.x) / travelX * 100, 0, 100),
@@ -85,6 +96,7 @@ export function AvatarCropper({ source, onChange }: { source: string; onChange: 
     <div className="mb-avatar-cropper">
       <p>Arraste para enquadrar. Use a pinça ou a roda do mouse para aproximar.</p>
       <div
+        ref={stage}
         className="mb-avatar-crop-stage"
         role="img"
         aria-label="Prévia interativa do recorte da foto de perfil"
@@ -115,7 +127,7 @@ export function AvatarCropper({ source, onChange }: { source: string; onChange: 
           style={transform ? {
             width: imageSize!.width * transform.scale,
             height: imageSize!.height * transform.scale,
-            transform: `translate3d(${INSET + transform.x}px, ${INSET + transform.y}px, 0)`,
+            transform: `translate3d(${inset + transform.x}px, ${inset + transform.y}px, 0)`,
           } : undefined}
         />
         <span className="mb-avatar-crop-mask" aria-hidden="true" />

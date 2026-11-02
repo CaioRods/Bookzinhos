@@ -32,8 +32,8 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 const authorRegistry = createAuthorRegistry({ db });
 const bookMetadata = createBookMetadata();
-const sessionStore = createSessionStore({ db });
 const sessionCookieOptions = cookieOptionsFromEnv(process.env);
+const sessionStore = createSessionStore({ db, ttlMs: sessionCookieOptions.maxAgeSeconds * 1000 });
 
 // ─── STORAGE ──────────────────────────────────────────────────────────────────
 let s3Client = null;
@@ -197,7 +197,7 @@ const booklists = require("./booklists")({ app, db, sql, currentUser, uploadFile
 const privacySupport = registerPrivacySupportRoutes({ app, db, sql, currentUser, requireAdmin });
 const progression = require("./progression-service").createProgressionService({ db, sql });
 const activityPrivacy = require("./recent-activity")({app,db,sql,requireUser,currentUser});
-const activity = require("./activity")({ app, db, sql, currentUser, progression });
+const activity = require("./activity")({ app, db, sql, currentUser, progression, requireReadableBook });
 const badges = require("./badges").createBadgeService({ db, sql });
 const progressionEvents = require("./progression-events").createProgressionEvents({ progression });
 require("./progression-routes")({ app, db, sql, currentUser, requireAdmin, progression, badges });
@@ -351,22 +351,28 @@ async function refreshBookRating(bookId) {
 
 /** Monta resenhas com autor, curtidas e respostas — sem N+1. */
 async function loadReviews({ bookId = null, username = null, limit = 100, me = null, activityAuthors }) {
-  let reviews;
+  if (activityAuthors && !activityAuthors.length) return [];
+  const admin = await isAdmin(me);
+  const conditions = ["(b.is_public = 1 OR b.uploaded_by = ? COLLATE NOCASE OR ? = 1)"];
+  const values = [me, Number(admin)];
   if (activityAuthors) {
-    if (!activityAuthors.length) return [];
-    reviews = await db.query({text:`SELECT * FROM book_reviews WHERE username COLLATE NOCASE IN (${activityAuthors.map(()=>'?').join(',')}) AND EXISTS(SELECT 1 FROM books b WHERE b.id=book_reviews.book_id AND b.is_public=1) ORDER BY created_at DESC LIMIT ?`,values:[...activityAuthors,limit]});
+    conditions.push(`r.username COLLATE NOCASE IN (${activityAuthors.map(() => '?').join(',')})`, "b.is_public = 1");
+    values.push(...activityAuthors);
   } else if (bookId) {
-    reviews = await db.query(sql`SELECT * FROM book_reviews WHERE book_id = ${bookId} ORDER BY created_at DESC LIMIT ${limit}`);
+    conditions.push("r.book_id = ?");
+    values.push(bookId);
   } else if (username) {
-    reviews = await db.query(sql`SELECT * FROM book_reviews WHERE username = ${username} COLLATE NOCASE ORDER BY created_at DESC LIMIT ${limit}`);
-  } else {
-    reviews = await db.query(sql`SELECT * FROM book_reviews ORDER BY created_at DESC LIMIT ${limit}`);
+    conditions.push("r.username = ? COLLATE NOCASE");
+    values.push(username);
   }
+  const reviews = await db.query({
+    text: `SELECT r.* FROM book_reviews r JOIN books b ON b.id = r.book_id WHERE ${conditions.join(' AND ')} ORDER BY r.created_at DESC LIMIT ?`,
+    values: [...values, limit],
+  });
   if (reviews.length === 0) return [];
 
   const ids = reviews.map((r) => Number(r.id));
   const idList = ids.join(",");
-  const authors = [...new Set(reviews.map((r) => String(r.username).toLowerCase()))];
 
   const [likeRows, myLikes, commentRows, userRows, bookRows] = await Promise.all([
     db.query({ text: `SELECT review_id, COUNT(*) as c FROM review_likes WHERE review_id IN (${idList}) GROUP BY review_id`, values: [] }),
@@ -374,10 +380,13 @@ async function loadReviews({ bookId = null, username = null, limit = 100, me = n
       ? db.query({ text: `SELECT review_id FROM review_likes WHERE review_id IN (${idList}) AND username = ? COLLATE NOCASE`, values: [me] })
       : Promise.resolve([]),
     db.query({ text: `SELECT * FROM review_comments WHERE review_id IN (${idList}) ORDER BY created_at ASC`, values: [] }),
-    db.query(sql`SELECT username, avatar, bio, is_admin FROM users`),
+    db.query({ text: `SELECT username, avatar, is_admin FROM users WHERE username COLLATE NOCASE IN (
+      SELECT username FROM book_reviews WHERE id IN (${idList})
+      UNION SELECT username FROM review_comments WHERE review_id IN (${idList})
+    )`, values: [] }),
     bookId
       ? Promise.resolve([])
-      : db.query(sql`SELECT id, title, author, cover_image_path, cover_color FROM books`),
+      : db.query({ text: `SELECT id, title, author, cover_image_path, cover_color FROM books WHERE id IN (SELECT book_id FROM book_reviews WHERE id IN (${idList}))`, values: [] }),
   ]);
 
   const likeCount = new Map(likeRows.map((r) => [Number(r.review_id), Number(r.c)]));
@@ -443,10 +452,12 @@ app.get("/integrations/books/openlibrary/:id", requireUser, metadataLimit, async
   catch (error) { res.status(502).json({ error: error.name === "TimeoutError" ? "A busca demorou demais." : error.message }); }
 });
 
-app.get("/books", async (_req, res) => {
+app.get("/books", async (req, res) => {
   try {
+    const me = currentUser(req);
+    const admin = await isAdmin(me);
     const [rows, stats] = await Promise.all([
-      db.query(sql`SELECT * FROM books ORDER BY added_at DESC`),
+      db.query(sql`SELECT * FROM books WHERE is_public = 1 OR uploaded_by = ${me} COLLATE NOCASE OR ${Number(admin)} = 1 ORDER BY added_at DESC`),
       loadBookStats(),
     ]);
     res.json(rows.map((r) => decorateBook(rowToBook(r), stats)));
@@ -474,6 +485,24 @@ app.get("/books/:id/cover-palette", coverPaletteLimit, async (req, res) => {
     res.json(await paletteRequests.get(key));
   } catch { res.status(502).json({error:"Não foi possível extrair a cor da capa."}); }
 });
+
+async function requireReadableBook(req, res, next) {
+  try {
+    const me = currentUser(req);
+    const id = req.params.bookId || req.params.id || req.body?.bookId;
+    const [book] = await db.query(sql`SELECT is_public, uploaded_by FROM books WHERE id = ${id || ''}`);
+    if (!book || (Number(book.is_public) !== 1 && (!me || (String(book.uploaded_by || '').toLowerCase() !== me.toLowerCase() && !await isAdmin(me))))) {
+      return res.status(404).json({ error: "Livro não encontrado" });
+    }
+    next();
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+app.get(["/books/:id", "/books/:id/chapters", "/books/:id/reviews"], requireReadableBook);
+app.post(["/books/:id/reviews", "/saved/:bookId", "/notes"], requireUser, requireReadableBook);
+app.post("/books/:id/open", requireReadableBook);
+app.put("/progress/:bookId", requireUser, requireReadableBook);
 
 app.get("/books/:id", async (req, res) => {
   try {
@@ -531,7 +560,7 @@ app.post("/books/presigned-url", requireUser, async (req, res) => {
       return res.status(400).json({ error: "fileName e fileType são obrigatórios" });
     }
 
-    const id = `user-${Date.now()}`;
+    const id = `user-${crypto.randomUUID()}`;
     const isPdf = fileType === "application/pdf";
     const isEpub = fileType === "application/epub+zip";
     const folder = isPdf ? "pdfs" : isEpub ? "epubs" : "covers";
@@ -585,7 +614,7 @@ app.post("/books", requireUser, upload.fields([{ name: "pdf", maxCount: 1 }, { n
       return res.status(400).json({ error: "Já existe um livro com este título e autor!" });
     }
 
-    const id = `user-${Date.now()}`;
+    const id = `user-${crypto.randomUUID()}`;
     const pdfFile = req.files?.pdf?.[0];
     const epubFile = req.files?.epub?.[0];
     const coverFile = req.files?.cover?.[0];
@@ -1280,9 +1309,10 @@ app.post("/books/:id/reviews", requireUser, async (req, res) => {
     const me = currentUser(req);
     const { rating, comment, hasSpoiler } = req.body;
     if (!me) return res.status(401).json({ error: "Entre na sua conta para avaliar." });
-    if (rating == null) return res.status(400).json({ error: "Escolha uma nota de 1 a 5." });
+    if (rating == null || !Number.isFinite(Number(rating)) || Number(rating) < 1 || Number(rating) > 5) return res.status(400).json({ error: "Escolha uma nota de 1 a 5." });
 
-    const text = (comment || "").trim();
+    if (comment != null && typeof comment !== "string") return res.status(400).json({ error: "Comentário inválido." });
+    const text = (comment || "").trim().slice(0, 10000);
     const now = Date.now();
     const bookId = req.params.id;
 
@@ -1328,6 +1358,15 @@ app.delete("/reviews/:reviewId", requireUser, async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+app.post(["/reviews/:reviewId/like", "/reviews/:reviewId/comments"], requireUser, async (req, res, next) => {
+  try {
+    const [review] = await db.query(sql`SELECT book_id FROM book_reviews WHERE id=${Number(req.params.reviewId)}`);
+    if (!review) return res.status(404).json({ error: "Resenha não encontrada" });
+    req.params.bookId = review.book_id;
+    return requireReadableBook(req, res, next);
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.post("/reviews/:reviewId/like", requireUser, async (req, res) => {
@@ -1754,8 +1793,9 @@ app.post("/posts/:id/like", requireUser, async (req, res) => {
 app.get("/home", async (req, res) => {
   try {
     const me = currentUser(req);
-    const [bookRows, stats, bannerRows, postRows, statusRow, myProgress, savedRows, openRows] = await Promise.all([
-      db.query(sql`SELECT * FROM books ORDER BY added_at DESC`),
+    const admin = await isAdmin(me);
+    const [bookRows, stats, bannerRows, postRows, statusRow, myProgress, savedRows, openRows, recentReviews] = await Promise.all([
+      db.query(sql`SELECT * FROM books WHERE is_public = 1 OR uploaded_by = ${me} COLLATE NOCASE OR ${Number(admin)} = 1 ORDER BY added_at DESC`),
       loadBookStats(),
       db.query(sql`SELECT * FROM banners ORDER BY sort_order ASC, id DESC`),
       db.query(sql`SELECT * FROM home_posts WHERE is_active = 1 ORDER BY is_pinned DESC, created_at DESC LIMIT 10`),
@@ -1763,6 +1803,7 @@ app.get("/home", async (req, res) => {
       me ? db.query(sql`SELECT * FROM reading_progress WHERE username = ${me} COLLATE NOCASE`) : Promise.resolve([]),
       me ? db.query(sql`SELECT book_id FROM saved_books WHERE username = ${me} COLLATE NOCASE ORDER BY saved_at DESC`) : Promise.resolve([]),
       db.query(sql`SELECT book_id, SUM(opens) as opens FROM book_opens GROUP BY book_id`),
+      loadReviews({ limit: 8, me }),
     ]);
 
     const opens = new Map(openRows.map((r) => [r.book_id, Number(r.opens)]));
@@ -1795,8 +1836,6 @@ app.get("/home", async (req, res) => {
       lastReadAt: Number(r.last_read_at),
     }));
 
-    const recentReviews = await loadReviews({ limit: 8, me });
-
     res.json({
       books,
       mostRead,
@@ -1808,7 +1847,7 @@ app.get("/home", async (req, res) => {
       progress,
       savedIds: savedRows.map((r) => r.book_id),
       recentReviews,
-      isAdmin: await isAdmin(me),
+      isAdmin: admin,
     });
   } catch (err) {
     console.error("[Home]", err);
@@ -2078,19 +2117,29 @@ app.get("/progress/:bookId", requireUser, async (req, res) => {
 app.put("/progress/:bookId", requireUser, async (req, res) => {
   try {
     const { bookId } = req.params;
-    const { currentPage, totalPages, progress, status } = req.body;
-    const username = currentUser(req);
-    const [existing] = await db.query(sql`SELECT * FROM reading_progress WHERE book_id = ${bookId} AND username = ${username} COLLATE NOCASE`);
-    const recordedAt = Math.min(Date.now(), Number(req.body._offlineRecordedAt) || 0);
-    if (recordedAt && existing && Number(existing.last_read_at) > recordedAt) return res.json({ bookId, currentPage: Number(existing.current_page), totalPages: Number(existing.total_pages), progress: Number(existing.progress), status: existing.status, startedAt: Number(existing.started_at), lastReadAt: Number(existing.last_read_at) });
-    if (existing) {
-      await db.query(sql`UPDATE reading_progress SET current_page=${currentPage},total_pages=${totalPages},progress=${progress},status=${status},last_read_at=${Date.now()} WHERE book_id=${bookId} AND username=${username} COLLATE NOCASE`);
-    } else {
-      const t = Date.now();
-      await db.query(sql`INSERT INTO reading_progress (username,book_id,current_page,total_pages,progress,status,started_at,last_read_at) VALUES (${username},${bookId},${currentPage},${totalPages},${progress},${status},${t},${t})`);
+    const { status } = req.body;
+    const currentPage = Number(req.body.currentPage), totalPages = Number(req.body.totalPages), progress = Number(req.body.progress);
+    if (req.body.currentPage == null || req.body.totalPages == null || req.body.progress == null ||
+        !Number.isSafeInteger(currentPage) || !Number.isSafeInteger(totalPages) || totalPages < 1 || totalPages > 200000 || currentPage < 0 || currentPage >= totalPages ||
+        !Number.isFinite(progress) || progress < 0 || progress > 100 || !['lendo', 'finalizado', 'pausado', 'ler-depois'].includes(status)) {
+      return res.status(400).json({ error: "Progresso de leitura inválido." });
     }
+    const username = currentUser(req);
+    const now = Date.now();
+    const offlineTime = Number(req.body._offlineRecordedAt);
+    if (req.body._offlineRecordedAt !== undefined && (!Number.isSafeInteger(offlineTime) || offlineTime <= 0)) return res.status(400).json({ error: "Data de leitura inválida." });
+    const recordedAt = offlineTime > 0 ? Math.min(now, offlineTime) : now;
+    await db.query(sql`
+      INSERT INTO reading_progress (username,book_id,current_page,total_pages,progress,status,started_at,last_read_at)
+      VALUES (${username},${bookId},${currentPage},${totalPages},${progress},${status},${recordedAt},${recordedAt})
+      ON CONFLICT(username,book_id) DO UPDATE SET
+        current_page=excluded.current_page,total_pages=excluded.total_pages,progress=excluded.progress,
+        status=excluded.status,last_read_at=excluded.last_read_at
+      WHERE excluded.last_read_at >= reading_progress.last_read_at
+    `);
 
-    if (status === 'finalizado') {
+    const [updated] = await db.query(sql`SELECT * FROM reading_progress WHERE book_id = ${bookId} AND username = ${username} COLLATE NOCASE`);
+    if (updated.status === 'finalizado' && Number(updated.last_read_at) === recordedAt) {
       const pendingRecs = await db.query(sql`SELECT sender FROM book_recommendations WHERE receiver = ${username} COLLATE NOCASE AND book_id = ${bookId} AND completed = 0`);
       for (const rec of pendingRecs) {
         await db.query(sql`UPDATE users SET pandinhas = pandinhas + 1 WHERE username IN (${username}, ${rec.sender}) COLLATE NOCASE`);
@@ -2100,7 +2149,7 @@ app.put("/progress/:bookId", requireUser, async (req, res) => {
       }
     }
 
-    const [updated] = await db.query(sql`SELECT * FROM reading_progress WHERE book_id = ${bookId} AND username = ${username} COLLATE NOCASE`);
+
     res.json({ bookId: updated.book_id, currentPage: Number(updated.current_page), totalPages: Number(updated.total_pages), progress: Number(updated.progress), status: updated.status, startedAt: Number(updated.started_at), lastReadAt: Number(updated.last_read_at) });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -2121,7 +2170,7 @@ app.get("/notes", requireUser, async (req, res) => {
 
 app.get("/notes/book/:bookId", requireUser, async (req, res) => {
   try {
-    const rows = await db.query(sql`SELECT * FROM notes WHERE book_id = ${req.params.bookId} ORDER BY created_at DESC`);
+    const rows = await db.query(sql`SELECT * FROM notes WHERE book_id = ${req.params.bookId} AND username = ${currentUser(req)} COLLATE NOCASE ORDER BY created_at DESC`);
     res.json(rows.map((r) => ({ id: r.id, bookId: r.book_id, username: r.username, date: r.date_label, feedback: r.feedback, rating: Number(r.rating), createdAt: Number(r.created_at) })));
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -2132,7 +2181,7 @@ app.post("/notes", requireUser, async (req, res) => {
   try {
     const { bookId, feedback, rating } = req.body;
     const username = currentUser(req);
-    if (!bookId || !feedback || rating == null)
+    if (!bookId || typeof feedback !== "string" || !feedback.trim() || rating == null || !Number.isFinite(Number(rating)) || Number(rating) < 1 || Number(rating) > 5)
       return res.status(400).json({ error: "Campos obrigatórios faltando" });
     const now = new Date();
     const dateLabel = now.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });

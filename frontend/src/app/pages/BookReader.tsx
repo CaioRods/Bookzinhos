@@ -1,4 +1,5 @@
 import { useSettings } from "../lib/settings";
+import { getUsername } from "../lib/session";
 import { PdfViewport } from "../components/PdfViewport";
 import { containReaderZoom } from "../lib/pdfCamera";
 import { PdfCanvas } from "../components/PdfCanvas";
@@ -63,7 +64,19 @@ function loadPrefs(fallbackLayout: Layout): Prefs {
     brightness: 1, pageScale: 1, fontSize: 19, serif: true,
   };
   try {
-    return { ...base, ...JSON.parse(localStorage.getItem(PREFS_KEY) || "{}") };
+    const saved = JSON.parse(localStorage.getItem(PREFS_KEY) || "{}");
+    const value = saved && typeof saved === "object" ? saved : {};
+    const bounded = (input: unknown, fallback: number, min: number, max: number) => typeof input === "number" && Number.isFinite(input) ? Math.max(min, Math.min(max, input)) : fallback;
+    return {
+      ...base,
+      theme: ["claro", "creme", "sepia", "noite"].includes(value.theme) ? value.theme : base.theme,
+      layout: ["single", "double", "scroll"].includes(value.layout) ? value.layout : base.layout,
+      brightness: bounded(value.brightness, base.brightness, .55, 1.15),
+      pageScale: bounded(value.pageScale, base.pageScale, .5, 5),
+      fontSize: bounded(value.fontSize, base.fontSize, 14, 32),
+      fitHeight: typeof value.fitHeight === "boolean" ? value.fitHeight : base.fitHeight,
+      serif: typeof value.serif === "boolean" ? value.serif : base.serif,
+    };
   } catch {
     return base;
   }
@@ -131,6 +144,9 @@ export function BookReader() {
   const uiTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const savedPageRef = useRef(-1);
+  const readerAccountRef = useRef(getUsername()?.toLowerCase());
+  const activeBookRef = useRef(id);
+  const pendingProgressRef = useRef<{ id: string; page: number; flush: () => void } | null>(null);
   const activityPageRef = useRef(1);
   const restoredRef = useRef(false);
 
@@ -152,8 +168,20 @@ export function BookReader() {
   // ── Carregamento ──────────────────────────────────────────────────────────
   useEffect(() => {
     if (!id) return;
-    Promise.all([fetchBook(id), fetchProgress(id).catch(() => null)])
+    let active = true;
+    setIsLoading(true);
+    setBook(null);
+    setErrorMessage(null);
+    setCurrentPage(0);
+    setIsPaused(false);
+    setIsFinished(false);
+    setPdfDoc(null);
+    setPdfTotal(1);
+    savedPageRef.current = -1;
+    restoredRef.current = false;
+    Promise.all([fetchBook(id), fetchProgress(id)])
       .then(([b, p]) => {
+        if (!active) return;
         setBook(b);
         if (p) {
           setCurrentPage(Math.max(0, p.currentPage));
@@ -162,11 +190,13 @@ export function BookReader() {
         }
       })
       .catch((err) => {
+        if (!active) return;
         console.error("Falha ao abrir o livro", err);
         setErrorMessage("Não foi possível falar com o servidor. Verifique a conexão e tente de novo.");
       })
       // Sem isto, qualquer erro de rede deixaria a tela girando para sempre.
-      .finally(() => setIsLoading(false));
+      .finally(() => { if (active) setIsLoading(false); });
+    return () => { active = false; };
   }, [id]);
 
   const loadChapters = useCallback(() => {
@@ -247,10 +277,10 @@ export function BookReader() {
   // ── Progresso ─────────────────────────────────────────────────────────────
   const persistProgress = useCallback(
     async (pageNum: number, forceStatus?: ReadingProgress["status"]) => {
-      if (!id) return;
+      if (!readerAccountRef.current || getUsername()?.toLowerCase() !== readerAccountRef.current) return;
+      if (!id || book?.id !== id || (pdfUrl && !pdfDoc) || total < 1 || pageNum < 0 || pageNum >= total) return;
       const pct = ((pageNum + 1) / total) * 100;
       const status = forceStatus || (pct >= 100 ? "finalizado" : isPaused ? "pausado" : "lendo");
-      savedPageRef.current = pageNum;
       await saveProgress({
         bookId: id,
         currentPage: pageNum,
@@ -260,18 +290,38 @@ export function BookReader() {
         startedAt: Date.now(),
         lastReadAt: Date.now(),
       });
-      setIsFinished(status === "finalizado");
+      if (activeBookRef.current === id) {
+        savedPageRef.current = pageNum;
+        if (pendingProgressRef.current?.id === id && pendingProgressRef.current.page === pageNum) pendingProgressRef.current = null;
+        setIsFinished(status === "finalizado");
+      }
     },
-    [id, total, isPaused]
+    [id, total, isPaused, book?.id, pdfUrl, pdfDoc]
   );
 
   // Grava a posição com folga: rolar não deve disparar uma escrita por página.
   useEffect(() => {
-    if (isLoading || total <= 0 || savedPageRef.current === currentPage) return;
-    if (isOffline()) { void persistProgress(currentPage).catch(() => toast("Não foi possível salvar o progresso neste aparelho.", "error")); return; }
-    const t = setTimeout(() => { void persistProgress(currentPage).catch(() => toast("Não foi possível salvar o progresso.", "error")); }, 900);
+    activeBookRef.current = id;
+    return () => {
+      const pending = pendingProgressRef.current;
+      if (pending && pending.id === id) { pendingProgressRef.current = null; pending.flush(); }
+      activeBookRef.current = undefined;
+    };
+  }, [id]);
+
+  useEffect(() => {
+    if (!id || book?.id !== id || isLoading || (pdfUrl && !pdfDoc) || total <= 0 || currentPage >= total || savedPageRef.current === currentPage) return;
+    let sending = false;
+    const flush = () => {
+      if (sending) return;
+      sending = true;
+      void persistProgress(currentPage).catch(() => { sending = false; toast("Não foi possível salvar o progresso. Tente novamente.", "error"); });
+    };
+    pendingProgressRef.current = { id, page: currentPage, flush };
+    if (isOffline()) { flush(); return; }
+    const t = setTimeout(flush, 900);
     return () => clearTimeout(t);
-  }, [currentPage, isLoading, persistProgress]);
+  }, [id, book?.id, currentPage, isLoading, persistProgress, pdfUrl, pdfDoc, total]);
 
   // ── Dimensões da página renderizada ───────────────────────────────────────
   const GAP = 18;

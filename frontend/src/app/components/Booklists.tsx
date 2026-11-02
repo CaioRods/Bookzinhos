@@ -12,7 +12,7 @@ import { inspectImage } from "../lib/imageFile";
 import { installBooklist, stopBooklistInstall, useBooklistInstall } from "../lib/offline/batch";
 import { useInstalled, useOffline } from "../lib/offline/device";
 import { BookGrid } from "./BookGrid";
-import { ThemeImage } from "./ThemeImage";
+import { CropEditor } from "./CropEditor";
 import { ConfirmDialog, Modal, toast } from "./Ui";
 
 const COLORS = ["#c9aaa1", "#66a3f5", "#cf86ea", "#94b87a", "#efa66e", "#6eaeb9", "#b58ba9", "#a7a8cf"];
@@ -65,7 +65,7 @@ function BooklistEditor({ list, onClose, onSaved }: { list: Booklist; onClose: (
       <label>Playlist Spotify (opcional)<input className="mb-input" type="url" placeholder="https://open.spotify.com/playlist/…" value={draft.spotifyPlaylistUrl || ""} onChange={event=>setDraft({...draft,spotifyPlaylistUrl:event.target.value})}/></label><label>Cor da pasta<input aria-label="Cor da Booklist" type="color" value={draft.color} onChange={event => setDraft({ ...draft, color: event.target.value })}/></label><div className="mb-booklist-colors">{COLORS.map(color => <button aria-label={`Usar cor ${color}`} aria-pressed={draft.color === color} key={color} style={{ background: color }} onClick={() => setDraft({ ...draft, color })}/>)}</div>
       <label>Ícone</label><div className="mb-booklist-icons">{Object.entries(ICONS).map(([key, Icon]) => <button aria-label={`Ícone ${key}`} aria-pressed={draft.icon === key} key={key} onClick={() => setDraft({ ...draft, icon: key })}><Icon size={20}/></button>)}</div>
       <label className="mb-btn mb-btn-outline">Imagem de capa (opcional)<input aria-label="Imagem da Booklist" type="file" accept="image/jpeg,image/png,image/webp,image/avif" className="sr-only" onChange={event => void pick(event.target.files?.[0])}/></label>
-      {(preview || draft.imageUrl) && !remove && <><button className="mb-btn mb-btn-ghost" onClick={() => { setRemove(true); setFile(undefined); setPreview(""); }}>Remover imagem</button>{([{ key: "x", label: "Horizontal", min: 0, max: 100, step: 1 }, { key: "y", label: "Vertical", min: 0, max: 100, step: 1 }, { key: "zoom", label: "Zoom", min: 1, max: 4, step: .05 }] as const).map(control => <label key={control.key}>{control.label}<input aria-label={`Capa: ${control.label}`} type="range" {...{ min: control.min, max: control.max, step: control.step }} value={draft.crop[control.key]} onChange={event => setDraft({ ...draft, crop: { ...draft.crop, [control.key]: Number(event.target.value) } })}/></label>)}</>}
+      {(preview || draft.imageUrl) && !remove && <><button className="mb-btn mb-btn-ghost" onClick={() => { setRemove(true); setFile(undefined); setPreview(""); }}>Remover imagem</button><CropEditor label="Capa" surface="folder" theme={{id:draft.id,name:draft.name,scope:"personal",imageUrl:preview || draft.imageUrl,width:draft.imageWidth,height:draft.imageHeight,mainColor:draft.color,profile:draft.crop,sidebar:draft.crop,sidebarOpacity:1}} value={draft.crop} onChange={crop=>setDraft({...draft,crop})} artwork={<FolderArtwork list={{...draft,imageUrl:preview || draft.imageUrl}}/>}/></>}
       {error && <p role="alert" className="mb-editor-error">{error}</p>}
     </div></div>
   </Modal>;

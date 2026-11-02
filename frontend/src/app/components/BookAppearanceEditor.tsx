@@ -10,7 +10,6 @@ import {
 import { inspectImage } from "../lib/imageFile";
 import { saveBookAppearance } from "../lib/appearanceApi";
 import { CropEditor } from "./CropEditor";
-import { ThemeImage } from "./ThemeImage";
 import { Modal, toast } from "./Ui";
 export function BookAppearanceEditor({
   book,
@@ -126,21 +125,6 @@ export function BookAppearanceEditor({
       }
     >
       <div className="mb-theme-editor">
-        <div className="mb-book-art-preview">
-          <div
-            style={{
-              filter: `blur(${draft.blur}px)`,
-              opacity: draft.opacity,
-              transform: "scale(1.15)",
-            }}
-          >
-            <ThemeImage theme={source} crop={draft.crop} />
-          </div>
-          <strong style={{ color: draft.mainColor || autoColor }}>
-            {book.title}
-          </strong>
-          <small>Prévia do banner · a página permanece limpa</small>
-        </div>
         <div className="mb-editor-tabs">
           <button
             className="mb-btn mb-btn-outline"
@@ -261,6 +245,9 @@ export function BookAppearanceEditor({
           value={draft.crop}
           label="Recorte do banner"
           surface="banner"
+          blur={draft.blur}
+          opacity={draft.opacity}
+          backgroundColor={draft.mainColor || autoColor}
           onChange={(crop) => setDraft({ ...draft, crop })}
         />
         {error && (

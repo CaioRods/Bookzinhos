@@ -259,6 +259,16 @@ export function BookRailSkeleton({ count = 6 }: { count?: number }) {
 
 // ─── Modal ────────────────────────────────────────────────────────────────────
 
+const modalLayers: HTMLElement[] = [];
+function syncModalLayers() {
+  modalLayers.forEach((layer, index) => {
+    const inactive = index !== modalLayers.length - 1;
+    layer.inert = inactive;
+    layer.style.visibility = inactive ? "hidden" : "visible";
+    if (inactive) layer.setAttribute("aria-hidden", "true");
+    else layer.removeAttribute("aria-hidden");
+  });
+}
 let openModalCount = 0;
 let modalOverflowBefore = "";
 
@@ -280,10 +290,13 @@ export function Modal({
   size?: "sm" | "md" | "lg" | "xl";
 }) {
   const dialog = useRef<HTMLDivElement>(null);
+  const layer = useRef<HTMLDivElement>(null);
   const close = useRef(onClose); close.current = onClose;
   useEffect(() => {
     if (!open) return;
     const previous = document.activeElement as HTMLElement | null;
+    const currentLayer = layer.current;
+    if (currentLayer) { modalLayers.push(currentLayer); syncModalLayers(); }
     if (openModalCount++ === 0) { modalOverflowBefore = document.body.style.overflow; document.body.style.overflow = "hidden"; }
     const frame = requestAnimationFrame(() => {
       if (!dialog.current?.contains(document.activeElement)) (dialog.current?.querySelector<HTMLInputElement>('input:not([type="hidden"]):not([type="file"])') || dialog.current?.querySelector<HTMLButtonElement>('button'))?.focus({ preventScroll: true });
@@ -302,6 +315,7 @@ export function Modal({
     window.addEventListener("keydown", onKey);
     return () => {
       cancelAnimationFrame(frame); window.removeEventListener("keydown", onKey);
+      if (currentLayer) { const index = modalLayers.indexOf(currentLayer); if (index >= 0) modalLayers.splice(index, 1); syncModalLayers(); }
       if (--openModalCount === 0) document.body.style.overflow = modalOverflowBefore;
       previous?.focus({ preventScroll: true });
     };
@@ -312,15 +326,15 @@ export function Modal({
   const width = size === "xl" ? "max-w-6xl" : size === "sm" ? "max-w-sm" : size === "lg" ? "max-w-2xl" : "max-w-md";
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center animate-fade-in" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/45 backdrop-blur-[3px]" />
+    <div ref={layer} className="mb-modal-layer fixed inset-0 z-[9999] flex items-end sm:items-center justify-center" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/45" />
       <div
         ref={dialog}
         role="dialog"
         aria-modal="true"
         aria-label={title}
         onClick={(e) => e.stopPropagation()}
-        className={`mb-dialog relative w-full ${width} mb-glass-strong rounded-t-3xl sm:rounded-3xl animate-slide-up sm:animate-scale-in max-h-[92vh] flex flex-col`}
+        className={`mb-dialog relative w-full ${width} mb-modal-panel rounded-t-3xl sm:rounded-3xl max-h-[92vh] flex flex-col`}
       >
         {(title || description) && (
           <div className="flex items-start justify-between gap-4 p-5 pb-3">

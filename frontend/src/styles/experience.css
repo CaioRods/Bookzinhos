@@ -29,14 +29,6 @@
     position: absolute;
     inset: 0;
     z-index: -1;
-    transform: scale(1.02);
-  }
-  .mb-book-banner::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    background: linear-gradient(90deg, rgba(0, 0, 0, 0.16), transparent 60%);
   }
   .mb-book-banner-label {
     position: absolute;

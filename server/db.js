@@ -511,6 +511,7 @@ async function initDB() {
     "CREATE INDEX IF NOT EXISTS idx_progress_user ON reading_progress(username)",
     "CREATE INDEX IF NOT EXISTS idx_notes_book ON notes(book_id)",
     "CREATE INDEX IF NOT EXISTS idx_notes_user ON notes(username)",
+    "CREATE INDEX IF NOT EXISTS idx_notes_account_book ON notes(username COLLATE NOCASE, book_id, created_at DESC)",
     "CREATE INDEX IF NOT EXISTS idx_saved_user ON saved_books(username)",
     "CREATE INDEX IF NOT EXISTS idx_pages_book ON book_pages(book_id, page_num)",
     "CREATE INDEX IF NOT EXISTS idx_chat_unread ON chat_messages(receiver, sender, is_read)",
@@ -542,21 +543,13 @@ async function initDB() {
     }
   }
   await trySql(sql`
-    UPDATE users SET avatar = ${ADMIN_AVATAR}, is_admin = 1
+    UPDATE users SET avatar = COALESCE(NULLIF(avatar, ''), ${ADMIN_AVATAR}), is_admin = 1
     WHERE username = ${ADMIN_USERNAME} COLLATE NOCASE
   `);
 
   await trySql(sql`INSERT OR IGNORE INTO global_status (id, username, content, emote, updated_at) VALUES (1, 'Sistema', 'Bem-vindos ao myBooks! ✨', '🐼', ${now})`);
 
-  // ─── Migração: notas do diário viram resenhas públicas ──────────────────────
-  // Antes a nota de um livro vinha do diário pessoal (notes). Agora as resenhas
-  // públicas moram em book_reviews; importamos a nota mais recente de cada leitor.
-  await trySql(sql`
-    INSERT OR IGNORE INTO book_reviews (book_id, username, rating, comment, has_spoiler, created_at, updated_at)
-    SELECT n.book_id, n.username, n.rating, n.feedback, 0, n.created_at, n.created_at
-    FROM notes n
-    WHERE n.created_at = (SELECT MAX(n2.created_at) FROM notes n2 WHERE n2.book_id = n.book_id AND n2.username = n.username COLLATE NOCASE)
-  `, "importação de notas para resenhas");
+  // O diário é privado; somente uma publicação explícita cria resenhas públicas.
 
   await trySql(sql`UPDATE book_reviews SET created_at = ${now} WHERE created_at IS NULL OR created_at = 0`);
   await trySql(sql`UPDATE book_reviews SET updated_at = created_at WHERE updated_at IS NULL OR updated_at = 0`);
@@ -571,20 +564,8 @@ async function initDB() {
       review_count = COALESCE((SELECT COUNT(*) FROM book_reviews WHERE book_id = books.id), 0)
   `, "recálculo de médias");
 
-  // ─── Limpeza de livros duplicados (mantém o mais antigo) ────────────────────
-  await trySql(sql`
-    DELETE FROM books
-    WHERE id NOT IN (
-      SELECT b1.id FROM books b1
-      WHERE b1.id = (
-        SELECT b2.id FROM books b2
-        WHERE LOWER(TRIM(b1.title)) = LOWER(TRIM(b2.title))
-          AND LOWER(TRIM(b1.author)) = LOWER(TRIM(b2.author))
-        ORDER BY b2.added_at ASC, b2.id ASC
-        LIMIT 1
-      )
-    )
-  `, "limpeza de livros duplicados");
+  // Não remover livros durante a inicialização: edições e arquivos distintos
+  // podem compartilhar título e autor e já possuir dados de leitura associados.
 
   // Progressão usa apenas tabelas aditivas e pode ser inicializada várias vezes.
   const { ensureProgressionSchema } = require("./progression-service");

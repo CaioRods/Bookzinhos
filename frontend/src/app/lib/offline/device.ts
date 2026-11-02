@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { getUsername } from "../session";
 import { API_BASE_URL } from "../config";
 import { getFullUrl, type Book, type ReadingProgress, type Note, type UserProfile, type BookChapter } from "../types";
-import { read, rows, write } from "./db";
+import { read, rows, write, removeRevision } from "./db";
 const recordReads = new Map<string, Promise<InstalledBook[]>>();
 const recordIds = new WeakMap<InstalledBook[], Set<string>>();
 function installedIds(records: InstalledBook[]) {
@@ -116,6 +116,9 @@ export async function deviceSession() { const user = account(); return user ? aw
 const cacheable = (path: string) => /^\/(progress(?:\/|$)|saved$|notes\/book\/|booklists$)/.test(path);
 export async function rememberResponse(path: string, value: unknown, user = account()) {
   if (!user || !cacheable(path)) return;
+  return serializeState(user, () => rememberResponseNow(path, value, user));
+}
+async function rememberResponseNow(path: string, value: unknown, user: string) {
   const pending = await pendingMutations(user);
   // A slow network response must not replace edits made locally while it was in flight.
   if (path === "/progress") {
@@ -138,8 +141,21 @@ export async function rememberResponse(path: string, value: unknown, user = acco
 export async function deviceResponse<T>(path: string, user = account()): Promise<T | undefined> { return user ? read<T>(snapshotKey(user, path)) : undefined; }
 export interface PendingMutation { id: string; revision: string; user: string; method: string; path: string; body?: any; at: number; error?: string }
 export async function pendingMutations(user = account()) { return user ? (await rows<PendingMutation>(prefix(user, "queue"))).map(row => row.value).sort((a,b) => a.at-b.at) : []; }
-export async function queueMutation<T>(method: string, path: string, body?: any): Promise<T> {
-  const user = account(); if (!user) throw new Error("Entre na conta antes de usar o modo offline.");
+const stateTasks = new Map<string, Promise<unknown>>();
+function serializeState<T>(user: string, action: () => Promise<T>): Promise<T> {
+  const previous = stateTasks.get(user) || Promise.resolve();
+  const task = previous.catch(() => {}).then(action);
+  stateTasks.set(user, task);
+  void task.finally(() => { if (stateTasks.get(user) === task) stateTasks.delete(user); }).catch(() => {});
+  return task;
+}
+export function queueMutation<T>(method: string, path: string, body?: any): Promise<T> {
+  const user = account();
+  return serializeState(user, () => queueMutationNow<T>(user, method, path, body));
+}
+async function queueMutationNow<T>(user: string, method: string, path: string, body?: any): Promise<T> {
+  if (!user) throw new Error("Entre na conta antes de usar o modo offline.");
+  if (account() !== user) throw new Error("A conta mudou durante a alteração. Tente novamente.");
   let value: any, snapshots: { key: string; value: unknown }[] = [], stable = path;
   if (method === "PUT" && path.startsWith("/progress/")) {
     const bookId = decodeURIComponent(path.slice(10)); if (!await installedBook(bookId)) throw new Error("Instale este livro antes de usá-lo offline.");
@@ -162,6 +178,7 @@ export async function queueMutation<T>(method: string, path: string, body?: any)
   } else if (method === "POST" && path === "/reader/tutorial-seen") { value = { ok: true };
   } else throw new Error("Esta ação precisa de conexão para validar suas permissões. Conecte-se e tente novamente.");
   const mutation: PendingMutation = { id: stable, revision: crypto.randomUUID(), user, method, path, body, at: Date.now() };
+  if (account() !== user) throw new Error("A conta mudou durante a alteração. Tente novamente.");
   await write([...snapshots, { key: deviceKey(user, "queue", stable), value: mutation }]); deviceChanged(); return value;
 }
 let syncing: Promise<void> | undefined;
@@ -184,8 +201,7 @@ async function syncNow() {
       const response = await fetch(API_BASE_URL + mutation.path, { method: mutation.method, credentials: "include", headers: { "Content-Type": "application/json", "X-Offline-Account": user }, body: mutation.body === undefined ? undefined : JSON.stringify(mutation.body) });
       if (!response.ok) throw new Error(response.status === 401 ? "Entre novamente para sincronizar." : "Uma alteração aguarda validação do servidor. Tente sincronizar novamente.");
       // Do not erase a newer edit queued while this request was in flight.
-      const key = deviceKey(user, "queue", mutation.id), current = await read<PendingMutation>(key);
-      if (current?.revision === mutation.revision) await write([], [key]);
+      await removeRevision(deviceKey(user, "queue", mutation.id), mutation.revision);
     }
     window.dispatchEvent(new Event("mybooks:synced"));
   } catch (error) { syncState.error = error instanceof Error ? error.message : "Não foi possível sincronizar."; }

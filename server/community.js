@@ -127,9 +127,11 @@ module.exports = function ({
       values: ids,
     });
     const targets = [...ids, ...comments.map((c) => c.id)];
+    const usernames = [...new Set([...rows, ...comments].map(row => String(row.username).toLowerCase()))];
+    const bookIds = [...new Set(rows.map(row => row.book_id).filter(Boolean))];
     const [users, books, reactions, reposts] = await Promise.all([
-      db.query("SELECT username,avatar FROM users"),
-      db.query("SELECT id,title,author,cover_image_path FROM books"),
+      db.query({ text: `SELECT username,avatar FROM users WHERE username COLLATE NOCASE IN (${usernames.map(() => "?").join(",")})`, values: usernames }),
+      bookIds.length ? db.query({ text: `SELECT id,title,author,cover_image_path FROM books WHERE id IN (${bookIds.map(() => "?").join(",")})`, values: bookIds }) : Promise.resolve([]),
       db.query({
         text: `SELECT * FROM community_reactions WHERE target_id IN (${targets.map(() => "?").join(",")})`,
         values: targets,
@@ -139,34 +141,38 @@ module.exports = function ({
         values: ids,
       }),
     ]);
-    const same = (a, b) =>
-      String(a).toLowerCase() === String(b || "").toLowerCase();
-    const activity = (id) => ({
-      reactions: reactions
-        .filter((r) => r.target_id === id)
-        .reduce(
-          (out, r) => ({ ...out, [r.reaction]: (out[r.reaction] || 0) + 1 }),
-          {},
-        ),
-      myReaction:
-        reactions.find((r) => r.target_id === id && same(r.username, me))
-          ?.reaction || null,
-    });
-    const avatar = (username) =>
-      users.find((u) => same(u.username, username))?.avatar || "🐼";
+    const mine = String(me || "").toLowerCase();
+    const avatars = new Map(users.map(user => [String(user.username).toLowerCase(), user.avatar]));
+    const booksById = new Map(books.map(book => [book.id, book]));
+    const activityById = new Map();
+    for (const reaction of reactions) {
+      const item = activityById.get(reaction.target_id) || { reactions: {}, myReaction: null };
+      item.reactions[reaction.reaction] = (item.reactions[reaction.reaction] || 0) + 1;
+      if (String(reaction.username).toLowerCase() === mine) item.myReaction = reaction.reaction;
+      activityById.set(reaction.target_id, item);
+    }
+    const activity = id => activityById.get(id) || { reactions: {}, myReaction: null };
+    const avatar = username => avatars.get(String(username).toLowerCase()) || "🐼";
+    const repostsById = new Map();
+    for (const repost of reposts) {
+      const item = repostsById.get(repost.post_id) || { repostCount: 0, repostedByMe: false };
+      item.repostCount += 1;
+      if (String(repost.username).toLowerCase() === mine) item.repostedByMe = true;
+      repostsById.set(repost.post_id, item);
+    }
+    const commentsByPost = new Map();
+    for (const comment of comments) {
+      if (!commentsByPost.has(comment.post_id)) commentsByPost.set(comment.post_id, []);
+      commentsByPost.get(comment.post_id).push({ ...comment, avatar: avatar(comment.username), ...activity(comment.id) });
+    }
     return rows.map((row) => ({
       ...row,
       images: JSON.parse(row.images),
       avatar: avatar(row.username),
-      book: books.find((b) => b.id === row.book_id) || null,
+      book: booksById.get(row.book_id) || null,
       ...activity(row.id),
-      repostCount: reposts.filter((r) => r.post_id === row.id).length,
-      repostedByMe: reposts.some(
-        (r) => r.post_id === row.id && same(r.username, me),
-      ),
-      comments: comments
-        .filter((c) => c.post_id === row.id)
-        .map((c) => ({ ...c, avatar: avatar(c.username), ...activity(c.id) })),
+      ...(repostsById.get(row.id) || { repostCount: 0, repostedByMe: false }),
+      comments: commentsByPost.get(row.id) || [],
     }));
   };
   app.get(

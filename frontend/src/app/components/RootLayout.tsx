@@ -1,7 +1,7 @@
 import { OfflineStatus } from "./OfflineStatus";
 import { ReaderNamesProvider } from "./ReaderName";
 import { useProfileScene } from "../lib/profileScene";
-import { ThemeImage } from "./ThemeImage";
+import { CropArtwork } from "./CropArtwork";
 import { useThemeCatalog, DEFAULT_THEMES } from "../lib/themeCatalog";
 import { accentVariables } from "../lib/appearance";
 import { SceneAtmosphere } from "./SceneAtmosphere";
@@ -191,7 +191,7 @@ export function RootLayout() {
       <div className="mb-app-window bg-background">
         {/* ── Barra lateral (desktop) ─────────────────────────────────────── */}
         <aside className="mb-sidebar hidden lg:flex flex-col overflow-hidden">
-          <div className="mb-sidebar-art" style={{ opacity: selectedTheme.sidebarOpacity }}>{selectedTheme.id !== "none" && <ThemeImage theme={selectedTheme} crop={selectedTheme.sidebar} />}</div>
+          <div className="mb-sidebar-art">{selectedTheme.id !== "none" && <CropArtwork theme={selectedTheme} crop={selectedTheme.sidebar} surface="sidebar" opacity={selectedTheme.sidebarOpacity}/>}</div>
           <Link to="/" className="flex items-center gap-3 px-6 h-[96px] flex-shrink-0">
             <Brand />
           </Link>

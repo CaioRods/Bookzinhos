@@ -11,9 +11,10 @@ function memoryDb() {
 test('heartbeats are capped and reading needs forty minutes plus every page', async (t) => {
   const { connection, db, sql } = memoryDb();
   t.after(() => new Promise((resolve) => connection.close(resolve)));
-  await db.query('CREATE TABLE books(id TEXT PRIMARY KEY)');
+  await db.query('CREATE TABLE books(id TEXT PRIMARY KEY,page_count INTEGER DEFAULT 0)');
+  await db.query('CREATE TABLE reading_progress(book_id TEXT,current_page INTEGER,total_pages INTEGER)');
   await db.query('CREATE TABLE book_pages(id INTEGER PRIMARY KEY,book_id TEXT,page_num INTEGER,content TEXT)');
-  await db.query("INSERT INTO books VALUES('b1')");
+  await db.query("INSERT INTO books(id) VALUES('b1')");
   await db.query("INSERT INTO book_pages(book_id,page_num,content) VALUES('b1',1,'a'),('b1',2,'b')");
   const awards = [];
   const service = createActivityService({ db, sql, now: () => Date.UTC(2026, 9, 29), progression: { awardXp: async (event) => awards.push(event) } });
@@ -25,5 +26,29 @@ test('heartbeats are capped and reading needs forty minutes plus every page', as
   assert.equal((await service.readingEligibility('Ana', 'b1')).eligible, true);
   assert.equal(awards.length, 1);
   await service.recordHeartbeat('Ana', { scope: 'reader', bookId: 'b1', page: 2, clientElapsedSeconds: 30 });
+  assert.equal(awards.length, 1);
+});
+
+test('PDF page counts qualify for reading rewards and invalid page visits never count', async t => {
+  const { connection, db, sql } = memoryDb();
+  t.after(() => new Promise(resolve => connection.close(resolve)));
+  await db.query('CREATE TABLE books(id TEXT PRIMARY KEY,page_count INTEGER DEFAULT 0)');
+  await db.query('CREATE TABLE reading_progress(book_id TEXT,current_page INTEGER,total_pages INTEGER)');
+  await db.query('CREATE TABLE book_pages(book_id TEXT,page_num INTEGER,content TEXT)');
+  await db.query("INSERT INTO books VALUES('pdf',2)");
+  const awards = [];
+  const service = createActivityService({ db, sql, progression: { awardXp: async event => awards.push(event) } });
+  await service.ready();
+  await db.query("INSERT INTO reading_sessions(username,book_id,active_seconds,updated_at) VALUES('Ana','pdf',2400,1)");
+  for (const page of [999, 1000, -1, 0, 1.5]) await service.recordHeartbeat('Ana', {scope:'reader',bookId:'pdf',page,clientElapsedSeconds:0});
+  let eligibility = await service.readingEligibility('Ana', 'pdf');
+  assert.equal(eligibility.totalPages, 2);
+  assert.equal(eligibility.visitedPages, 0);
+  assert.equal(awards.length, 0);
+  await service.recordHeartbeat('Ana', {scope:'reader',bookId:'pdf',page:1,clientElapsedSeconds:0});
+  assert.equal(awards.length, 0);
+  await service.recordHeartbeat('Ana', {scope:'reader',bookId:'pdf',page:2,clientElapsedSeconds:0});
+  assert.equal(awards.length, 1);
+  await service.recordHeartbeat('Ana', {scope:'reader',bookId:'pdf',page:2,clientElapsedSeconds:0});
   assert.equal(awards.length, 1);
 });

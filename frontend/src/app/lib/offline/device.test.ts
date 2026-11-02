@@ -12,6 +12,26 @@ const book = { id:"first",title:"Primeiro",pdfPath:"https://files.test/book.pdf"
 async function seed() { await write([{key:deviceKey(account(),"book",book.id),value:{book,chapters:[],bytes:100,installedAt:1} satisfies InstalledBook}]); }
 beforeEach(async()=>{vi.restoreAllMocks();localStorage.clear();localStorage.setItem("books-username","Ana");Object.defineProperty(navigator,"onLine",{configurable:true,value:true});connectionRestored();await write([], (await rows("")).map(row=>row.key));deviceChanged();});
 describe("offline device storage",()=>{
+ it("does not let a concurrent network snapshot overwrite a queued favorite", async () => {
+  await Promise.all([rememberResponse("/saved", ["server"]), queueMutation("POST", "/saved/local")]);
+  expect((await read<string[]>(deviceKey(account(), "snapshot", "/saved")))?.sort()).toEqual(["local", "server"]);
+ });
+ it("preserves concurrent favorite changes and consecutive progress edits", async () => {
+  await seed();
+  await Promise.all([queueMutation("POST", "/saved/first"), queueMutation("POST", "/saved/second")]);
+  expect((await read<string[]>(deviceKey(account(), "snapshot", "/saved")))?.sort()).toEqual(["first", "second"]);
+  await Promise.all(Array.from({length: 12}, (_, currentPage) => queueMutation("PUT", "/progress/first", {bookId:"first",currentPage})));
+  expect(await read(deviceKey(account(), "snapshot", "/progress/first"))).toMatchObject({currentPage:11});
+  expect((await pendingMutations()).find(item => item.path === "/progress/first")?.body.currentPage).toBe(11);
+ });
+ it("rejects an account switch during an asynchronous local mutation", async () => {
+  await seed();
+  const pending = queueMutation("PUT", "/progress/first", {bookId:"first",currentPage:4});
+  localStorage.setItem("books-username", "Bia");
+  await expect(pending).rejects.toThrow(/conta/i);
+  expect(await pendingMutations("ana")).toEqual([]);
+  expect(await pendingMutations("bia")).toEqual([]);
+ });
  it("isolates downloaded books and queued changes by authenticated account",async()=>{await seed();expect((await installedRecords()).length).toBe(1);localStorage.setItem("books-username","Outra");expect(await installedBook("first")).toBeNull();expect(await installedRecords()).toEqual([]);expect(await pendingMutations()).toEqual([]);});
  it("coalesces page changes durably and refuses identity/permission mutations",async()=>{await seed();await queueMutation("PUT","/progress/first",{bookId:"first",currentPage:1});await queueMutation("PUT","/progress/first",{bookId:"first",currentPage:8});const queue=await pendingMutations();expect(queue).toHaveLength(1);expect(queue[0].body.currentPage).toBe(8);await rememberResponse("/progress/first",{bookId:"first",currentPage:0});expect(await read(deviceKey(account(),"snapshot","/progress/first"))).toMatchObject({currentPage:8});await expect(queueMutation("PUT","/auth/me",{displayName:"Fake"})).rejects.toThrow(/permissões/);expect(await pendingMutations()).toHaveLength(1);});
  it("never marks a failed PDF download as installed",async()=>{vi.spyOn(globalThis,"fetch").mockImplementation(async input=>{const url=String(input);if(url.includes("files.test"))return new Response("unavailable",{status:503});if(url.endsWith("/chapters"))return Response.json([]);if(url.endsWith("/books/first"))return Response.json(book);return Response.json([]);});await expect(installBook("first")).rejects.toThrow();expect(await installedBook("first")).toBeNull();});

@@ -23,7 +23,8 @@
     width: 100%;
     height: 100%;
   }
-  .mb-profile-portrait-shade {
+  .mb-profile-portrait-shade,
+  .mb-crop-shade.is-profile {
     background:
       linear-gradient(
         90deg,

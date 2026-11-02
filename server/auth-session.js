@@ -27,7 +27,7 @@ function createSessionStore({ db, clock = Date.now, randomBytes = crypto.randomB
       const rows = await db.query(query(`SELECT s.id, s.username, s.expires_at, s.last_used_at, s.revoked_at,
           COALESCE(u.privacy_version, '') AS privacy_version,
           COALESCE(u.privacy_required, 0) AS privacy_required, COALESCE(u.privacy_accepted_at, 0) AS privacy_accepted_at
-        FROM auth_sessions s LEFT JOIN users u ON u.username = s.username COLLATE NOCASE
+        FROM auth_sessions s JOIN users u ON u.username = s.username COLLATE NOCASE
         WHERE s.token_hash = ? LIMIT 1`, [hashToken(rawToken)]));
       const row = rows[0];
       const now = clock();
@@ -45,7 +45,7 @@ function createSessionStore({ db, clock = Date.now, randomBytes = crypto.randomB
       await db.query(query("UPDATE auth_sessions SET revoked_at = ? WHERE token_hash = ? AND revoked_at IS NULL", [clock(), hashToken(rawToken)]));
     },
     async revokeAll(username) {
-      await db.query(query("UPDATE auth_sessions SET revoked_at = ? WHERE username = ? AND revoked_at IS NULL", [clock(), username]));
+      await db.query(query("UPDATE auth_sessions SET revoked_at = ? WHERE username = ? COLLATE NOCASE AND revoked_at IS NULL", [clock(), username]));
     },
   };
 }
