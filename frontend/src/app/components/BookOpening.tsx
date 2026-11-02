@@ -8,9 +8,10 @@ function PaperLeaf({ index }: { index: number }) {
       style={{ "--leaf": index } as CSSProperties}
     >
       <svg viewBox="0 0 96 96" aria-hidden="true">
+        <defs><linearGradient id={`opening-paper-${index}`} x1="0" x2="1"><stop stopColor="#c3a897"/><stop offset=".18" stopColor="#f5e4d0"/><stop offset=".75" stopColor="#fff8ed"/><stop offset="1" stopColor="#e4cbb4"/></linearGradient></defs>
         <path
           d="M47 26 Q61 12 77 11 L77 65 Q59 66 47 82Z"
-          fill={index % 2 ? "#e8cdbb" : "#f7e8d6"}
+          fill={`url(#opening-paper-${index})`}
         />
         <path
           d="M51 31 Q61 23 72 21 M51 38 Q61 30 72 28 M51 45 Q61 37 72 35 M51 52 Q61 44 72 42"
@@ -43,7 +44,7 @@ export function BookOpening({ onComplete }: { onComplete: () => void }) {
       skip.current?.focus({ preventScroll: true }),
     );
     // Safety net for blocked CSS, canceled animations or backgrounded tabs.
-    const timeout = window.setTimeout(finish, 3600);
+    const timeout = window.setTimeout(finish, 3800);
     const onVisibility = () => { if (document.hidden) finish(); };
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") finish();
@@ -115,7 +116,7 @@ export function BookOpening({ onComplete }: { onComplete: () => void }) {
                 />
               </svg>
             </div>
-            {[0, 1, 2, 3].map((index) => (
+            {[0, 1, 2].map((index) => (
               <PaperLeaf key={index} index={index} />
             ))}
             <img

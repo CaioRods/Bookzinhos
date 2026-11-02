@@ -53,14 +53,17 @@
   .mb-sidebar .mb-nav-item.mb-nav-featured,
   .mb-mobile-dock .mb-tab.mb-nav-featured {
     background:var(--primary-soft);
-    color:var(--primary);
+    color:var(--foreground);
     font-weight:700;
     box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--primary) 25%,transparent);
   }
   .mb-nav-featured>svg {opacity:1;}
+  .mb-mobile-dock .mb-nav-featured>span,.mb-sidebar .mb-nav-featured>span {color:inherit;}
+  .mb-mobile-dock .mb-nav-featured svg {color:var(--primary);stroke-width:2.4;}
   .mb-sidebar .mb-nav-item.mb-nav-featured[aria-current=page],
   .mb-mobile-dock .mb-tab.mb-nav-featured[aria-current=page] {
-    background:var(--primary);color:var(--primary-foreground,#fff);
+    background:var(--primary-soft);color:var(--foreground);
+    box-shadow:inset 0 -3px 0 var(--primary);
   }
   .mb-mobile-dock .mb-tab>span:last-child {max-width:100%;text-align:center;line-height:1.2;}
   @media(max-width:380px) {
