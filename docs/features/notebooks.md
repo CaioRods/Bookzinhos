@@ -5,7 +5,8 @@ O endereço `/notes` substitui o diário por cadernos privados. Notas antigas co
 ## Conteúdo e interface
 
 - Capa com cor/ícone vetorial ou foto recortada na proporção 520 × 720, usando a geometria compartilhada do editor de recortes.
-- Folhas 800 × 1100, lisas, pautadas ou de pergaminho. Somente a página aberta é renderizada; a fila lateral usa resumos pequenos.
+- A capa permite posicionar e dimensionar título, descrição e ícone, com cores individuais e sem painel sobre a imagem.
+- Folhas 800 × 1100, lisas, pautadas ou de pergaminho. A folha aberta e as miniaturas visíveis usam o mesmo desenho; miniaturas fora da tela são descarregadas. Número e título aparecem acima de cada miniatura.
 - Texto estruturado, sem HTML: fonte, tamanho, cor, negrito, itálico, sublinhado e alinhamento. Traços SVG com caneta, marca-texto, borracha, desfazer/refazer e rejeição de toque enquanto a caneta está ativa.
 - Imagens comprimidas no aparelho, com posicionamento e redimensionamento. A importação de livros renderiza uma página por vez e preserva livro, página e retângulo de origem. O toque prolongado abre uma confirmação antes de navegar para `/read/:id?page=N&clip=...`.
 - A exportação gera PDF no aparelho, mantendo texto e traços vetoriais, transparência de imagens e seleção de páginas/capa. Processa páginas sequencialmente e carrega apenas as fontes necessárias.
@@ -31,3 +32,7 @@ Documentos privados não entram no cache HTTP público do service worker. Imagen
 ## Verificação
 
 Testes em `server/tests/notebooks.test.js`, `frontend/src/app/lib/notebooks/*.test.ts` e `frontend/src/app/components/notebooks/PageCanvas.test.tsx` cobrem permissões, importação, revisões, exclusões atrasadas, gravação offline, isolamento entre contas, entrada de texto, ordenação por leitura recente e PDF vetorial. A verificação de navegador usa contas, PDFs e SQLite temporários; nunca o banco de produção.
+
+## Controles do ateliê
+
+Ctrl+rolagem aproxima a folha sem alterar o zoom do navegador. A mão move a câmera; a lateral do aplicativo fica reduzida enquanto o caderno está aberto. A borracha recorta apenas o trecho tocado e a caneta suaviza curvas. Ctrl+Z desfaz, Ctrl+Y refaz; Delete e Backspace removem o elemento selecionado, preservando a edição nativa de texto. As páginas podem ser reorganizadas pelo arraste da miniatura ou pela alça (com suporte às setas do teclado).

@@ -202,6 +202,7 @@ export function RootLayout() {
             {navItems.map(({ path, icon: Icon, label, badge, end }) => (
               <NavLink
                 key={path}
+                aria-label={label} title={label}
                 data-utility={path === "/admin" || path === "/settings" ? "true" : undefined}
                 to={path}
                 end={end}

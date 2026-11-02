@@ -1,6 +1,7 @@
 import { memo, useEffect, useRef, useState, type PointerEvent } from "react";
+import { eraseElements } from "../../lib/notebooks/erase";
 import { fontFamily, paperColor, strokePath, strokeHit, uid, wrapText, type Element, type ImageElement, type NotebookPage, type Point, type Stroke, type TextElement } from "../../lib/notebooks/model";
-export type Tool = "select" | "text" | "pen" | "marker" | "eraser";
+export type Tool = "hand" | "select" | "text" | "pen" | "marker" | "eraser";
 export const PageArtwork = memo(function PageArtwork({page}:{page:NotebookPage}) {
   return <>{page.elements.map(element=><ElementArtwork key={element.id} element={element}/>)}</>;
 });
@@ -16,17 +17,18 @@ const ElementArtwork=memo(function ElementArtwork({element:e}:{element:Element})
 export function PaperArtwork({paper}:{paper:NotebookPage["paper"]}) {
   return <><rect width="800" height="1100" fill={paperColor(paper)}/>{paper==="ruled"&&<><path d={Array.from({length:32},(_,i)=>`M0 ${72+i*32} H800`).join(" ")} stroke="#a5bfc5" strokeWidth=".8" opacity=".55"/><path d="M62 0 V1100" stroke="#c47b76" strokeWidth="1" opacity=".6"/></>}{paper==="parchment"&&<><defs><radialGradient id="paper-age"><stop offset="55%" stopColor="#e8d197" stopOpacity="0"/><stop offset="100%" stopColor="#a47436" stopOpacity=".32"/></radialGradient></defs><rect width="800" height="1100" fill="url(#paper-age)"/><rect x="18" y="18" width="764" height="1064" rx="4" fill="none" stroke="#a67d3d" strokeWidth="1" opacity=".25"/></>}</>;
 }
-export function PageCanvas({page,tool,color,width,selected,onSelect,onChange,onSource,readOnly=false,textStyle}:{page:NotebookPage;tool:Tool;color:string;width:number;selected:string|null;onSelect:(id:string|null)=>void;onChange:(elements:Element[])=>void;onSource:(image:ImageElement)=>void;readOnly?:boolean;textStyle:Omit<TextElement,"id"|"type"|"x"|"y"|"width"|"height"|"text">}) {
+export function PageCanvas({page,tool,color,width,selected,onSelect,onChange,onSource,readOnly=false,textStyle}:{page:NotebookPage;tool:Tool;color:string;width:number;selected:string|null;onSelect:(id:string|null)=>void;onChange:(elements:Element[],record?:boolean)=>void;onSource:(image:ImageElement)=>void;readOnly?:boolean;textStyle:Omit<TextElement,"id"|"type"|"x"|"y"|"width"|"height"|"text">}) {
   const svg=useRef<SVGSVGElement>(null),draft=useRef<SVGPathElement>(null);
   const animation=useRef(0);
   useEffect(()=>()=>{clearTimeout(hold.current);cancelAnimationFrame(animation.current);},[]);
-  const active=useRef<{pointerType:string;id:number;point:Point;points:Point[];original:Element[];target?:Element;resize?:boolean;draw?:Stroke}|null>(null);
+  const active=useRef<{pointerType:string;id:number;point:Point;points:Point[];original:Element[];target?:Element;resize?:boolean;draw?:Stroke;recorded?:boolean;lastErase?:Point;lastRaw?:Point}|null>(null);
   const [editing,setEditing]=useState<string|null>(null);
   const hold=useRef<ReturnType<typeof setTimeout>|undefined>(undefined);
   const latest=useRef(page);latest.current=page;
   const position=(event:PointerEvent):Point=>{const bounds=svg.current!.getBoundingClientRect();return [Math.max(0,Math.min(800,(event.clientX-bounds.left)/bounds.width*800)),Math.max(0,Math.min(1100,(event.clientY-bounds.top)/bounds.height*1100))];};
-  const erase=(point:Point,elements:Element[])=>elements.filter(e=>e.type!=="stroke"||!strokeHit(e,point,Math.max(width,12)));
+  const erase=(point:Point)=>{const gesture=active.current;if(!gesture)return;const next=eraseElements(latest.current.elements,gesture.lastErase||point,point,Math.max(width,8));gesture.lastErase=point;if(next!==latest.current.elements){onChange(next,!gesture.recorded);gesture.recorded=true;}};
   const down=(event:PointerEvent)=>{
+    if(tool==="hand")return;
     if(active.current && event.pointerType==="pen" && active.current.pointerType!=="pen"){active.current=null;draft.current?.setAttribute("d","");}
     if(active.current||event.button!==0)return;
     const point=position(event);
@@ -39,7 +41,7 @@ export function PageCanvas({page,tool,color,width,selected,onSelect,onChange,onS
     const stroke:Stroke={id:uid(),type:"stroke",points:[point],color,width:tool==="marker"?Math.min(60,Math.max(12,width*4)):width,opacity:tool==="marker"?.3:1};
     active.current={pointerType:event.pointerType,id:event.pointerId,point,points:[point],original:page.elements,target,resize:(event.target as SVGElement).getAttribute("data-resize")==="true",draw:tool==="pen"||tool==="marker"?stroke:undefined};
     if(active.current.draw&&draft.current){draft.current.setAttribute("d",strokePath([point]));draft.current.setAttribute("stroke",color);draft.current.setAttribute("stroke-width",String(stroke.width));draft.current.setAttribute("opacity",String(stroke.opacity));}
-    if(tool==="eraser")onChange(erase(point,page.elements));
+    if(tool==="eraser")erase(point);
   };
   const move=(event:PointerEvent)=>{
     const gesture=active.current;
@@ -48,14 +50,14 @@ export function PageCanvas({page,tool,color,width,selected,onSelect,onChange,onS
     if(Math.hypot(dx,dy)>6)clearTimeout(hold.current);
     if(gesture.draw){
       const events=event.nativeEvent.getCoalescedEvents?.()||[event.nativeEvent];
-      for(const e of events){const bounds=svg.current!.getBoundingClientRect();const p:Point=[Math.max(0,Math.min(800,(e.clientX-bounds.left)/bounds.width*800)),Math.max(0,Math.min(1100,(e.clientY-bounds.top)/bounds.height*1100))];const last=gesture.points[gesture.points.length-1];if(Math.hypot(p[0]-last[0],p[1]-last[1])>.8)gesture.points.push(p);}
+      for(const e of events){const bounds=svg.current!.getBoundingClientRect();const p:Point=[Math.max(0,Math.min(800,(e.clientX-bounds.left)/bounds.width*800)),Math.max(0,Math.min(1100,(e.clientY-bounds.top)/bounds.height*1100))];const last=gesture.points[gesture.points.length-1];gesture.lastRaw=p;if(Math.hypot(p[0]-last[0],p[1]-last[1])>.8)gesture.points.push([last[0]+(p[0]-last[0])*.72,last[1]+(p[1]-last[1])*.72]);}
       if(!animation.current)animation.current=requestAnimationFrame(()=>{animation.current=0;if(active.current?.draw)draft.current?.setAttribute("d",strokePath(active.current.points));});return;
     }
-    if(tool==="eraser"){onChange(erase(point,latest.current.elements));return;}
+    if(tool==="eraser"){erase(point);return;}
     const target=gesture.target;if(!target||target.type==="stroke")return;
-    onChange(gesture.original.map(e=>e.id!==target.id?e:gesture.resize?{...target,width:Math.max(40,Math.min(800-target.x,target.width+dx)),height:Math.max(40,Math.min(1100-target.y,target.height+dy))}:{...target,x:Math.max(0,Math.min(800-target.width,target.x+dx)),y:Math.max(0,Math.min(1100-target.height,target.y+dy))}));
+    onChange(gesture.original.map(e=>e.id!==target.id?e:gesture.resize?{...target,width:Math.max(40,Math.min(800-target.x,target.width+dx)),height:Math.max(40,Math.min(1100-target.y,target.height+dy))}:{...target,x:Math.max(0,Math.min(800-target.width,target.x+dx)),y:Math.max(0,Math.min(1100-target.height,target.y+dy))}),!gesture.recorded);gesture.recorded=true;
   };
-  const up=(event:PointerEvent)=>{if(active.current&&event.pointerId!==active.current.id)return;cancelAnimationFrame(animation.current);animation.current=0;clearTimeout(hold.current);const gesture=active.current;active.current=null;if(gesture?.draw){onChange([...latest.current.elements,{...gesture.draw,points:gesture.points}]);draft.current?.setAttribute("d","");}};
+  const up=(event:PointerEvent)=>{if(active.current&&event.pointerId!==active.current.id)return;cancelAnimationFrame(animation.current);animation.current=0;clearTimeout(hold.current);const gesture=active.current;active.current=null;if(gesture?.draw){if(gesture.lastRaw)gesture.points.push(gesture.lastRaw);onChange([...latest.current.elements,{...gesture.draw,points:gesture.points}]);draft.current?.setAttribute("d","");}};
   const selectedElement=page.elements.find(e=>e.id===selected);
   return <svg ref={svg} className={`nb-sheet is-${page.paper}`} viewBox="0 0 800 1100" role="group" aria-label={`Folha: ${page.title}`} style={{touchAction:readOnly||tool==="select"?"pan-y":"none"}} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onLostPointerCapture={up}>
     <PaperArtwork paper={page.paper}/>

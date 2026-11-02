@@ -33,8 +33,15 @@ function normalizePage(input) {
 const ICON_IDS=new Set(['sparkles','moon','flower','heart','coffee','book','feather','map','leaf','zap']);
 const LEGACY_ICONS={'✦':'sparkles','☾':'moon','❀':'flower','♡':'heart','☕':'coffee','📖':'book','🪶':'feather','🗺️':'map','🗺':'map','🌿':'leaf','⚡':'zap'};
 const normalizeIcon=value=>ICON_IDS.has(value)?value:Object.prototype.hasOwnProperty.call(LEGACY_ICONS,value)?LEGACY_ICONS[value]:'sparkles';
+function normalizeCoverLayout(value,baseColor){
+ if(!value||typeof value!=='object')return undefined;
+ const channels=[1,3,5].map(start=>parseInt(baseColor.slice(start,start+2),16)),ink=channels[0]*.2126+channels[1]*.7152+channels[2]*.0722>160?'#263c35':'#fffaf1';
+ const defaults={title:{x:65,y:330,size:36,width:390},description:{x:65,y:495,size:16,width:390},icon:{x:230,y:225,size:60,width:60}},result={};
+ for(const key of Object.keys(defaults)){const item=value[key]||{},fallback=defaults[key];result[key]={x:number(item.x,0,500,fallback.x),y:number(item.y,0,700,fallback.y),size:number(item.size,key==='icon'?12:8,key==='icon'?180:100,fallback.size),width:number(item.width,40,520,fallback.width),color:/^#[0-9a-f]{6}$/i.test(item.color)?item.color:ink};}
+ return result;
+}
 function normalizeCover(input) {
-  return { name: text(input.name,100).replace(/[\r\n]/g,' ').trim() || 'Meu caderno', color: color(input.color), icon: normalizeIcon(input.icon), image: image(input.image), description: text(input.description,200) };
+  return { name: text(input.name,100).replace(/[\r\n]/g,' ').trim() || 'Meu caderno', color: color(input.color), icon: normalizeIcon(input.icon), image: image(input.image), description: text(input.description,200),coverLayout:normalizeCoverLayout(input.coverLayout,color(input.color)) };
 }
 module.exports = function registerNotebooks({ app, db, sql, currentUser }) {
   let pending;

@@ -5,14 +5,19 @@ export interface Box { id: string; x: number; y: number; width: number; height: 
 export interface TextElement extends Box { type: "text"; text: string; color: string; size: number; font: "sans" | "serif" | "mono"; bold: boolean; italic: boolean; underline: boolean; align: "left" | "center" | "right" }
 export interface ImageElement extends Box { type: "image"; src: string; source?: { bookId: string; title: string; page: number; rect?: {x:number;y:number;width:number;height:number} } }
 export type Element = Stroke | TextElement | ImageElement;
-export interface Notebook { id: string; name: string; description: string; color: string; icon: string; image: string; revision: string; updatedAt: number; pageCount?: number }
+export interface Notebook { coverLayout?: import("./coverLayout").CoverLayout; id: string; name: string; description: string; color: string; icon: string; image: string; revision: string; updatedAt: number; pageCount?: number }
 export interface PageSummary { id: string; title: string; paper: Paper; revision: string; position: number; updatedAt: number }
 export interface NotebookPage extends PageSummary { elements: Element[] }
 export interface Share { id: string; owner: string; name: string; pageId: string | null; createdAt: number }
 export const uid = () => crypto.randomUUID();
 export const blankPage = (position = Date.now()): NotebookPage => ({ id: uid(), title: "Nova página", paper: "ruled", elements: [], revision: uid(), position, updatedAt: Date.now() });
 export const fontFamily = (font: string) => font === "serif" ? "NBSerif, Georgia, serif" : font === "mono" ? "NBMono, monospace" : "NBSans, Arial, sans-serif";
-export function strokePath(points: Point[]) { return points.map(([x,y],index) => `${index ? "L" : "M"}${x.toFixed(1)} ${y.toFixed(1)}`).join(" ") + (points.length === 1 ? " l.1 .1" : ""); }
+export function strokePath(points: Point[]) {
+ if(points.length<3)return points.map(([x,y],i)=>`${i?"L":"M"}${x.toFixed(1)} ${y.toFixed(1)}`).join(" ")+(points.length===1?" l.1 .1":"");
+ let path=`M${points[0][0].toFixed(1)} ${points[0][1].toFixed(1)}`;
+ for(let i=1;i<points.length-1;i++){const p=points[i],next=points[i+1];path+=` Q${p[0].toFixed(1)} ${p[1].toFixed(1)} ${((p[0]+next[0])/2).toFixed(1)} ${((p[1]+next[1])/2).toFixed(1)}`;}
+ const last=points[points.length-1];return path+` L${last[0].toFixed(1)} ${last[1].toFixed(1)}`;
+}
 export const paperColor = (paper: Paper) => paper === "parchment" ? "#eddbac" : "#fffefb";
 export function wrapText(text: string, width: number, size: number, measure: (text: string) => number = s => s.length * size * .53) {
   const lines: string[] = [];

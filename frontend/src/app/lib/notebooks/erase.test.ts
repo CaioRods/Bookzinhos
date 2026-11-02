@@ -1,0 +1,4 @@
+import {expect,it} from "vitest";
+import {eraseStroke} from "./erase";import type {Stroke} from "./model";
+it("cuts only the part under the eraser and preserves both sides of a stroke",()=>{const stroke:Stroke={id:"line",type:"stroke",points:[[10,100],[300,100]],width:4,color:"#112233",opacity:1};const pieces=eraseStroke(stroke,[150,80],[150,120],10);expect(pieces).toHaveLength(2);expect(pieces[0].points.at(-1)![0]).toBeLessThan(140);expect(pieces[1].points[0][0]).toBeGreaterThan(160);expect(pieces[0].points[0]).toEqual([10,100]);expect(pieces[1].points.at(-1)).toEqual([300,100]);expect(pieces.every(p=>p.color===stroke.color&&p.width===4)).toBe(true);expect(stroke.points).toHaveLength(2);});
+it("keeps a stroke unchanged when the eraser does not touch it",()=>{const stroke:Stroke={id:"line",type:"stroke",points:[[10,10],[300,10]],width:2,color:"#112233",opacity:.3};expect(eraseStroke(stroke,[100,200],[150,200],8)[0]).toBe(stroke);});
