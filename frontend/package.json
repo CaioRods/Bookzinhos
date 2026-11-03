@@ -87,6 +87,7 @@
     "fake-indexeddb": "^6.2.7",
     "ical.js": "^2.2.1",
     "jsdom": "^26.1.0",
+    "sharp": "0.34.5",
     "tailwindcss": "4.1.12",
     "typescript": "~5.9.2",
     "vite": "6.3.5",
