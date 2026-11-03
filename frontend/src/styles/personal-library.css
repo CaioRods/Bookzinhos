@@ -35,7 +35,7 @@
     color: var(--foreground);
     align-items: center;
   }
-  .mb-mybooks .mb-reading-spotlight > div:first-child { width: 76px; border-radius: 8px; transform: rotate(-3deg); }
+  .mb-mybooks .mb-reading-spotlight > div:first-child { width: 76px; border-radius: 3px; transform: rotate(-3deg); }
   .mb-mybooks .mb-reading-spotlight h2 { font: 600 clamp(17px, 1.8vw, 23px)/1.35 var(--font-display, Georgia, serif); -webkit-line-clamp: 2; }
   .mb-mybooks .mb-reading-spotlight:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
   .mb-personal-books .mb-personal-search { background: var(--background); border-radius: 14px; }
