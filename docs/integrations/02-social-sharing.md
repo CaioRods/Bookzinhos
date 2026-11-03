@@ -38,3 +38,9 @@ Implementada em `server/book-share.js`, com HTML renderizado no servidor e metad
 - Sessões autenticadas pelo cookie são encaminhadas aos detalhes normais do livro. A prévia usa `private, no-store`, CSP sem scripts e escaping do conteúdo cadastrado.
 - `PUBLIC_APP_URL` opcional na API define o domínio canônico; por padrão usa a primeira origem do frontend. Não há migração de banco.
 - Verificação local: testes da rota com SQLite em memória, metadata, escape de HTML, público/privado, sessão/redirect, fallback; Chromium em 1440, 390 e 320 px sem transbordamento horizontal. A atualização de cartões em WhatsApp e outros serviços depende do rastreador/cache deles e não foi validada em produção.
+
+## Compartilhamento de perfil — 03/11/2026
+
+O perfil próprio e os perfis de leitores oferecem **Compartilhar perfil**, com link direto `/user/:username` e cartão PNG de 1080 px de largura e altura adaptável. A imagem usa cenário/cores, avatar, identidade, biografia, redes, gêneros, estatísticas públicas, conquistas e até 12 livros da estante pública. Há prévia, cópia de link, compartilhamento nativo e download; imagens indisponíveis ou sem CORS recebem fallback sem bloquear a exportação.
+
+O link abre o perfil para visitantes, com **Logar** no cabeçalho. Ações encaminham ao login mantendo o perfil como destino. A rota `GET /public/profiles/:username` retorna um DTO explícito de identidade e livros públicos, sem arquivos de leitura, e-mail, configurações privadas ou livros privados. O cartão também usa esse DTO, inclusive quando gerado pela conta proprietária. Não há migração de banco nem publicação automática nas redes. Atualizar frontend e API em conjunto. O link de perfil não inclui metadados Open Graph específicos; a imagem é compartilhada como arquivo separado.

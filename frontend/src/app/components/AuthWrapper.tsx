@@ -10,8 +10,9 @@ import { DonationCampaign } from "./DonationCampaign";
 import { PrivacyConsent } from "./PrivacyConsent";
 
 export function AuthWrapper() {
-  const { search } = useLocation();
+  const { search, pathname } = useLocation();
   const authRequested = ["login", "signup"].includes(new URLSearchParams(search).get("auth") || "");
+  const publicProfile = /^\/user\/[^/]+\/?$/.test(pathname) && !authRequested;
   const [user, setUser] = useState<string | null>(null);
   const [guest, setGuest] = useState<boolean>(isGuest);
   const [restoring, setRestoring] = useState(true);
@@ -110,7 +111,7 @@ export function AuthWrapper() {
 
   const privacyRequired = !!user && privacyPending;
 
-  if (user || (guest && !authRequested))
+  if (user || (guest && !authRequested) || publicProfile)
     return (
       <>
         <div
@@ -120,7 +121,7 @@ export function AuthWrapper() {
         >
           <Outlet />
         </div>
-        {!openingFor && !privacyRequired && <DonationCampaign />}
+        {!openingFor && !privacyRequired && (user || !publicProfile) && <DonationCampaign />}
         {user && openingFor && !privacyRequired && (
           <BookOpening key={openingFor} onComplete={finishOpening} />
         )}

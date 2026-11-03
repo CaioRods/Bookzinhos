@@ -1,3 +1,4 @@
+const { registerPublicProfileRoutes } = require("./public-profiles");
 const { extractCoverPalette } = require("./cover-palette");
 const { createAuthorRegistry } = require("./authors");
 const { createBookMetadata, metadataFields } = require("./integrations/book-metadata");
@@ -1217,6 +1218,8 @@ app.get("/users", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+registerPublicProfileRoutes({ app, db, sql, loadReviews });
 
 app.get("/users/:username", async (req, res) => {
   try {

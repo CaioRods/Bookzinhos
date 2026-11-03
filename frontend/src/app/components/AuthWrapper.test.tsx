@@ -62,6 +62,7 @@ const app = (entry = "/") =>
       <Routes>
         <Route element={<AuthWrapper />}>
           <Route index element={<h1>Biblioteca pronta</h1>} />
+          <Route path="user/:username" element={<h1>Perfil público</h1>} />
         </Route>
       </Routes>
     </MemoryRouter>,
@@ -153,4 +154,11 @@ it("explicit signup from a book preview shows authentication even in existing gu
   app("/?auth=signup");
   expect(await screen.findByText("Entrar na conta")).toBeTruthy();
   expect(screen.queryByText("Biblioteca pronta")).toBeNull();
+});
+
+it('opens a shared profile without a session or enabling general guest mode',async()=>{
+ app('/user/Ana');expect(await screen.findByRole('heading',{name:'Perfil público'})).toBeTruthy();expect(session.guest).toBe(false);expect(screen.queryByRole('dialog',{name:'Doe para fazer a diferença'})).toBeNull();
+});
+it('shows login on the same shared profile when an anonymous visitor requests authentication',async()=>{
+ app('/user/Ana?auth=login');expect(await screen.findByText('Entrar na conta')).toBeTruthy();expect(screen.queryByRole('heading',{name:'Perfil público'})).toBeNull();
 });

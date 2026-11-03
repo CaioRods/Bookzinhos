@@ -1,9 +1,10 @@
+import { ProfileShare } from "../components/ProfileShare";
 import { ProfilePortrait, ProfileMetrics } from "../components/ProfilePortrait";
 import { usePublicProfileScene } from "../lib/profileScene";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useParams, useNavigate, Link } from "react-router";
 import { ArrowLeft, MessageCircle, UserPlus, UserCheck, Star } from "lucide-react";
-import { fetchBooks, fetchProgression, fetchUserProfile, followUser, unfollowUser } from "../lib/api";
+import { fetchBooks, fetchProgression, fetchUserProfile, fetchPublicProfile, followUser, unfollowUser } from "../lib/api";
 import { useLiveData } from "../lib/useLiveData";
 import { getUsername } from "../lib/session";
 import { requireAuth } from "../lib/authGate";
@@ -21,16 +22,16 @@ export function UserProfile() {
   const { username } = useParams<{ username: string }>();
   const navigate = useNavigate();
   const me = getUsername();
-  const [tab, setTab] = useState<Tab>("resenhas");
+  const [tab, setTab] = useState<Tab>(()=>me?"resenhas":"estante");
 
   const { data, isLoading, setData, reload } = useLiveData<{ profile: UserProfileType | null; books: Book[]; profileTheme: SceneTheme | null; progression: ProgressionSummary | null }>(
     async (force) => {
-      const [profile, books, remoteTheme, progression] = await Promise.all([
-        fetchUserProfile(username!, force),
-        fetchBooks(force),
+      const [bundle, remoteTheme, progression] = await Promise.all([
+        me ? Promise.all([fetchUserProfile(username!, force),fetchBooks(force)]).then(([profile,books])=>({profile,books})) : fetchPublicProfile(username!, force),
         fetchProfileTheme(username!).catch(() => null),
         fetchProgression(username!, force).catch(() => null),
       ]);
+      const {profile,books}=bundle;
       const profileTheme = remoteTheme && "mainColor" in remoteTheme ? remoteTheme : DEFAULT_THEMES.find((theme) => theme.id === remoteTheme?.id || theme.id === profile?.themeId) || DEFAULT_THEMES[0];
       return { profile, books, profileTheme, progression };
     },
@@ -119,7 +120,7 @@ export function UserProfile() {
   return (
     <div className="mb-userprofile mb-profile-cinematic" style={accentVariables(profileTheme.mainColor, document.documentElement.classList.contains("dark")) as CSSProperties}>
       <ProfilePortrait profile={profile} theme={profileTheme} progression={progression} own={isMe}
-        actions={isMe ? <Link to="/profile" className="mb-btn">Editar meu perfil</Link> : <><button onClick={toggleFollow} aria-pressed={!!profile.isFollowedByMe} className="mb-btn">{profile.isFollowedByMe ? <><UserCheck size={17}/>Seguindo</> : <><UserPlus size={17}/>Seguir</>}</button><Link to={`/chat/${encodeURIComponent(profile.username)}`} state={{chatOrigin:`/user/${encodeURIComponent(profile.username)}`}} className="mb-btn"><MessageCircle size={17}/>Conversar</Link></>} />
+        actions={<><ProfileShare profile={profile} theme={profileTheme} progression={progression}/>{isMe ? <Link to="/profile" className="mb-btn">Editar meu perfil</Link> : <><button onClick={toggleFollow} aria-pressed={!!profile.isFollowedByMe} className="mb-btn">{profile.isFollowedByMe ? <><UserCheck size={17}/>Seguindo</> : <><UserPlus size={17}/>Seguir</>}</button><Link to={`/chat/${encodeURIComponent(profile.username)}`} state={{chatOrigin:`/user/${encodeURIComponent(profile.username)}`}} className="mb-btn"><MessageCircle size={17}/>Conversar</Link></>}</>} />
       <div className="mb-profile-cinematic-body">
       <ProfileMetrics addedBooks={profile.stats?.uploaded ?? 0} reading={profile.stats?.reading ?? profile.reading?.length ?? 0} finished={profile.stats?.finished ?? finishedBooks.length} favorites={profile.stats?.saved ?? savedBooks.length} followers={profile.followers ?? 0} following={profile.following ?? 0}/>
       <button onClick={()=>navigate(-1)} className="mb-profile-back mb-btn mb-btn-ghost mb-btn-sm"><ArrowLeft size={15}/> Voltar</button>

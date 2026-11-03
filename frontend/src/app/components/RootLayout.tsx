@@ -1,3 +1,4 @@
+import { PublicProfileLayout } from "./PublicProfileLayout";
 import { OfflineStatus } from "./OfflineStatus";
 import { ReaderNamesProvider } from "./ReaderName";
 import { useProfileScene } from "../lib/profileScene";
@@ -94,7 +95,7 @@ export function RootLayout() {
   }, [username]);
 
   useEffect(() => {
-    if (location.pathname.startsWith("/read/")) return;
+    if (!username || location.pathname.startsWith("/read/")) return;
     const tracker = createActivityTracker({ send: async (clientElapsedSeconds) => { try { await sendActivityHeartbeat({ scope: "app", clientElapsedSeconds }); } catch { /* atividade é secundária */ } } });
     const interact = () => tracker.interact();
     tracker.start();
@@ -103,7 +104,7 @@ export function RootLayout() {
       tracker.stop();
       ["pointerdown", "keydown", "scroll", "touchstart"].forEach((event) => window.removeEventListener(event, interact));
     };
-  }, [location.pathname]);
+  }, [location.pathname, username]);
 
   useEffect(() => {
     const syncSession = () => {
@@ -120,6 +121,7 @@ export function RootLayout() {
   }, [location.pathname]);
 
   useEffect(() => {
+    if (!username) { setUnreadCount(0); return; }
     let cancelled = false;
     const check = async () => {
       if (document.visibilityState !== "visible") return;
@@ -140,7 +142,7 @@ export function RootLayout() {
       document.removeEventListener("visibilitychange", check);
       window.removeEventListener("focus", check);
     };
-  }, []);
+  }, [username]);
 
   const navItems: NavItem[] = useMemo(() => {
     const items: NavItem[] = [
@@ -152,6 +154,10 @@ export function RootLayout() {
     ];
     return items;
   }, [unreadCount, admin]);
+
+  if (!username && /^\/user\/[^/]+\/?$/.test(location.pathname)) {
+    return <PublicProfileLayout><Outlet /></PublicProfileLayout>;
+  }
 
   const isChat = location.pathname.startsWith("/chat/");
   const isRead = location.pathname.startsWith("/read/");

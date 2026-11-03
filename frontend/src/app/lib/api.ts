@@ -544,6 +544,10 @@ export function fetchAllUsers(force = false): Promise<UserProfile[]> {
   return cachedGet<UserProfile[]>("/users", force ? 0 : DEFAULT_TTL);
 }
 
+export function fetchPublicProfile(username: string, force = false): Promise<{profile: UserProfile; books: Book[]}> {
+  return cachedGet(`/public/profiles/${encodeURIComponent(username)}`, force ? 0 : 30000);
+}
+
 export function fetchUserProfile(username: string, force = false): Promise<UserProfile | null> {
   return cachedGet<UserProfile | null>(`/users/${encodeURIComponent(username)}`, force ? 0 : DEFAULT_TTL);
 }
