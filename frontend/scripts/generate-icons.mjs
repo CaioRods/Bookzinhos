@@ -11,16 +11,14 @@ const publicDir=join(root,'public'),source=join(publicDir,'icon-1024.png');
 const nativeDir=join(root,'..','assets');
 mkdirSync(nativeDir,{recursive:true});
 for(const [name,size] of [['icon-192',192],['icon-512',512],['apple-touch-icon',180],['favicon-64',64]]){
- const file=join(publicDir,`${name}-v4.png`);
+ const file=join(publicDir,`${name}-v5.png`);
  await sharp(source).resize(size,size).png().toFile(file);
  copyFileSync(file,join(publicDir,`${name}.png`));
- console.log(`✓ ${name}-v4.png (${size}×${size})`);
+ console.log(`✓ ${name}-v5.png (${size}×${size})`);
 }
 // Android may crop to a circle. Keep the book inside the maskable safe area.
 const foreground=await sharp(source).resize(716,716).png().toBuffer();
-const maskable=await sharp({create:{width:1024,height:1024,channels:4,background:'#bfa995'}}).composite([{input:foreground,left:154,top:154}]).png().toBuffer();
-await sharp(maskable).resize(512,512).png().toFile(join(publicDir,'icon-maskable-512-v4.png'));
 await sharp({create:{width:1024,height:1024,channels:4,background:'#00000000'}}).composite([{input:foreground,left:154,top:154}]).png().toFile(join(nativeDir,'adaptive-icon.png'));
-for(const [from,to] of [['icon-1024.png','icon.png'],['icon-512-v4.png','splash.png'],['favicon-64-v4.png','favicon.png']])copyFileSync(join(publicDir,from),join(nativeDir,to));
+for(const [from,to] of [['icon-1024.png','icon.png'],['icon-512-v5.png','splash.png'],['favicon-64-v5.png','favicon.png']])copyFileSync(join(publicDir,from),join(nativeDir,to));
 
-copyFileSync(join(publicDir,'manifest.json'),join(publicDir,'manifest-v4.json'));
+for(const name of ['manifest-v4.json','manifest-v5.json'])copyFileSync(join(publicDir,'manifest.json'),join(publicDir,name));
