@@ -22,6 +22,7 @@ export const router = createBrowserRouter([
         ErrorBoundary: ErrorScreen,
         children: [
           { index: true, Component: Home },
+          { path: "donate", lazy: async () => ({ Component: (await import("./pages/Donate")).Donate }) },
           { path: "series/:seriesId", lazy: async () => ({ Component: (await import("./components/SeriesShelf")).SeriesPage }) },
           { path: "library", lazy: async () => ({ Component: (await import("./pages/Library")).Library }) },
           { path: "my-books", lazy: async () => ({ Component: (await import("./pages/MyBooks")).MyBooks }) },

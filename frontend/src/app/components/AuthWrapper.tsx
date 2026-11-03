@@ -6,6 +6,7 @@ import { completeOpening, needsOpening } from "../lib/opening";
 import { getUsername, isGuest, enterGuestMode } from "../lib/session";
 import { clearSession, saveSession } from "../lib/session";
 import { getAuthenticatedSession } from "../lib/api";
+import { DonationCampaign } from "./DonationCampaign";
 import { PrivacyConsent } from "./PrivacyConsent";
 
 export function AuthWrapper() {
@@ -119,6 +120,7 @@ export function AuthWrapper() {
         >
           <Outlet />
         </div>
+        {!openingFor && !privacyRequired && <DonationCampaign />}
         {user && openingFor && !privacyRequired && (
           <BookOpening key={openingFor} onComplete={finishOpening} />
         )}
