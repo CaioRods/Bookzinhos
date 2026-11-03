@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import {
   Bell, Monitor, Moon, Sun, BookOpen, Smartphone, HelpCircle, LogOut, Check,
-  SlidersHorizontal, Shield, Trash2,
+  SlidersHorizontal, Shield, Trash2, HeartHandshake,
 } from "lucide-react";
 import {
   NOTIFICATION_LABELS, desktopPermission, requestDesktopPermission, useSettings,
@@ -263,6 +263,10 @@ export function Settings() {
         Tema, animações e preferências de aviso ficam guardados neste aparelho — em outro
         navegador você escolhe de novo.
       </p>
+
+      <div className="lg:hidden"><Section title="Uma causa para apoiar" description="Conheça a campanha independente do myBooks em apoio ao GRAACC.">
+        <Link to="/donate" className="mb-btn mb-btn-outline"><HeartHandshake size={18} /> Conhecer a campanha de doação</Link>
+      </Section></div>
 
       <AppInstallation />
 

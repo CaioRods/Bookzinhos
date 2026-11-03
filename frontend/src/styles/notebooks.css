@@ -160,3 +160,19 @@
   .nb-text-tools small {display:none;}
  }
 }
+
+@layer components {
+ .nb-toolbar-row {display:flex;align-items:stretch;min-width:0;flex-shrink:0;background:var(--surface);border-bottom:1px solid var(--line);}
+ .nb-toolbar-row>.nb-tools {flex:1;min-width:0;border-bottom:0;}
+ .nb-attach-button {display:flex;align-items:center;justify-content:center;gap:6px;flex:0 0 auto;min-width:88px;min-height:44px;padding:8px 12px;border-left:1px solid var(--line);color:var(--primary);background:var(--surface);font-size:12px;font-weight:600;cursor:pointer;}
+ .nb-attach-button:hover {background:var(--primary-soft);}
+ .nb-attach-button:focus-visible {outline:2px solid var(--primary);outline-offset:-3px;}
+ .nb-writing-guides {user-select:none;}
+ .nb-camera-viewport,.nb-sheet {touch-action:none;}
+ @media(max-width:600px){.nb-toolbar-row .nb-tools button,.nb-text-tools button {min-width:40px;height:40px;}.nb-camera-controls {right:8px;top:8px;}.nb-attach-button {min-width:84px;padding:8px;}}
+}
+@layer components {
+ /* Keep camera controls outside the paper so they never cover handwriting. */
+ .nb-camera {flex-direction:column;}
+ .nb-camera .nb-camera-controls {position:static;align-self:flex-end;flex-shrink:0;margin:6px 8px;padding:2px 5px;}
+}

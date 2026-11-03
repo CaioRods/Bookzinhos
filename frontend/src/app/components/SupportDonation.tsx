@@ -17,7 +17,7 @@ export function usePublicSupport() {
   return support;
 }
 
-export function SupportDonation({ support, onClose }: { support: SupportConfig; onClose: () => void }) {
+export function SupportDonation({ support, onClose, onNeverShow }: { support: SupportConfig; onClose: () => void; onNeverShow?: () => void }) {
   const dialog = useRef<HTMLElement>(null);
   const close = useRef<HTMLButtonElement>(null);
   const [copied, setCopied] = useState(false);
@@ -42,6 +42,7 @@ export function SupportDonation({ support, onClose }: { support: SupportConfig; 
       {copyError && <p role="status">Não foi possível copiar. Selecione a chave acima e copie manualmente.</p>}
       <p className="mb-donation-note">Pix da campanha myBooks. A instituição apoiada é o GRAACC; esta chave não é apresentada como chave oficial do instituto. Confira o destinatário no seu banco.</p>
       <Link className="mb-btn mb-btn-primary mb-donation-link" to="/donate" onClick={onClose}>Conheça a causa e o destino da doação</Link>
+      {onNeverShow && <button type="button" className="mb-support-dismiss" onClick={onNeverShow}>Não mostrar novamente</button>}
       <small>Doar é opcional. Nenhum recurso, conteúdo ou atendimento depende de contribuição.</small>
     </section>
   </div>, document.body);

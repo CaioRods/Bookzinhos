@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router";
 import { SupportDonation } from "./SupportDonation";
 
+const HIDDEN_KEY = "mybooks:donation:hidden:v1";
+
 export const DONATION_INTERVAL = 40 * 60 * 1000;
 export const DONATION_SUPPORT = {
   pixKey: "baa03d59-5011-4ced-9d47-18a8949cff22",
@@ -12,6 +14,7 @@ export const DONATION_SUPPORT = {
 export function DonationCampaign() {
   const { pathname } = useLocation();
   const blocked = pathname.startsWith("/read/") || pathname === "/donate";
+  const [hidden, setHidden] = useState(() => { try { return localStorage.getItem(HIDDEN_KEY) === "1"; } catch { return false; } });
   const [open, setOpen] = useState(false);
   const nextAt = useRef(0);
   const dismiss = useCallback(() => {
@@ -20,7 +23,7 @@ export function DonationCampaign() {
   }, []);
 
   useEffect(() => {
-    if (blocked) return;
+    if (blocked || hidden) return;
     let timer: ReturnType<typeof setTimeout>;
     const check = () => {
       clearTimeout(timer);
@@ -39,7 +42,13 @@ export function DonationCampaign() {
       clearTimeout(timer);
       document.removeEventListener("visibilitychange", check);
     };
-  }, [blocked, pathname, open]);
+  }, [blocked, pathname, open, hidden]);
 
-  return !blocked && open ? <SupportDonation support={DONATION_SUPPORT} onClose={dismiss} /> : null;
+  const neverShow = () => {
+    try { localStorage.setItem(HIDDEN_KEY, "1"); } catch { /* A preferência ainda vale nesta sessão. */ }
+    setHidden(true);
+    setOpen(false);
+  };
+
+  return !blocked && !hidden && open ? <SupportDonation support={DONATION_SUPPORT} onClose={dismiss} onNeverShow={neverShow} /> : null;
 }

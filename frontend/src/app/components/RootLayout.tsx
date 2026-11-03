@@ -246,11 +246,11 @@ export function RootLayout() {
               </button>
           </div>
           )}
+<div className="mb-sidebar-footer"><Link to="/donate" className="mb-sidebar-donate" aria-label="Conhecer a campanha de doação" title="Doar"><HeartHandshake size={17} aria-hidden="true" /></Link></div>
         </aside>
 
         {/* ── Ações da conta (desktop) ────────────────────────────────────── */}
         <div className="mb-desktop-actions hidden lg:flex items-center">
-          <Link to="/donate" className="mb-btn mb-btn-ghost" aria-label="Conhecer a campanha de doação"><HeartHandshake size={18} /> Doar</Link>
           <GlobalSearch />
           <NotificationsMenu />
           {username && <AccountMenu displayName={displayName} avatar={avatar} username={username} admin={admin} progression={progression} onLogout={async () => { try { await logout(); } finally { clearSession(); window.location.href = "/"; } }} />}
@@ -264,7 +264,6 @@ export function RootLayout() {
             <Brand />
           </Link>
           <div className="flex items-center gap-1">
-            <Link to="/donate" className="mb-btn mb-btn-ghost mb-btn-icon" aria-label="Conhecer a campanha de doação"><HeartHandshake size={21} /></Link>
             <NotificationsMenu />
             {username && <AccountMenu displayName={displayName} avatar={avatar} username={username} admin={admin} progression={progression} onLogout={async () => { try { await logout(); } finally { clearSession(); window.location.href = "/"; } }} />}
           </div>

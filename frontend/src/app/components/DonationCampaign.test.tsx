@@ -4,12 +4,12 @@ import { MemoryRouter, useNavigate } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DonationCampaign, DONATION_INTERVAL } from "./DonationCampaign";
 
-vi.mock("./SupportDonation", () => ({ SupportDonation: ({ onClose }: { onClose: () => void }) => <div role="dialog"><button onClick={onClose}>Fechar doação</button></div> }));
+vi.mock("./SupportDonation", () => ({ SupportDonation: ({ onClose, onNeverShow }: { onClose: () => void; onNeverShow: () => void }) => <div role="dialog"><button onClick={onClose}>Fechar doação</button><button onClick={onNeverShow}>Não mostrar novamente</button></div> }));
 function App() {
   const navigate = useNavigate();
   return <><button onClick={() => navigate("/read/1")}>Ler</button><button onClick={() => navigate("/")}>Início</button><button onClick={() => navigate("/donate")}>Causa</button><DonationCampaign /></>;
 }
-beforeEach(() => { vi.useFakeTimers(); Object.defineProperty(document, "visibilityState", { configurable: true, value: "visible" }); });
+beforeEach(() => { localStorage.clear(); vi.useFakeTimers(); Object.defineProperty(document, "visibilityState", { configurable: true, value: "visible" }); });
 afterEach(() => { cleanup(); vi.useRealTimers(); });
 describe("DonationCampaign", () => {
   it("opens on entry, can close, and returns after 40 minutes", () => {
@@ -47,4 +47,15 @@ describe("DonationCampaign", () => {
     fireEvent(document, new Event("visibilitychange"));
     expect(screen.queryByRole("dialog")).not.toBeNull();
   });
+});
+
+it("remembers the permanent dismissal after time, route changes and remounting", () => {
+ const view=render(<MemoryRouter><App /></MemoryRouter>);
+ fireEvent.click(screen.getByText("Não mostrar novamente"));
+ expect(screen.queryByRole("dialog")).toBeNull();
+ act(()=>vi.advanceTimersByTime(DONATION_INTERVAL*3));
+ fireEvent.click(screen.getByText("Ler"));fireEvent.click(screen.getByText("Início"));
+ expect(screen.queryByRole("dialog")).toBeNull();
+ view.unmount();render(<MemoryRouter><App /></MemoryRouter>);
+ expect(screen.queryByRole("dialog")).toBeNull();
 });

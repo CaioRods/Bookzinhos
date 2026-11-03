@@ -21,7 +21,7 @@ function normalizePage(input) {
       return { ...base, color: color(e.color), width: number(e.width, .5, 60, 3), opacity: e.opacity === .3 ? .3 : 1, points: e.points.map(p => { if (!Array.isArray(p) || p.length < 2) throw new Error('Traço inválido.'); return [number(p[0],0,800),number(p[1],0,1100)]; }) };
     }
     const box = { x: number(e.x,0,790), y: number(e.y,0,1090), width: number(e.width,30,800,300), height: number(e.height,30,1100,150) };
-    if (e.type === 'text') return { ...base, ...box, text: text(e.text,40000), color: color(e.color), size: number(e.size,10,96,22), font: ['serif','sans','mono'].includes(e.font) ? e.font : 'sans', bold: !!e.bold, italic: !!e.italic, underline: !!e.underline, align: ['left','center','right'].includes(e.align) ? e.align : 'left' };
+    if (e.type === 'text') return { ...base, ...box, ...(e.flow === 'ruled' ? {flow:'ruled'} : {}), text: text(e.text,40000), color: color(e.color), size: number(e.size,10,96,22), font: ['serif','sans','mono'].includes(e.font) ? e.font : 'sans', bold: !!e.bold, italic: !!e.italic, underline: !!e.underline, align: ['left','center','right'].includes(e.align) ? e.align : 'left' };
     if (e.type === 'image') {
       const link = e.source && idPattern.test(e.source.bookId) ? { bookId: e.source.bookId, title: text(e.source.title,200), page: Math.floor(number(e.source.page,1,100000,1)), rect: e.source.rect ? { x:number(e.source.rect.x,0,1), y:number(e.source.rect.y,0,1), width:number(e.source.rect.width,.01,1,1), height:number(e.source.rect.height,.01,1,1) } : undefined } : undefined;
       return { ...base, ...box, src: image(e.src), ...(link ? { source: link } : {}) };

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router";
-import { HeartHandshake, LogOut, Settings, Shield, UserRound } from "lucide-react";
+import { LogOut, Settings, Shield, UserRound } from "lucide-react";
 import type { ProgressionSummary } from "../lib/types";
 import { Avatar } from "./Ui";
 import { ProfileProgressAvatar } from "./ProfileProgressAvatar";
@@ -27,7 +27,6 @@ export function AccountMenu({ avatar, username, displayName, admin, progression,
       {progression && <div className="mb-account-xp"><i style={{ width: `${progress}%` }} /></div>}
       <Link role="menuitem" to="/profile"><UserRound /> Perfil</Link>
       <Link role="menuitem" to="/settings"><Settings /> Configurações</Link>
-      <Link role="menuitem" to="/donate"><HeartHandshake /> Doar para fazer a diferença</Link>
       {admin && <Link role="menuitem" to="/admin"><Shield /> Administrador</Link>}
       <button role="menuitem" onClick={onLogout}><LogOut /> Sair</button>
     </div>}

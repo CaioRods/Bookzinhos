@@ -16,3 +16,12 @@ test('legacy diary import is private, repeatable and never resurrects deleted no
 test('delayed offline writes cannot resurrect an explicitly deleted page or notebook',async t=>{const {call}=await fixture(t);await call('/notebooks/one','Ana','PUT',cover);await call('/notebooks/one/pages/first','Ana','PUT',page());await call('/notebooks/one/pages/first','Ana','DELETE');assert.equal((await call('/notebooks/one/pages/first','Ana','PUT',page('p2','p1'))).status,410);assert.deepEqual(await(await call('/notebooks/one/pages')).json(),[]);await call('/notebooks/one','Ana','DELETE');assert.equal((await call('/notebooks/one','Ana','PUT',{...cover,revision:'c2',baseRevision:'c1'})).status,410);assert.equal((await call('/notebooks/one','Bia','PUT',cover)).status,410);});
 
 test('cover element layout survives save and reload without accepting unsafe colors',async t=>{const {call}=await fixture(t);const layout={title:{x:23.5,y:90,size:48,width:400,color:'#112233'},description:{x:35,y:550,size:14,width:300,color:'#aabbcc'},icon:{x:400,y:35,size:80,width:80,color:'#778899'}};const saved=await call('/notebooks/layout','Ana','PUT',{...cover,coverLayout:layout});assert.equal(saved.status,200);assert.deepEqual((await saved.json()).coverLayout,layout);const list=await(await call('/notebooks')).json();assert.deepEqual(list[0].coverLayout,layout);});
+
+test('paper-aligned text layout survives save, reload and sharing without changing older text',async t=>{
+ const {call}=await fixture(t);await call('/notebooks/one','Ana','PUT',cover);
+ const value=page();value.elements.push({...value.elements[0],id:'aligned',y:50,flow:'ruled'});
+ const saved=await call('/notebooks/one/pages/first','Ana','PUT',value);assert.equal(saved.status,200);
+ const result=await(await call('/notebooks/one/pages/first')).json();assert.equal(result.elements[1].flow,'ruled');assert.equal(result.elements[0].flow,undefined);
+ const {id}=await(await call('/notebooks/one/shares','Ana','POST',{recipient:'Bia',pageId:'first'})).json();
+ const shared=await(await call(`/notebook-shares/${id}/pages/first`,'Bia')).json();assert.equal(shared.elements[1].flow,'ruled');
+});

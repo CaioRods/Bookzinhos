@@ -2,7 +2,7 @@ export type Paper = "plain" | "parchment" | "ruled";
 export type Point = [number, number];
 export interface Stroke { id: string; type: "stroke"; points: Point[]; color: string; width: number; opacity: number }
 export interface Box { id: string; x: number; y: number; width: number; height: number }
-export interface TextElement extends Box { type: "text"; text: string; color: string; size: number; font: "sans" | "serif" | "mono"; bold: boolean; italic: boolean; underline: boolean; align: "left" | "center" | "right" }
+export interface TextElement extends Box { flow?: "ruled"; type: "text"; text: string; color: string; size: number; font: "sans" | "serif" | "mono"; bold: boolean; italic: boolean; underline: boolean; align: "left" | "center" | "right" }
 export interface ImageElement extends Box { type: "image"; src: string; source?: { bookId: string; title: string; page: number; rect?: {x:number;y:number;width:number;height:number} } }
 export type Element = Stroke | TextElement | ImageElement;
 export interface Notebook { coverLayout?: import("./coverLayout").CoverLayout; id: string; name: string; description: string; color: string; icon: string; image: string; revision: string; updatedAt: number; pageCount?: number }
@@ -42,4 +42,19 @@ export function strokeHit(stroke:Stroke,point:Point,radius:number){
   if(Math.hypot(point[0]-a[0]-t*dx,point[1]-a[1]-t*dy)<=limit)return true;
  }
  return false;
+}
+
+/** The same baselines are used on every paper, in the editor and in exported PDFs. */
+export const PAPER_GRID = { first:72, step:32, left:62, right:760, bottom:1064 } as const;
+export const textLineHeight = (element:Pick<TextElement,"size"|"flow">) => element.flow === "ruled" ? Math.ceil(element.size*1.15/PAPER_GRID.step)*PAPER_GRID.step : element.size*1.4;
+export const textBaseline = (element:Pick<TextElement,"y"|"size"|"flow">, line:number) => element.y+element.size+line*textLineHeight(element);
+export const textVisibleLines = (element:Pick<TextElement,"y"|"size"|"height"|"flow">) => element.flow === "ruled" ? Math.max(1,1+Math.floor((Math.min(element.y+element.height,PAPER_GRID.bottom)-element.y-element.size)/textLineHeight(element))) : Math.max(1,Math.floor(element.height/textLineHeight(element)));
+export function snapTextY(y:number,size:number) {
+ const first=PAPER_GRID.first+Math.max(0,Math.ceil((size-PAPER_GRID.first)/PAPER_GRID.step))*PAPER_GRID.step;
+ const baseline=Math.max(first,Math.min(PAPER_GRID.bottom,PAPER_GRID.first+Math.round((y+size-PAPER_GRID.first)/PAPER_GRID.step)*PAPER_GRID.step));
+ return Math.max(0,baseline-size);
+}
+export function ruledTextBox(point:Point,size:number) {
+ const x=Math.max(PAPER_GRID.left,Math.min(660,point[0]-4)),y=snapTextY(point[1]-size,size);
+ return {x,y,width:PAPER_GRID.right-x,height:1100-y,flow:"ruled" as const};
 }
