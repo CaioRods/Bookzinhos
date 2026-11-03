@@ -17,7 +17,8 @@
   .mb-poster-tile .mb-book-caption h4 { font-size:13px; line-height:1.4; }
   .mb-poster-tile .mb-book-more,.mb-poster-tile .mb-library-book-rating,.mb-poster-tile .mb-book-progress { display:none; }
   .mb-poster-tile .mb-book-author { font-size:12px; color:var(--text-3); margin-top:3px; }
-  .mb-installed-mark { display:inline-flex; align-items:center; justify-content:center; width:25px; height:25px; flex-shrink:0; border-radius:50%; margin:0; color:#7c838b; background:#f1f2f3; border:1.5px solid #c5c9ce; }
+  .mb-installed-mark { display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; flex-shrink:0; border-radius:50%; margin:0; color:var(--text-3); background:transparent; border:0; }
+  .mb-installed-mark:not(.is-installed) svg { width:12px; height:12px; stroke-width:1.5; }
   .mb-installed-mark.is-installed { color:#fff; background:#16a34a; border-color:#12813d; }
   .mb-offline-book.is-installed { color:#15803d; }
   .mb-offline-book,.mb-offline-book:hover { box-shadow:none!important; transform:none!important; transition:none!important; }
