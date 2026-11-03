@@ -10,15 +10,28 @@ export function NotebookCamera({hand,children}:{hand:boolean;children:ReactNode}
  const touches=useRef(new Map<number,Touch>());
  const pinch=useRef<{distance:number;anchor:Touch;camera:Camera}|null>(null);
  const pinching=useRef(false);
+ const trackpadGesture=useRef<{zoom:number;scale:number;anchor:Touch}|null>(null);
  const setZoom=(zoom:number,anchor={x:0,y:0})=>{setCamera(current=>{const next=clampZoom(zoom),ratio=next/current.zoom;return {zoom:next,x:anchor.x-(anchor.x-current.x)*ratio,y:anchor.y-(anchor.y-current.y)*ratio};});};
  const pair=()=>{const [a,b]=[...touches.current.values()];if(!a||!b)return null;const bounds=viewport.current!.getBoundingClientRect();return {distance:Math.max(1,Math.hypot(b.x-a.x,b.y-a.y)),anchor:{x:(a.x+b.x)/2-bounds.left-bounds.width/2,y:(a.y+b.y)/2-bounds.top-6}};};
  useLayoutEffect(()=>{
   const element=viewport.current;if(!element)return;
   const measure=()=>setWidth(Math.max(180,element.clientWidth-16));measure();
   const observer=new ResizeObserver(measure);observer.observe(element);
-  const wheel=(event:WheelEvent)=>{event.preventDefault();const bounds=element.getBoundingClientRect(),unit=event.deltaMode===1?16:event.deltaMode===2?element.clientHeight:1;if(event.ctrlKey||event.metaKey)setZoom(latest.current.zoom*Math.exp(-event.deltaY*unit*.0025),{x:event.clientX-bounds.left-bounds.width/2,y:event.clientY-bounds.top-6});else setCamera(current=>({...current,x:current.x-event.deltaX*unit,y:current.y-event.deltaY*unit}));};
+  const wheel=(event:WheelEvent)=>{event.preventDefault();if(trackpadGesture.current&&(event.ctrlKey||event.metaKey))return;const bounds=element.getBoundingClientRect(),unit=event.deltaMode===1?16:event.deltaMode===2?element.clientHeight:1;if(event.ctrlKey||event.metaKey)setZoom(latest.current.zoom*Math.exp(-event.deltaY*unit*.0025),{x:event.clientX-bounds.left-bounds.width/2,y:event.clientY-bounds.top-6});else setCamera(current=>({...current,x:current.x-event.deltaX*unit,y:current.y-event.deltaY*unit}));};
+  // Safari emits GestureEvents for a trackpad pinch; Chromium uses ctrl+wheel.
+  const gestureStart=(event:Event)=>{
+   const gesture=event as Event&{scale?:number;clientX?:number;clientY?:number};event.preventDefault();
+   const bounds=element.getBoundingClientRect();
+   trackpadGesture.current={zoom:latest.current.zoom,scale:gesture.scale&&gesture.scale>0?gesture.scale:1,anchor:{x:(gesture.clientX??bounds.left+bounds.width/2)-bounds.left-bounds.width/2,y:(gesture.clientY??bounds.top+bounds.height/2)-bounds.top-6}};
+  };
+  const gestureChange=(event:Event)=>{
+   event.preventDefault();const origin=trackpadGesture.current,scale=(event as Event&{scale?:number}).scale;
+   if(origin&&scale&&Number.isFinite(scale)&&scale>0)setZoom(origin.zoom*scale/origin.scale,origin.anchor);
+  };
+  const gestureEnd=(event:Event)=>{event.preventDefault();trackpadGesture.current=null;};
   element.addEventListener("wheel",wheel,{passive:false});
-  return()=>{observer.disconnect();element.removeEventListener("wheel",wheel);};
+  element.addEventListener("gesturestart",gestureStart,{passive:false});element.addEventListener("gesturechange",gestureChange,{passive:false});element.addEventListener("gestureend",gestureEnd,{passive:false});
+  return()=>{observer.disconnect();element.removeEventListener("wheel",wheel);element.removeEventListener("gesturestart",gestureStart);element.removeEventListener("gesturechange",gestureChange);element.removeEventListener("gestureend",gestureEnd);};
  },[]);
  const down=(event:PointerEvent<HTMLDivElement>)=>{
   if(event.pointerType==="touch"){

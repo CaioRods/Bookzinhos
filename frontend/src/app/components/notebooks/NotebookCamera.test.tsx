@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import {act,cleanup,render,screen} from '@testing-library/react';
+import {act,cleanup,render,screen,fireEvent} from '@testing-library/react';
 import {afterEach,beforeEach,expect,it,vi} from 'vitest';
 import {useState} from 'react';
 import {PageCanvas} from './PageCanvas';
@@ -26,5 +26,18 @@ it('does not insert a text box during pinch, then accepts a single-finger text t
  const view=render(<App/>),viewport=view.container.querySelector('.nb-camera-viewport')!,svg=view.container.querySelector('svg.nb-sheet')!;
  vi.spyOn(svg,'getBoundingClientRect').mockReturnValue({left:0,top:0,width:800,height:1100} as DOMRect);vi.spyOn(viewport,'getBoundingClientRect').mockReturnValue({left:0,top:0,width:400,height:400} as DOMRect);
  pointer(svg,'pointerdown',1,100,100);expect(output).toHaveLength(0);pointer(svg,'pointerdown',2,200,100);pointer(viewport,'pointermove',2,300,100);pointer(viewport,'pointerup',1,100,100);pointer(viewport,'pointerup',2,300,100);expect(output).toHaveLength(0);
- pointer(svg,'pointerdown',3,70,72);pointer(svg,'pointerup',3,70,72);expect(output).toHaveLength(1);expect(output[0]).toMatchObject({type:'text',flow:'ruled',y:50});
+ pointer(svg,'pointerdown',3,70,72);pointer(svg,'pointerup',3,70,72);fireEvent.click(svg);expect(output).toHaveLength(1);expect(output[0]).toMatchObject({type:'text',flow:'ruled',y:50});
+});
+
+it('handles Safari trackpad pinch without double-applying simultaneous wheel events',()=>{
+ const {viewport}=setup();
+ const gesture=(type:string,scale:number)=>{const event=new Event(type,{bubbles:true,cancelable:true});Object.assign(event,{scale,clientX:200,clientY:100});act(()=>viewport.dispatchEvent(event));return event;};
+ expect(gesture('gesturestart',1).defaultPrevented).toBe(true);gesture('gesturechange',2);expect(Number(viewport.getAttribute('data-camera-zoom'))).toBe(2);
+ act(()=>viewport.dispatchEvent(new WheelEvent('wheel',{bubbles:true,cancelable:true,ctrlKey:true,deltaY:-100,clientX:200,clientY:100})));expect(Number(viewport.getAttribute('data-camera-zoom'))).toBe(2);
+ gesture('gestureend',2);
+ act(()=>viewport.dispatchEvent(new WheelEvent('wheel',{bubbles:true,cancelable:true,deltaX:30,deltaY:40})));expect(Number(viewport.getAttribute('data-camera-x'))).toBe(-30);expect(Number(viewport.getAttribute('data-camera-y'))).toBe(-134);
+});
+it('keeps Chromium trackpad pinch and two-finger scrolling on the paper instead of the browser',()=>{
+ const {viewport}=setup();const pinch=new WheelEvent('wheel',{bubbles:true,cancelable:true,ctrlKey:true,deltaY:-100,clientX:200,clientY:100});act(()=>viewport.dispatchEvent(pinch));expect(pinch.defaultPrevented).toBe(true);expect(Number(viewport.getAttribute('data-camera-zoom'))).toBeCloseTo(Math.exp(.25));
+ const move=new WheelEvent('wheel',{bubbles:true,cancelable:true,deltaX:25,deltaY:-15});const before=Number(viewport.getAttribute('data-camera-y'));act(()=>viewport.dispatchEvent(move));expect(move.defaultPrevented).toBe(true);expect(Number(viewport.getAttribute('data-camera-x'))).toBe(-25);expect(Number(viewport.getAttribute('data-camera-y'))).toBeCloseTo(before+15);
 });
