@@ -1,0 +1,54 @@
+@layer components {
+ .mb-profile-portrait.mb-profile-clean {min-height:0;overflow:visible;background:var(--background);color:var(--foreground);}
+ .mb-profile-clean .mb-profile-clean-cover {height:240px;position:relative;isolation:isolate;overflow:hidden;background:var(--surface-2);border-radius:0 0 20px 20px;}
+ .mb-profile-clean-cover .mb-profile-portrait-art {inset:0;}
+ .mb-profile-clean .mb-profile-clean-scene-tools {position:absolute;right:24px;bottom:16px;display:flex;gap:8px;}
+ .mb-profile-clean-scene-tools .mb-btn {min-height:40px;padding:8px 12px;border:1px solid #ffffff60;background:#1a172366;color:white;backdrop-filter:blur(12px);font-size:12px;border-radius:12px;}
+ .mb-profile-portrait.mb-profile-clean .mb-profile-portrait-content {padding:0 34px 28px;}
+ .mb-profile-clean .mb-profile-portrait-identity {align-items:center;gap:20px;padding-top:16px;}
+ .mb-profile-clean .mb-profile-portrait-avatar {flex:0 0 104px;width:104px;margin-top:-40px;}
+ .mb-profile-clean .mb-profile-portrait-avatar .mb-profile-progress-avatar {width:104px;}
+ .mb-profile-clean .mb-profile-portrait-avatar>span,.mb-profile-clean .mb-profile-portrait-avatar>a,.mb-profile-clean .mb-profile-portrait-avatar .mb-profile-progress-ring {width:104px!important;height:104px!important;border:4px solid var(--background);box-shadow:none;backdrop-filter:none;font-size:48px;}
+ .mb-profile-clean .mb-profile-portrait-avatar .mb-profile-progress-ring>span {font-size:48px;}
+ .mb-profile-clean .mb-profile-avatar-edit {height:36px;width:36px;right:-4px;bottom:0;background:var(--surface);color:var(--text-2);border:1px solid var(--line);backdrop-filter:none;}
+ .mb-profile-clean .mb-profile-avatar-edit svg {width:16px;}
+ .mb-profile-clean .mb-profile-portrait-details {max-width:none;min-width:0;flex:1;}
+ .mb-profile-clean .mb-profile-portrait-name {display:block;}
+ .mb-profile-clean .mb-profile-portrait-name h1 {font-family:var(--font-display);font-size:30px;line-height:1.2;color:var(--foreground);letter-spacing:-.025em;text-shadow:none;overflow-wrap:anywhere;}
+ .mb-profile-clean .mb-profile-portrait-handle {margin-top:5px;font-size:12px;color:var(--text-3);overflow-wrap:anywhere;}
+ .mb-profile-clean .mb-profile-portrait-bio {max-width:640px;margin:20px 0 0;font-family:inherit;font-style:normal;font-size:14px;line-height:1.7;color:var(--text-2);text-shadow:none;}
+ .mb-profile-clean .mb-profile-portrait-socials {gap:12px 18px;margin-top:14px;}
+ .mb-profile-clean .mb-profile-portrait-socials:empty {display:none;}
+ .mb-profile-clean .mb-profile-portrait-socials a {padding:0;border:0;border-radius:0;background:none;color:var(--text-2);font-size:12px;min-height:32px;box-shadow:none;backdrop-filter:none;max-width:100%;overflow-wrap:anywhere;}
+ .mb-profile-clean .mb-profile-pandinha {padding:0;background:none;color:var(--text-3);font-size:12px;}
+ .mb-profile-clean .mb-profile-portrait-actions {display:flex;flex-wrap:wrap;gap:8px;margin-top:18px;}
+ .mb-profile-clean .mb-profile-portrait-actions .mb-btn {min-height:40px;padding:8px 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--foreground);font-size:12px;white-space:normal;backdrop-filter:none;box-shadow:none;}
+ .mb-profile-clean .mb-profile-portrait-actions .mb-btn:hover {background:var(--surface-2);}
+ .mb-profile-clean+.mb-profile-cinematic-body {margin-top:0;gap:22px;}
+ .mb-profile-stat-strip.mb-profile-stats-clean {grid-template-columns:repeat(6,minmax(0,1fr));gap:0;padding:16px 0;border:0;border-block:1px solid var(--line);border-radius:0;background:none;box-shadow:none;backdrop-filter:none;}
+ .mb-profile-stats-clean .mb-profile-stat {display:block;min-height:0;padding:8px 12px;text-align:center;border:0;border-radius:0;background:none;box-shadow:none;}
+ .mb-profile-stats-clean .mb-profile-stat+.mb-profile-stat {border-left:1px solid var(--line);}
+ .mb-profile-stats-clean .mb-profile-stat>svg {display:none;}
+ .mb-profile-stats-clean .mb-profile-stat strong {font-size:22px;color:var(--foreground);font-family:var(--font-sans);font-weight:650;}
+ .mb-profile-stats-clean .mb-profile-stat span {margin-top:7px;font-size:11px;line-height:1.4;color:var(--text-3);}
+ @media(max-width:767px) {
+  .mb-profile-clean .mb-profile-clean-cover {height:210px;border-radius:0 0 16px 16px;}
+  .mb-profile-portrait.mb-profile-clean .mb-profile-portrait-content {padding:0 20px 24px;}
+  .mb-profile-clean .mb-profile-portrait-identity {gap:15px;}
+  .mb-profile-clean .mb-profile-portrait-name h1 {font-size:25px;}
+  .mb-profile-clean .mb-profile-clean-scene-tools {right:14px;bottom:14px;}
+  .mb-profile-clean .mb-profile-clean-scene-tools .mb-btn {min-height:44px;min-width:44px;padding:10px;}
+  .mb-profile-clean-scene-tools .mb-btn span {display:none;}
+  .mb-profile-stat-strip.mb-profile-stats-clean {grid-template-columns:repeat(3,minmax(0,1fr));padding:8px 0;row-gap:12px;}
+  .mb-profile-stats-clean .mb-profile-stat {padding:8px 6px;}
+  .mb-profile-stats-clean .mb-profile-stat:nth-child(4) {border-left:0;}
+  .mb-profile-stats-clean .mb-profile-stat strong {font-size:20px;}
+  .mb-profile-stats-clean .mb-profile-stat span {font-size:10px;}
+  .mb-profile-clean .mb-profile-portrait-bio {font-size:13px;margin-top:16px;}
+  .mb-profile-clean .mb-profile-portrait-actions .mb-btn {min-height:44px;padding:10px 12px;}
+ }
+ @media(max-width:360px) {
+  .mb-profile-clean .mb-profile-portrait-name h1 {font-size:22px;}
+  .mb-profile-portrait.mb-profile-clean .mb-profile-portrait-content {padding-inline:16px;}
+ }
+}

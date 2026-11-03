@@ -27,7 +27,7 @@ export function ProfileShare({profile,theme,progression}:{profile:UserProfile;th
  },[open,mode,profile.username,theme,progression,url,attempt]);
  const copy=async()=>{try{await navigator.clipboard.writeText(url);setCopied(true);}catch{setError('Não foi possível copiar. Selecione o link e copie manualmente.');}};
  return <>
-  <button type="button" className="mb-btn" onClick={()=>{if(!getUsername()){navigate(`/user/${encodeURIComponent(profile.username)}?auth=login`);return;}setCopied(false);setError('');setMode('link');setOpen(true);}}><Share2 size={17}/>Compartilhar perfil</button>
+  <button type="button" className="mb-btn" aria-label="Compartilhar perfil" onClick={()=>{if(!getUsername()){navigate(`/user/${encodeURIComponent(profile.username)}?auth=login`);return;}setCopied(false);setError('');setMode('link');setOpen(true);}}><Share2 size={17}/>Compartilhar</button>
   <Modal open={open} onClose={()=>setOpen(false)} title="Compartilhar perfil" description="Leve sua estante e suas histórias para outras pessoas." size="lg">
    <div className="mb-profile-share">
     <div className="mb-profile-share-modes" role="group" aria-label="Formato do compartilhamento"><button className="mb-btn" aria-pressed={mode==='link'} onClick={()=>{setError('');setMode('link');}}><LinkIcon size={17}/>Link do perfil</button><button className="mb-btn" aria-pressed={mode==='image'} onClick={()=>{setError('');setMode('image');}}><ImageIcon size={17}/>Imagem do perfil</button></div>
