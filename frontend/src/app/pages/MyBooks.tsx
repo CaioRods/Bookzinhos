@@ -75,12 +75,12 @@ export function MyBooks() {
           onClick={() => openBook(heroBook)}
           className="mb-reading-spotlight mb-card cursor-pointer p-5 flex gap-5"
         >
-          <div className="w-16 aspect-[2/3] rounded-lg overflow-hidden flex-shrink-0 bg-[var(--surface-2)]">
-            {heroBook.coverImagePath ? (
-              <img src={getFullUrl(heroBook.coverImagePath)!} alt="" loading="lazy" className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center"><ShelfIcon/></div>
-            )}
+          <div className="mb-reading-book" aria-hidden="true">
+            <span className="mb-reading-book-pages"><span/><span/><span/></span>
+            <span className="mb-reading-book-cover">
+              {heroBook.coverImagePath ? <img src={getFullUrl(heroBook.coverImagePath)!} alt="" loading="lazy"/> : <ShelfIcon/>}
+            </span>
+            <span className="mb-reading-book-ribbon"/>
           </div>
           <div className="flex-1 min-w-0 flex flex-col justify-between">
             <div>
