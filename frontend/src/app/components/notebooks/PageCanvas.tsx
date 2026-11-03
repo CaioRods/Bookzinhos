@@ -1,6 +1,6 @@
 import { memo, useEffect, useRef, useState, type PointerEvent, type MouseEvent } from "react";
 import { eraseElements } from "../../lib/notebooks/erase";
-import { fontFamily, PAPER_GRID, ruledTextBox, snapTextY, textBaseline, textLineHeight, textVisibleLines, paperColor, strokePath, strokeHit, uid, wrapText, type Element, type ImageElement, type NotebookPage, type Point, type Stroke, type TextElement } from "../../lib/notebooks/model";
+import { fontFamily, PAPER_GRID, ruledTextBox, snapTextY, textBaselineInset, textBaseline, textLineHeight, textVisibleLines, paperColor, strokePath, strokeHit, uid, wrapText, type Element, type ImageElement, type NotebookPage, type Point, type Stroke, type TextElement } from "../../lib/notebooks/model";
 export type Tool = "hand" | "select" | "text" | "pen" | "marker" | "eraser";
 export const PageArtwork = memo(function PageArtwork({page}:{page:NotebookPage}) {
   return <>{page.elements.map(element=><ElementArtwork key={element.id} element={element}/>)}</>;
@@ -44,6 +44,15 @@ export function PageCanvas({page,tool,color,width,selected,onSelect,onChange,onS
     return()=>viewport?.removeEventListener("nb:pinch-start",cancel);
   },[]);
   const insertText=(point:Point)=>{const element:TextElement={id:uid(),type:"text",text:"",...textStyle,...ruledTextBox(point,textStyle.size)};onChange([...latest.current.elements,element]);onSelect(element.id);setEditing(element.id);};
+  const editText=(id:string)=>{
+    const target=latest.current.elements.find(e=>e.id===id);
+    if(target?.type!=="text")return;
+    const y=snapTextY(target.y,target.size);
+    if(target.flow!=="ruled"||target.y!==y){
+      onChange(latest.current.elements.map(e=>e.id===id?{...target,flow:"ruled",y,height:1100-y}:e));
+    }
+    onSelect(id);setEditing(id);
+  };
   const erase=(point:Point)=>{const gesture=active.current;if(!gesture)return;const next=eraseElements(latest.current.elements,gesture.lastErase||point,point,Math.max(width,8));gesture.lastErase=point;if(next!==latest.current.elements){onChange(next,!gesture.recorded);gesture.recorded=true;}};
   const down=(event:PointerEvent)=>{
     pendingTap.current=null;
@@ -105,15 +114,15 @@ export function PageCanvas({page,tool,color,width,selected,onSelect,onChange,onS
   const editDoubleClick=(event:MouseEvent<SVGSVGElement>)=>{
     if(readOnly||(tool!=="select"&&tool!=="text"))return;
     const id=(event.target as SVGElement).closest("[data-element-id]")?.getAttribute("data-element-id"),point=position(event);
-    const target=page.elements.find(e=>e.id===id)||[...page.elements].reverse().find(e=>e.type==="text"&&point[0]>=e.x&&point[0]<=e.x+e.width&&point[1]>=e.y&&point[1]<=e.y+e.height);
-    if(target?.type==="text"){onSelect(target.id);setEditing(target.id);}
+    const target=page.elements.find(e=>e.id===id)||[...page.elements].reverse().find(e=>e.type==="text"&&point[0]>=e.x&&point[0]<=e.x+e.width&&point[1]>=e.y-textBaselineInset(e)&&point[1]<=e.y+e.height);
+    if(target?.type==="text")editText(target.id);
   };
   const selectedElement=page.elements.find(e=>e.id===selected);
-  return <svg ref={svg} className={`nb-sheet is-${page.paper}`} viewBox="0 0 800 1100" role="group" aria-label={`Folha: ${page.title}`} style={{touchAction:"none"}} onDoubleClick={editDoubleClick} onClick={event=>{const tap=pendingTap.current;pendingTap.current=null;if(!tap||readOnly)return;event.preventDefault();if(tap.targetId){onSelect(tap.targetId);setEditing(tap.targetId);}else insertText(tap.point);}} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onLostPointerCapture={event=>{if(event.target===event.currentTarget)up(event);}}>
+  return <svg ref={svg} className={`nb-sheet is-${page.paper}`} viewBox="0 0 800 1100" role="group" aria-label={`Folha: ${page.title}`} style={{touchAction:"none"}} onDoubleClick={editDoubleClick} onClick={event=>{const tap=pendingTap.current;pendingTap.current=null;if(!tap||readOnly)return;event.preventDefault();if(tap.targetId)editText(tap.targetId);else insertText(tap.point);}} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onLostPointerCapture={event=>{if(event.target===event.currentTarget)up(event);}}>
     <PaperArtwork paper={page.paper}/>
     {!readOnly&&(tool==="text"||editing)&&<g className="nb-writing-guides" aria-hidden="true" pointerEvents="none"><path d={Array.from({length:32},(_,i)=>`M${PAPER_GRID.left} ${PAPER_GRID.first+i*PAPER_GRID.step} H${PAPER_GRID.right}`).join(" ")} fill="none" stroke="#518b85" strokeWidth="1" strokeDasharray="4 6" opacity={page.paper==="ruled"?.18:.25}/></g>}
-    {page.elements.map(e=><g key={e.id} data-element-id={e.id} style={{touchAction:e.id===editing?"auto":!readOnly&&tool==="select"?"none":undefined,pointerEvents:e.id===editing||tool==="select"||readOnly||(tool==="text"&&e.type==="text")?"auto":"none",cursor:readOnly&&e.type==="image"&&e.source?"pointer":tool==="select"?"move":undefined}}>{e.id!==editing&&<ElementArtwork element={e}/>} {e.type==="text"&&<rect x={e.x} y={e.y} width={e.width} height={e.height} fill="transparent"/>}{!readOnly&&e.id===editing&&e.type==="text"&&<foreignObject x={e.x} y={e.flow==="ruled"?textBaseline(e,0)-editorBaseline(e):e.y} width={e.width} height={e.height}><textarea autoFocus aria-label="Texto da página" className="nb-text-edit" value={e.text} style={{lineHeight:`${textLineHeight(e)}px`,...(e.flow==="ruled"?{padding:"0 4px",border:0,outline:"1px dashed #518b85",background:"transparent",letterSpacing:0,whiteSpace:"pre-wrap",overflowWrap:"break-word"}:{}),fontFamily:fontFamily(e.font),fontSize:e.size,color:e.color,fontWeight:e.bold?700:400,fontStyle:e.italic?"italic":"normal",textDecoration:e.underline?"underline":"none",textAlign:e.align}} onPointerDown={event=>event.stopPropagation()} onChange={event=>onChange(page.elements.map(item=>item.id===e.id?{...e,text:event.target.value,height:e.flow==="ruled"?1100-e.y:Math.min(1100-e.y,Math.max(e.height,event.target.scrollHeight+6))}:item))} onBlur={()=>setEditing(null)}/></foreignObject>}</g>)}
-    {!readOnly&&selectedElement&&selectedElement.type!=="stroke"&&tool==="select"&&<g data-element-id={selectedElement.id} style={{touchAction:"none"}}><rect x={selectedElement.x} y={selectedElement.y} width={selectedElement.width} height={selectedElement.height} fill="none" stroke="#518b85" strokeWidth="2" strokeDasharray="5 5" pointerEvents="none"/><rect data-resize="true" x={selectedElement.x+selectedElement.width-10} y={selectedElement.y+selectedElement.height-10} width="20" height="20" rx="4" fill="#518b85" style={{cursor:"nwse-resize"}}/></g>}
+    {page.elements.map(e=><g key={e.id} data-element-id={e.id} style={{touchAction:e.id===editing?"auto":!readOnly&&tool==="select"?"none":undefined,pointerEvents:e.id===editing||tool==="select"||readOnly||(tool==="text"&&e.type==="text")?"auto":"none",cursor:readOnly&&e.type==="image"&&e.source?"pointer":tool==="select"?"move":undefined}}>{e.id!==editing&&<ElementArtwork element={e}/>} {e.type==="text"&&<rect x={e.x} y={e.y-textBaselineInset(e)} width={e.width} height={e.height+textBaselineInset(e)} fill="transparent"/>}{!readOnly&&e.id===editing&&e.type==="text"&&<foreignObject x={e.x} y={e.flow==="ruled"?textBaseline(e,0)-editorBaseline(e):e.y} width={e.width} height={e.height}><textarea autoFocus aria-label="Texto da página" className="nb-text-edit" value={e.text} style={{lineHeight:`${textLineHeight(e)}px`,...(e.flow==="ruled"?{padding:"0 4px",border:0,outline:"1px dashed #518b85",background:"transparent",letterSpacing:0,whiteSpace:"pre-wrap",overflowWrap:"break-word"}:{}),fontFamily:fontFamily(e.font),fontSize:e.size,color:e.color,fontWeight:e.bold?700:400,fontStyle:e.italic?"italic":"normal",textDecoration:e.underline?"underline":"none",textAlign:e.align}} onPointerDown={event=>event.stopPropagation()} onChange={event=>onChange(page.elements.map(item=>item.id===e.id?{...e,text:event.target.value,height:e.flow==="ruled"?1100-e.y:Math.min(1100-e.y,Math.max(e.height,event.target.scrollHeight+6))}:item))} onBlur={()=>setEditing(null)}/></foreignObject>}</g>)}
+    {!readOnly&&selectedElement&&selectedElement.type!=="stroke"&&tool==="select"&&<g data-element-id={selectedElement.id} style={{touchAction:"none"}}><rect x={selectedElement.x} y={selectedElement.y-(selectedElement.type==="text"?textBaselineInset(selectedElement):0)} width={selectedElement.width} height={selectedElement.height+(selectedElement.type==="text"?textBaselineInset(selectedElement):0)} fill="none" stroke="#518b85" strokeWidth="2" strokeDasharray="5 5" pointerEvents="none"/><rect data-resize="true" x={selectedElement.x+selectedElement.width-10} y={selectedElement.y+selectedElement.height-10} width="20" height="20" rx="4" fill="#518b85" style={{cursor:"nwse-resize"}}/></g>}
     <path ref={draft} fill="none" strokeLinecap="round" strokeLinejoin="round" pointerEvents="none"/>
   </svg>;
 }

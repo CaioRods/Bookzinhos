@@ -21,7 +21,7 @@ it.each(['plain','ruled','parchment'] as const)("aligns text, wrapping and Enter
  expect(output[0]).toMatchObject({type:'text',flow:'ruled',y:50});
  const editor=screen.getByRole('textbox',{name:'Texto da página'});expect((editor as HTMLElement).style.lineHeight).toBe('32px');
  fireEvent.change(editor,{target:{value:'A'.repeat(100)+'\nPróxima linha'}});fireEvent.blur(editor);
- const spans=[...view.container.querySelectorAll('text tspan')];expect(spans.length).toBeGreaterThan(2);expect(spans[0].getAttribute('y')).toBe('72');expect(spans[1].getAttribute('y')).toBe('104');expect(spans.at(-1)?.textContent).toBe('Próxima linha');
+ const spans=[...view.container.querySelectorAll('text tspan')];expect(spans.length).toBeGreaterThan(2);expect(spans[0].getAttribute('y')).toBe('64');expect(spans[1].getAttribute('y')).toBe('96');expect(spans.at(-1)?.textContent).toBe('Próxima linha');
 });
 
 it('keeps a moved ruled text box inside the sheet',()=>{
@@ -32,14 +32,14 @@ it('keeps a moved ruled text box inside the sheet',()=>{
  const view=render(<App/>),svg=view.container.querySelector('svg')!;Object.defineProperty(svg,'setPointerCapture',{value:vi.fn()});vi.spyOn(svg,'getBoundingClientRect').mockReturnValue({left:0,top:0,width:800,height:1100} as DOMRect);
  const pointer=(node:globalThis.Element,type:string,y:number)=>{const e=new Event(type,{bubbles:true,cancelable:true});Object.assign(e,{pointerId:1,pointerType:'mouse',button:0,clientX:70,clientY:y});act(()=>node.dispatchEvent(e));};
  pointer(view.container.querySelector('[data-element-id="text"] rect')!,'pointerdown',60);pointer(svg,'pointermove',1020);pointer(svg,'pointerup',1020);
- const moved=output[0];expect(moved).toMatchObject({y:1010,height:90});expect([...view.container.querySelectorAll('text tspan')].map(e=>e.getAttribute('y'))).toEqual(['1032','1064']);
+ const moved=output[0];expect(moved).toMatchObject({y:1010,height:90});expect([...view.container.querySelectorAll('text tspan')].map(e=>e.getAttribute('y'))).toEqual(['1024','1056']);
 });
 
 const existingText={id:'existing',type:'text' as const,flow:'ruled' as const,x:62,y:50,width:698,height:1050,text:'Primeiro parágrafo\nSegundo parágrafo\nTexto completo da seleção.',size:22,color:'#112233',font:'sans' as const,bold:false,italic:false,underline:false,align:'left' as const};
-function existingTextEditor(tool:'select'|'text'='select',readOnly=false){
+function existingTextEditor(tool:'select'|'text'='select',readOnly=false,legacy=false){
  vi.spyOn(HTMLCanvasElement.prototype,'getContext').mockReturnValue({measureText:(value:string)=>({width:value.length*10})} as CanvasRenderingContext2D);
  let saved:Element[]=[];
- function App(){const [page,setPage]=useState({...blankPage(),elements:[existingText] as Element[]}),[selected,select]=useState<string|null>(null);return <PageCanvas page={page} tool={tool} readOnly={readOnly} color="#112233" width={3} selected={selected} onSelect={select} onSource={()=>{}} onChange={elements=>{saved=elements;setPage({...page,elements});}} textStyle={{font:'sans',size:22,color:'#112233',bold:false,italic:false,underline:false,align:'left'}}/>;}
+ function App(){const [page,setPage]=useState({...blankPage(),elements:[legacy?{...existingText,flow:undefined}:existingText] as Element[]}),[selected,select]=useState<string|null>(null);return <PageCanvas page={page} tool={tool} readOnly={readOnly} color="#112233" width={3} selected={selected} onSelect={select} onSource={()=>{}} onChange={elements=>{saved=elements;setPage({...page,elements});}} textStyle={{font:'sans',size:22,color:'#112233',bold:false,italic:false,underline:false,align:'left'}}/>;}
  const view=render(<App/>),svg=view.container.querySelector('svg')!;Object.defineProperty(svg,'setPointerCapture',{value:vi.fn()});vi.spyOn(svg,'getBoundingClientRect').mockReturnValue({left:0,top:0,width:800,height:1100} as DOMRect);
  const target=view.container.querySelector('[data-element-id="existing"] rect')!;
  const pointer=(type:string,pointerType='touch',y=72)=>{const event=new Event(type,{bubbles:true,cancelable:true});Object.assign(event,{pointerId:1,pointerType,button:0,clientX:80,clientY:y});act(()=>target.dispatchEvent(event));return event;};
@@ -62,4 +62,8 @@ it('keeps a mobile text tap active when capture transfers from a child to the SV
 });
 it('edits text when native pointer capture retargets the desktop double-click to the SVG',()=>{
  const app=existingTextEditor();app.pointer('pointerdown','mouse');app.pointer('pointerup','mouse');fireEvent.doubleClick(app.svg,{clientX:80,clientY:72});expect(screen.getByRole('textbox',{name:'Texto da página'})).toHaveValue(existingText.text);
+});
+
+it('aligns an older text block above the paper lines when opened for editing',()=>{
+ const app=existingTextEditor('select',false,true);expect(app.saved()).toHaveLength(0);fireEvent.doubleClick(app.target);expect(app.saved()[0]).toMatchObject({flow:'ruled',text:existingText.text});fireEvent.blur(screen.getByRole('textbox',{name:'Texto da página'}));expect(app.view.container.querySelector('text tspan')?.getAttribute('y')).toBe('64');
 });

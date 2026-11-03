@@ -8,12 +8,18 @@ it("snaps new text to the same paper baselines and retains a 32px rhythm",async(
  const model=await import('./model');const box=model.ruledTextBox([70,120],22);
  expect(box).toMatchObject({x:66,y:114,width:694,flow:'ruled'});
  const text={...box,id:'text',type:'text' as const,text:'a',size:22,color:'#112233',font:'sans' as const,bold:false,italic:false,underline:false,align:'left' as const};
- expect(model.textBaseline(text,0)).toBe(136);expect(model.textBaseline(text,1)).toBe(168);expect(model.textLineHeight(text)).toBe(32);
+ expect(model.textBaseline(text,0)).toBe(128);expect(model.textBaseline(text,1)).toBe(160);expect(model.textLineHeight(text)).toBe(32);
  expect(model.textLineHeight({...text,size:48})).toBe(64);
  expect(model.textLineHeight({...text,flow:undefined})).toBeCloseTo(30.8);
 });
 
 it('keeps large fonts inside the sheet while preserving the baseline grid',async()=>{
  const {ruledTextBox}=await import('./model');const box=ruledTextBox([70,72],96);
- expect(box.y).toBe(8);expect(box.y+96).toBe(104);
+ expect(box.y).toBe(40);expect(box.y+96).toBe(136);
+});
+it('keeps the text baseline and descenders above the ruled line',async()=>{
+ const {textBaseline}=await import('./model');expect(textBaseline({flow:'ruled',y:50,size:22},0)).toBe(64);expect(textBaseline({flow:'ruled',y:50,size:22},1)).toBe(96);expect(textBaseline({y:50,size:22},0)).toBe(72);
+});
+it('keeps previously saved large text above the paper lines without clipping its top',async()=>{
+ const {textBaseline,textVisibleLines}=await import('./model');const text={flow:'ruled' as const,y:21,size:83,height:1079};expect(textBaseline(text,0)).toBe(113);expect(textVisibleLines(text)).toBe(10);
 });

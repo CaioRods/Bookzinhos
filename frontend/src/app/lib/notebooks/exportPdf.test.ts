@@ -14,5 +14,5 @@ it.each(['plain','ruled','parchment'] as const)('exports text baselines on the s
  page.elements=[{id:'text',type:'text',flow:'ruled',x:62,y:50,width:698,height:1050,text:'Primeira linha\nSegunda linha',size:22,color:'#112233',font:'sans',bold:false,italic:false,underline:false,align:'left'}];
  const blob=await exportNotebookPdf(book,[page],false),pdf=await PDFDocument.load(await blob.arrayBuffer()),streams=pdf.getPage(0).node.Contents() as PDFArray;
  const content=Array.from({length:streams.size()},(_,i)=>new TextDecoder().decode(decodePDFRawStream(streams.lookup(i,PDFRawStream)).decode())).join('');
- expect(content).toContain('1 0 0 1 66 1028 Tm');expect(content).toContain('1 0 0 1 66 996 Tm');
+ expect(content).toContain('1 0 0 1 66 1036 Tm');expect(content).toContain('1 0 0 1 66 1004 Tm');
 });

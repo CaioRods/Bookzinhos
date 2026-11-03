@@ -47,10 +47,12 @@ export function strokeHit(stroke:Stroke,point:Point,radius:number){
 /** The same baselines are used on every paper, in the editor and in exported PDFs. */
 export const PAPER_GRID = { first:72, step:32, left:62, right:760, bottom:1064 } as const;
 export const textLineHeight = (element:Pick<TextElement,"size"|"flow">) => element.flow === "ruled" ? Math.ceil(element.size*1.15/PAPER_GRID.step)*PAPER_GRID.step : element.size*1.4;
-export const textBaseline = (element:Pick<TextElement,"y"|"size"|"flow">, line:number) => element.y+element.size+line*textLineHeight(element);
-export const textVisibleLines = (element:Pick<TextElement,"y"|"size"|"height"|"flow">) => element.flow === "ruled" ? Math.max(1,1+Math.floor((Math.min(element.y+element.height,PAPER_GRID.bottom)-element.y-element.size)/textLineHeight(element))) : Math.max(1,Math.floor(element.height/textLineHeight(element)));
+export const textBaselineInset = (element:Pick<TextElement,"size"|"flow">) => element.flow === "ruled" ? Math.ceil(element.size*.25)+2 : 0;
+const firstTextRule = (size:number) => PAPER_GRID.first+Math.max(0,Math.ceil((size+textBaselineInset({size,flow:"ruled"})-PAPER_GRID.first)/PAPER_GRID.step))*PAPER_GRID.step;
+export const textBaseline = (element:Pick<TextElement,"y"|"size"|"flow">, line:number) => (element.flow === "ruled" ? Math.max(element.y+element.size,firstTextRule(element.size)) : element.y+element.size)-textBaselineInset(element)+line*textLineHeight(element);
+export const textVisibleLines = (element:Pick<TextElement,"y"|"size"|"height"|"flow">) => element.flow === "ruled" ? Math.max(1,1+Math.floor((Math.min(element.y+element.height,PAPER_GRID.bottom)-textBaseline(element,0)-textBaselineInset(element))/textLineHeight(element))) : Math.max(1,Math.floor(element.height/textLineHeight(element)));
 export function snapTextY(y:number,size:number) {
- const first=PAPER_GRID.first+Math.max(0,Math.ceil((size-PAPER_GRID.first)/PAPER_GRID.step))*PAPER_GRID.step;
+ const first=firstTextRule(size);
  const baseline=Math.max(first,Math.min(PAPER_GRID.bottom,PAPER_GRID.first+Math.round((y+size-PAPER_GRID.first)/PAPER_GRID.step)*PAPER_GRID.step));
  return Math.max(0,baseline-size);
 }
