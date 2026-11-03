@@ -70,11 +70,9 @@ export function MyBooks() {
       {isLoading ? (
         <Skeleton className="h-36 w-full rounded-2xl" />
       ) : heroBook && heroProgress ? (
-        <div
-          role="button"
-          tabIndex={0}
+        <button
+          type="button"
           onClick={() => openBook(heroBook)}
-          onKeyDown={(e) => e.key === "Enter" && openBook(heroBook)}
           className="mb-reading-spotlight mb-card cursor-pointer p-5 flex gap-5"
         >
           <div className="w-16 aspect-[2/3] rounded-lg overflow-hidden flex-shrink-0 bg-[var(--surface-2)]">
@@ -102,7 +100,7 @@ export function MyBooks() {
               </div>
             </div>
           </div>
-        </div>
+        </button>
       ) : null}
 
       <label className="mb-personal-search"><Search size={18}/><input type="search" aria-label="Buscar nos meus livros" placeholder="Busque um livro, autor ou saga" value={search} onChange={event => setSearch(event.target.value)}/></label>

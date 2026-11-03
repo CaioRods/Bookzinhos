@@ -1,0 +1,71 @@
+@layer components {
+  .mb-mybooks .mb-personal-heading { padding-block: 8px 4px; }
+  .mb-mybooks .mb-personal-heading h1 { font: 600 clamp(30px, 3.4vw, 44px)/1.15 var(--font-display, Georgia, serif); letter-spacing: -.045em; }
+  .mb-personal-library {
+    border: 1px solid var(--line);
+    border-radius: 26px;
+    background: var(--surface);
+    overflow: hidden;
+    min-width: 0;
+  }
+  .mb-personal-library > .mb-booklists {
+    margin: 0;
+    padding: 28px;
+    background: linear-gradient(130deg, var(--primary-soft), transparent 75%);
+    border-bottom: 1px solid var(--line);
+  }
+  .mb-personal-library .mb-booklists > header { margin-bottom: 20px; flex-wrap: wrap; }
+  .mb-personal-library .mb-booklists h2 { display: flex; align-items: center; gap: 10px; font-size: 26px; letter-spacing: -.035em; }
+  .mb-booklist-count { display: inline-grid; place-items: center; min-width: 25px; height: 25px; padding-inline: 6px; border: 1px solid var(--line); border-radius: 50%; color: var(--primary); background: var(--surface); font: 600 11px var(--font-sans); letter-spacing: 0; }
+  .mb-personal-library .mb-booklist-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 18px; }
+  .mb-personal-library .mb-booklist-card { max-width: 240px; }
+  .mb-personal-library .mb-folder-art { border-radius: 18px; }
+  .mb-personal-library .mb-folder-copy strong { font-size: clamp(17px, 1.6vw, 24px); }
+  .mb-personal-library .mb-folder-copy span { font-size: 12px; }
+  .mb-personal-library .mb-booklist-more { right: 8px; top: 8px; width: 36px; height: 36px; background: var(--surface); border: 1px solid var(--line); }
+  .mb-personal-library .mb-booklist-create { min-height: 160px; border-radius: 18px; background: var(--surface); }
+  .mb-personal-books { display: flex; flex-direction: column; gap: 22px; padding: 28px; min-width: 0; }
+  .mb-mybooks .mb-reading-spotlight {
+    width: 100%;
+    text-align: left;
+    padding: 22px;
+    border-radius: 20px;
+    border: 1px solid color-mix(in srgb, var(--primary) 25%, var(--line));
+    background: radial-gradient(ellipse at 0% 0%, var(--primary-soft), transparent 85%), var(--background);
+    color: var(--foreground);
+    align-items: center;
+  }
+  .mb-mybooks .mb-reading-spotlight > div:first-child { width: 76px; border-radius: 8px; transform: rotate(-3deg); }
+  .mb-mybooks .mb-reading-spotlight h2 { font: 600 clamp(17px, 1.8vw, 23px)/1.35 var(--font-display, Georgia, serif); -webkit-line-clamp: 2; }
+  .mb-mybooks .mb-reading-spotlight:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+  .mb-personal-books .mb-personal-search { background: var(--background); border-radius: 14px; }
+  .mb-personal-books .mb-personal-search:focus-within { border-color: var(--primary); }
+  .mb-personal-books .mb-mybooks-toolbar { gap: 12px; padding-bottom: 18px; }
+  .mb-personal-books .mb-mybooks-tabs { gap: 6px; }
+  .mb-personal-books .mb-mybooks-tabs > button { border-radius: 99px; min-height: 40px; }
+  .mb-personal-books .mb-mybooks-tabs > button[aria-pressed="true"] { background: var(--primary); color: var(--primary-foreground); }
+  .mb-personal-books .mb-mybooks-tabs > button[aria-pressed="true"] .mb-chip { background: color-mix(in srgb, var(--primary-foreground) 15%, transparent); color: inherit; }
+
+  @media (min-width: 768px) and (max-width: 1023px) {
+    .mb-personal-library > .mb-booklists, .mb-personal-books { padding: 24px; }
+    .mb-personal-library .mb-booklist-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+  @media (max-width: 767px) {
+    .mb-personal-library { border-radius: 20px; }
+    .mb-personal-library > .mb-booklists, .mb-personal-books { padding: 16px; }
+    .mb-personal-library .mb-booklists > header { gap: 14px; }
+    .mb-personal-library .mb-booklists h2 { font-size: 23px; }
+    .mb-personal-library .mb-booklists > header > .mb-btn { min-height: 44px; }
+    .mb-personal-library .mb-booklist-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .mb-personal-library .mb-folder-copy strong { font-size: 18px; }
+    .mb-personal-library .mb-booklist-create { grid-column: 1 / -1; min-height: 145px; }
+    .mb-personal-books { gap: 18px; }
+    .mb-mybooks .mb-reading-spotlight { padding: 16px; gap: 14px; align-items: flex-start; }
+    .mb-mybooks .mb-reading-spotlight > div:first-child { width: 56px; }
+    .mb-mybooks .mb-reading-spotlight .mb-eyebrow { font-size: 9px; }
+    .mb-mybooks .mb-reading-spotlight h2 { font-size: 17px; }
+    .mb-personal-books .mb-mybooks-toolbar { flex-wrap: wrap; }
+    .mb-personal-books .mb-mybooks-tabs { flex-basis: calc(100% - 50px); }
+    .mb-personal-books .mb-book-grid--posters { gap: 20px 12px; }
+  }
+}
