@@ -189,7 +189,7 @@ export function RootLayout() {
       <OfflineStatus />
       <a href="#main-content" className="mb-skip-link">Pular para o conteúdo</a>
       <SceneAtmosphere theme={selectedTheme} />
-      <div className="mb-app-window bg-background">
+      <div className="mb-app-window bg-background" data-scene={selectedTheme.id !== "none" ? "active" : "none"}>
         {/* ── Barra lateral (desktop) ─────────────────────────────────────── */}
         <aside className="mb-sidebar hidden lg:flex flex-col overflow-hidden">
           <div className="mb-sidebar-art">{selectedTheme.id !== "none" && <CropArtwork theme={selectedTheme} crop={selectedTheme.sidebar} surface="sidebar" opacity={selectedTheme.sidebarOpacity}/>}</div>
@@ -257,12 +257,15 @@ export function RootLayout() {
 
         {/* ── Cabeçalho (celular) ─────────────────────────────────────────── */}
         <header className="mb-mobile-header lg:hidden sticky top-0 z-40 h-16 px-5 flex items-center justify-between border-b border-[var(--line)]">
+          {selectedTheme.id !== "none" && <div className="mb-mobile-theme-art" aria-hidden="true"><CropArtwork theme={selectedTheme} crop={selectedTheme.profile} surface="profile" opacity={selectedTheme.sidebarOpacity}/></div>}
+          <div className="mb-mobile-header-controls">
           <Link to="/" className="flex items-center gap-2">
             <Brand />
           </Link>
           <div className="flex items-center gap-1">
             <NotificationsMenu />
             {username && <AccountMenu displayName={displayName} avatar={avatar} username={username} admin={admin} progression={progression} onLogout={async () => { try { await logout(); } finally { clearSession(); window.location.href = "/"; } }} />}
+          </div>
           </div>
         </header>
 

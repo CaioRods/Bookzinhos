@@ -1,0 +1,58 @@
+/* Keep the chosen universe in view without placing text over its artwork. */
+@layer components {
+  .mb-mobile-header-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    min-width: 0;
+  }
+  .mb-mobile-theme-art { display: none; }
+
+  @media (max-width: 1023px) {
+    .mb-app-window[data-scene="active"] {
+      background: color-mix(in srgb, var(--background) 94%, transparent);
+    }
+    .mb-app-window[data-scene="active"] .mb-mobile-header {
+      height: auto;
+      min-height: calc(104px + env(safe-area-inset-top));
+      padding: calc(36px + env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 8px max(12px, env(safe-area-inset-left));
+      background: var(--surface-3);
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      border-bottom-color: var(--line);
+    }
+    .mb-mobile-theme-art {
+      display: block;
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
+    .mb-mobile-theme-art > .mb-crop-artwork { position: absolute; inset: 0; }
+    .mb-app-window[data-scene="active"] .mb-mobile-header-controls {
+      position: relative;
+      min-height: 60px;
+      padding: 0 12px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: var(--surface);
+      box-shadow: 0 4px 16px rgb(0 0 0 / 8%);
+    }
+    .mb-app-window[data-scene="active"] .mb-mobile-dock {
+      border-color: color-mix(in srgb, var(--primary) 28%, var(--line));
+      background: var(--surface);
+    }
+    .mb-app-window[data-scene="active"] .mb-mobile-dock .mb-tab[aria-current="page"] {
+      box-shadow: inset 0 -3px var(--primary);
+    }
+  }
+
+  @media (min-width: 768px) and (max-width: 1023px) {
+    .mb-app-window[data-scene="active"] .mb-mobile-header {
+      min-height: calc(120px + env(safe-area-inset-top));
+      padding-top: calc(52px + env(safe-area-inset-top));
+      padding-inline: 24px;
+    }
+  }
+}
