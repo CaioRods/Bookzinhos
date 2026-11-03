@@ -64,7 +64,7 @@ export function MyBooks() {
   return (
     <div className="mb-screen mb-screen--wide mb-mybooks space-y-6">
       <Booklists books={books} progressOf={progressOf} savedIds={savedIds} onSavedChange={handleSavedChange} heading={
-        <header className="mb-personal-heading"><div><p className="mb-eyebrow">SEU ESPAÇO DE LEITURA</p><h1>Meus livros</h1><p>Suas leituras, favoritos e livros baixados. Tudo no lugar.</p></div><Link to="/library" className="mb-btn mb-btn-outline">Explorar biblioteca <ArrowRight size={16}/></Link></header>
+        <header className="mb-personal-heading"><div><p className="mb-eyebrow">Sua estante pessoal</p><h1>Meus livros</h1><p>Suas leituras, favoritos e livros baixados. Tudo no lugar.</p></div><Link to="/library" className="mb-btn mb-btn-outline">Explorar biblioteca <ArrowRight size={16}/></Link></header>
       }>
       {/* Destaque da leitura em andamento */}
       {isLoading ? (

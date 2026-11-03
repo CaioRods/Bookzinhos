@@ -4,7 +4,7 @@ import { SupportDonation } from "./SupportDonation";
 
 export const DONATION_INTERVAL = 40 * 60 * 1000;
 export const DONATION_SUPPORT = {
-  pixKey: "38301542837",
+  pixKey: "baa03d59-5011-4ced-9d47-18a8949cff22",
   recipient: "Campanha myBooks em apoio ao GRAACC",
   message: "Queremos fazer a diferença, sem fins lucrativos. Sua contribuição voluntária ajuda nossa campanha em apoio a crianças e adolescentes com câncer atendidos pelo GRAACC.",
 };

@@ -10,7 +10,7 @@ import { GlobalSearch } from "./GlobalSearch";
 import { Brand } from "./Brand";
 import { Outlet, useLocation, useNavigation, Link, NavLink } from "react-router";
 import {
-  Home, Library, BookOpen, PenLine, User, Users, ChevronRight, LogIn,
+  Home, Library, BookOpen, PenLine, User, Users, ChevronRight, LogIn, HeartHandshake,
 } from "lucide-react";
 import { useEffect, useState, useMemo, type ComponentType } from "react";
 import { fetchNotifications, fetchProgression, logout } from "../lib/api";
@@ -208,7 +208,7 @@ export function RootLayout() {
                 end={end}
                 onClick={soundTap}
                 className={({ isActive }) =>
-                  `mb-nav-item ${path === "/my-books" ? "mb-nav-featured" : ""} flex items-center gap-3 px-3.5 h-11 rounded-[10px] text-[14px] transition-all ${
+                  `mb-nav-item flex items-center gap-3 px-3.5 h-11 rounded-[10px] text-[14px] transition-all ${
                     isActive
                       ? "text-[var(--primary)] font-semibold"
                       : "text-[var(--text-2)] font-medium hover:bg-[var(--surface-2)] hover:text-foreground"
@@ -250,6 +250,7 @@ export function RootLayout() {
 
         {/* ── Ações da conta (desktop) ────────────────────────────────────── */}
         <div className="mb-desktop-actions hidden lg:flex items-center">
+          <Link to="/donate" className="mb-btn mb-btn-ghost" aria-label="Conhecer a campanha de doação"><HeartHandshake size={18} /> Doar</Link>
           <GlobalSearch />
           <NotificationsMenu />
           {username && <AccountMenu displayName={displayName} avatar={avatar} username={username} admin={admin} progression={progression} onLogout={async () => { try { await logout(); } finally { clearSession(); window.location.href = "/"; } }} />}
@@ -263,6 +264,7 @@ export function RootLayout() {
             <Brand />
           </Link>
           <div className="flex items-center gap-1">
+            <Link to="/donate" className="mb-btn mb-btn-ghost mb-btn-icon" aria-label="Conhecer a campanha de doação"><HeartHandshake size={21} /></Link>
             <NotificationsMenu />
             {username && <AccountMenu displayName={displayName} avatar={avatar} username={username} admin={admin} progression={progression} onLogout={async () => { try { await logout(); } finally { clearSession(); window.location.href = "/"; } }} />}
           </div>
@@ -304,7 +306,7 @@ export function RootLayout() {
             <MobileTab to="/my-books" icon={BookOpen} label="Meus livros" />
             <MobileTab to="/notes" icon={PenLine} label="Anotações" />
 
-            <MobileTab to="/social" icon={Users} label="Social" badge={unreadCount} />
+            <MobileTab to="/social" icon={Users} label="Comunidade" badge={unreadCount} />
             <MobileTab to="/profile" icon={User} label="Perfil" />
           </div>
         </nav>
@@ -329,7 +331,7 @@ function MobileTab({
       onClick={soundTap}
       aria-label={label}
       className={({ isActive }) =>
-        `mb-tab ${to === "/my-books" ? "mb-nav-featured" : ""} flex-1 flex flex-col items-center justify-center gap-1 transition-colors ${
+        `mb-tab flex-1 flex flex-col items-center justify-center gap-1 transition-colors ${
           isActive ? "text-[var(--primary)]" : "text-[var(--text-3)]"
         }`
       }

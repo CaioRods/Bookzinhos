@@ -134,7 +134,7 @@ export function Home() {
           {/* Saudação + busca */}
           <header className="mb-home-header">
             <div>
-              <p className="mb-eyebrow">SUA DOSE DIÁRIA DE DESCOBERTAS</p>
+              <p className="mb-eyebrow">Seu momento de leitura</p>
               <h1 className="mb-display text-[34px] sm:text-[44px] font-bold tracking-[-0.045em] text-foreground leading-[1.12] mt-2">
                 {greeting}, {userName}.
               </h1>
@@ -173,7 +173,7 @@ export function Home() {
 
               {/* Continue lendo */}
               <section>
-                <RowHeader title="Continue lendo" to="/library?filter=lendo" />
+                <RowHeader title="Continue lendo" to="/my-books" />
                 {isLoading ? (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {[0, 1, 2].map((i) => <Skeleton key={i} className="h-[280px] rounded-[18px]" />)}
@@ -183,13 +183,16 @@ export function Home() {
                     {reading.map(({ book, progress: p }) => (
                       <ReadingCard key={book.id} book={book} progress={p} onOpen={() => openBook(book)} />
                     ))}
-                    <Link
-                      to="/upload"
-                      className={`mb-reading-empty ${reading.length ? "min-h-[220px] flex-col justify-center" : "flex-row"}`}
-                    >
-                      <BookOpen className="w-6 h-6" />
-                      <span><span className="block text-[14px] font-semibold text-foreground">{reading.length ? "Adicionar livro" : "Sua próxima leitura começa aqui"}</span><span className="block text-[13px] text-[var(--text-2)] mt-1">{reading.length ? "Uma nova história na estante." : "Adicione um livro e encontre seu ritmo."}</span></span><Plus className="w-5 h-5 ml-auto shrink-0" />
-                    </Link>
+                    {reading.length > 0 ? (
+                      <Link to="/upload" className="mb-add-reading" aria-label="Adicionar livro" title="Adicionar livro">
+                        <Plus size={26} aria-hidden="true" />
+                      </Link>
+                    ) : (
+                      <Link to="/upload" className="mb-reading-empty flex-row">
+                        <BookOpen className="w-6 h-6" />
+                        <span><span className="block text-[14px] font-semibold text-foreground">Sua próxima leitura começa aqui</span><span className="block text-[13px] text-[var(--text-2)] mt-1">Adicione um livro e encontre seu ritmo.</span></span><Plus className="w-5 h-5 ml-auto shrink-0" />
+                      </Link>
+                    )}
                   </div>
                 )}
               </section>

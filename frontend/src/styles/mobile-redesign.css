@@ -1,0 +1,192 @@
+/* Mobile reading experience; colors follow the reader's selected theme. */
+@layer components {
+ @media(max-width:1023px) {
+  .mb-app-window { --mobile-gutter:20px; }
+  .mb-app-main { padding-bottom:calc(100px + env(safe-area-inset-bottom)); }
+  .mb-screen { padding:24px var(--mobile-gutter) 32px; max-width:100%; min-width:0; }
+  .mb-screen h1 { font-size:clamp(27px,7vw,36px); line-height:1.18; letter-spacing:-.04em; text-wrap:balance; }
+  .mb-page-heading,.mb-upload-heading { gap:14px; margin-bottom:24px; padding-bottom:20px; align-items:flex-start; }
+  .mb-page-heading h1,.mb-upload-heading h1 { margin-top:4px; }
+  .mb-page-subtitle { font-size:14px; line-height:1.6; margin-top:8px; }
+  .mb-eyebrow { font-size:12px; font-weight:500; letter-spacing:0; text-transform:none; color:var(--text-2); }
+  .mb-btn { min-height:46px; padding:12px 16px; border-radius:12px; line-height:1.35; }
+  .mb-btn-sm { min-height:42px; padding:10px 13px; }
+  .mb-btn-icon { width:46px; padding-inline:0; }
+  .mb-btn-icon.mb-btn-sm { width:42px; }
+  .mb-btn>svg { flex-shrink:0; }
+  .mb-input,.mb-personal-search input,.mb-home-search { font-size:16px; }
+  .mb-input { min-height:50px; border-radius:12px; }
+  .mb-label { font-size:13px; margin-bottom:8px; }
+  .mb-card { border-radius:18px; box-shadow:none; }
+  .mb-empty { padding:32px 20px; border-style:solid; background:var(--surface); }
+  .mb-empty-symbol { width:54px; height:54px; border-radius:16px; margin-bottom:16px; }
+  .mb-rail,.mb-continue-rail { scroll-snap-type:x proximity; scroll-padding-inline:2px; }
+  .mb-rail>*,.mb-continue-rail>* { scroll-snap-align:start; }
+  .mb-screen button:focus-visible,.mb-screen a:focus-visible { outline:2px solid var(--primary); outline-offset:3px; }
+
+  /* Compact header and a stable thumb-reachable navigation bar. */
+  .mb-app-window .mb-mobile-header { height:auto; min-height:calc(68px + env(safe-area-inset-top)); padding:calc(8px + env(safe-area-inset-top)) var(--mobile-gutter) 8px; background:var(--surface); border-bottom:1px solid var(--line); backdrop-filter:none; }
+  .mb-app-window .mb-mobile-header-controls { min-height:50px; padding:0; border:0; border-radius:0; background:transparent; box-shadow:none; }
+  .mb-mobile-header .mb-brand img { width:30px; height:30px; }
+  .mb-mobile-header .mb-wordmark { font-size:21px; }
+  .mb-app-window[data-scene=active] .mb-mobile-theme-art { opacity:.18; }
+  .mb-app-window .mb-mobile-dock { inset-inline:0; bottom:0; padding-bottom:env(safe-area-inset-bottom); border:0; border-top:1px solid var(--line); border-radius:0; background:var(--surface); box-shadow:0 -4px 20px rgb(0 0 0 / 3%); }
+  .mb-app-window .mb-mobile-dock>div { height:74px; padding:4px 6px; gap:0; }
+  .mb-app-window .mb-mobile-dock .mb-tab { flex:1 1 0; min-width:0; min-height:60px; height:auto; margin:0; gap:5px; border-radius:12px; }
+  .mb-mobile-dock .mb-tab>span:first-child { width:42px; height:29px; border-radius:10px; }
+  .mb-mobile-dock .mb-tab>span:last-child { font-size:10px; letter-spacing:-.025em; white-space:nowrap; }
+  .mb-mobile-dock .mb-tab svg { width:21px; height:21px; }
+  .mb-app-window[data-profile=true] .mb-mobile-header { margin-bottom:calc(-76px - env(safe-area-inset-top)); border:0; background:transparent; }
+  .mb-app-window[data-profile=true] .mb-mobile-header-controls { padding:0 8px; border:1px solid var(--line); border-radius:14px; background:var(--surface); }
+
+  /* Discover: search is visible, books get the space and emphasis. */
+  .mb-home-header { display:flex; flex-direction:column; align-items:stretch; gap:20px; margin-bottom:0; }
+  .mb-home .mb-home-header h1 { font-size:clamp(27px,7vw,35px); margin-top:6px; }
+  .mb-home-header>div>p:last-child { font-size:14px; line-height:1.6; }
+  .mb-home .mb-home-local-search { display:block; width:100%; max-width:none; }
+  .mb-home-search { height:50px; border:1px solid var(--line); border-radius:14px; background:var(--surface); }
+  .mb-home-local-search kbd { display:none; }
+  .mb-home-search:focus { outline:2px solid var(--primary); outline-offset:2px; }
+  .mb-discover-content { gap:28px; }
+  .mb-discover-content>section,.mb-discover-content>.mb-mobile-community { margin-top:0; }
+  .mb-continue-rail { gap:16px; }
+  .mb-continue-book { flex-basis:130px; }
+  .mb-continue-book h3 { font-size:14px; line-height:1.45; }
+  .mb-continue-book p { font-size:12px; }
+  .mb-reading-empty { border-radius:16px; padding:20px; }
+  .mb-home .mb-rail { gap:18px; }
+
+  /* Catalog and personal shelf: legible covers, scrollable filters. */
+  .mb-library-reference { gap:16px; }
+  .mb-library-editorial-heading { padding:0; }
+  .mb-library-editorial-heading h1 { font-size:30px; }
+  .mb-library-reference .mb-library-search { gap:10px; }
+  .mb-library-reference .mb-library-query { min-height:50px; }
+  .mb-library-reference .mb-genre-shortcuts { gap:8px; flex-wrap:nowrap; overflow-x:auto; padding:2px 0 6px; }
+  .mb-genre-shortcuts button { min-height:42px; padding:10px 16px; font-size:13px; white-space:nowrap; flex-shrink:0; }
+  .mb-library-tabs { overflow-x:auto; flex-wrap:nowrap; gap:4px; }
+  .mb-library-tabs>button { flex-shrink:0; min-height:44px; }
+  .mb-library-tools { gap:10px; flex-wrap:wrap; }
+  .mb-book-grid--posters { grid-template-columns:repeat(3,minmax(0,1fr)); gap:26px 18px; }
+  .mb-poster-tile .mb-book-title { font-size:14px; line-height:1.45; margin-top:10px; }
+  .mb-poster-tile .mb-book-author { font-size:12px; line-height:1.4; }
+  .mb-personal-heading { align-items:flex-start; gap:16px; padding-bottom:0; }
+  .mb-personal-heading h1 { margin:6px 0 8px; font-size:30px; }
+  .mb-personal-heading p:last-child { font-size:14px; line-height:1.6; }
+  .mb-personal-heading>.mb-btn { align-self:flex-start; }
+  .mb-personal-search { min-height:50px; border-radius:14px; }
+  .mb-mybooks .mb-mybooks-toolbar { gap:10px; padding-bottom:12px; }
+  .mb-mybooks .mb-mybooks-tabs { flex-wrap:nowrap; overflow-x:auto; }
+  .mb-mybooks .mb-reading-spotlight { padding:20px; gap:20px; border:1px solid var(--line); border-radius:18px; }
+  .mb-mybooks .mb-reading-spotlight h2 { font-family:var(--font-sans); font-size:19px; line-height:1.35; -webkit-line-clamp:2; }
+  .mb-booklists { min-width:0; }
+  .mb-personal-library { border-radius:18px; }
+  .mb-personal-library>.mb-booklists { padding:20px; background:var(--surface); }
+  .mb-personal-library .mb-booklists>header { gap:12px; margin-bottom:0; }
+  .mb-personal-library .mb-booklists h2 { font-family:var(--font-sans); font-size:20px; }
+  .mb-personal-library .mb-booklists .mb-eyebrow { display:none; }
+  .mb-personal-library .mb-booklist-grid { margin-top:18px; }
+  .mb-personal-library .mb-booklist-grid:has(.mb-booklist-create) { display:none; }
+  .mb-personal-library .mb-booklist-grid:not(:has(.mb-booklist-create)) { display:flex; overflow-x:auto; scroll-snap-type:x proximity; }
+  .mb-personal-library .mb-booklist-card { flex:0 0 160px; scroll-snap-align:start; }
+  .mb-personal-books { padding:20px 16px; }
+  .mb-reader-toolbar { min-height:58px; border-radius:16px; }
+  .mb-reader-controls .mb-btn-icon { width:44px; min-height:44px; }
+  .mb-reader-controls input[type=number] { font-size:16px; min-height:44px; }
+  .mb-reader-controls input[type=range] { min-height:30px; }
+
+  /* Details: reading precedes the secondary actions. */
+  .mb-book-personalized { border-radius:0; }
+  .mb-reference-book-breadcrumb { gap:8px; font-size:12px; }
+  .mb-reference-book-hero { gap:20px; }
+  .mb-book-personalized .mb-reference-book-copy { padding:20px 0; background:var(--background); border-radius:0; }
+  .mb-reference-book-copy h1 { font-size:29px; line-height:1.18; }
+  .mb-detail-facts { flex-wrap:wrap; gap:12px; }
+  .mb-detail-description { font-size:15px; line-height:1.75; }
+  .mb-detail-actions { gap:10px; }
+  .mb-detail-actions>.mb-btn-primary { order:-1; flex:1 0 100%; min-height:52px; font-size:15px; }
+  .mb-book-tabs { gap:24px; }
+  .mb-book-tabs button { min-height:48px; font-size:15px; }
+  .mb-book-synopsis p { font-size:15px; line-height:1.8; }
+
+  /* Social and account pages keep one clear reading column. */
+  .mb-social-columns { display:block; }
+  .mb-social-scopes { display:flex; gap:8px; margin-bottom:18px; }
+  .mb-community-rail { margin-top:28px; }
+  .mb-community-rail>section { padding:20px; }
+  .mb-profile-portrait-content { padding-inline:var(--mobile-gutter); }
+  .mb-profile-portrait-content h1 { font-size:28px; }
+  .mb-profile .mb-card,.mb-settings>.mb-card { padding:20px; }
+  .mb-settings .mb-card h2 { font-size:17px; }
+  .mb-settings .mb-card p { line-height:1.65; }
+
+  /* Notebooks, upload and administration forms. */
+  .nb-library { padding:24px var(--mobile-gutter) 32px; }
+  .nb-library-header { gap:16px; align-items:flex-start; }
+  .nb-library-header h1 { font-size:30px; }
+  .nb-library-bar { gap:12px; flex-wrap:wrap; }
+  .nb-search { min-height:50px; }
+  .nb-search input { font-size:16px; min-width:0; }
+  .nb-notebook-grid { gap:24px 16px; }
+  .nb-notebook-card-actions button { min-height:44px; }
+  .nb-shared-card { padding:18px; border-radius:16px; }
+  .mb-upload-form,.mb-upload-form fieldset { min-width:0; }
+  .mb-upload-form .mb-card { padding:18px; }
+  .mb-upload-form button[type=submit] { min-height:52px; white-space:normal; }
+  .mb-upload-form input:not([type=file]),.mb-upload-form textarea { font-size:16px; }
+
+  /* Chat fills the changing viewport without covering the composer. */
+  .mb-chat-stage { height:100dvh; }
+  .mb-chat-shell,.mb-chat { min-height:0; height:100%; }
+  .mb-chat-header { min-height:calc(68px + env(safe-area-inset-top)); padding-top:env(safe-area-inset-top); }
+  .mb-chat-messages { padding:20px 16px; overscroll-behavior:contain; }
+  .mb-chat form { padding-bottom:max(12px,env(safe-area-inset-bottom)); }
+  .mb-chat input { font-size:16px; }
+
+  /* Donation and dialogs: every action remains reachable on short screens. */
+  .mb-dialog { max-height:calc(100dvh - 32px); overflow-y:auto; border-radius:22px; }
+
+ }
+ @media(max-width:600px) {
+  .mb-book-grid--posters { grid-template-columns:repeat(2,minmax(0,1fr)); gap:26px 18px; }
+  .mb-personal-heading { flex-direction:column; }
+  .mb-book-synopsis { display:flex; flex-direction:column; gap:24px; }
+  .mb-settings .grid.grid-cols-2,.mb-upload-form .grid.grid-cols-2 { grid-template-columns:minmax(0,1fr); }
+ }
+ @media(max-width:360px) {
+  .mb-app-window { --mobile-gutter:16px; }
+  .mb-app-window .mb-mobile-dock>div { padding-inline:2px; }
+  .mb-mobile-dock .mb-tab>span:last-child { font-size:9px; }
+  .mb-mobile-header .mb-wordmark { font-size:18px; }
+ }
+ @media(prefers-reduced-motion:reduce) {
+  .mb-screen *,.mb-mobile-dock * { scroll-behavior:auto; animation:none; transition:none; }
+ }
+}
+
+/* Donation styles match the unlayered privacy/support stylesheet. */
+@media(max-width:1023px) {
+  .mb-support-backdrop { padding:20px; }
+  .mb-support-dialog { max-height:calc(100dvh - 40px); overflow-y:auto; padding:40px 24px 24px; border-radius:22px; background:var(--surface); backdrop-filter:none; }
+  .mb-support-dialog h2 { font-size:28px; line-height:1.2; }
+  .mb-support-dialog .mb-btn { white-space:normal; }
+  .mb-support-recipient { flex-direction:column; text-align:left; gap:6px; }
+  .mb-donation-page { padding:24px var(--mobile-gutter) 36px; }
+  .mb-donation-page>header { padding:28px 0; text-align:left; }
+  .mb-donation-page>header .mb-support-heart { margin-left:0; }
+  .mb-donation-page h1 { font-size:36px; line-height:1.12; }
+  .mb-donation-page section { padding:24px 0; border:0; border-top:1px solid var(--line); border-radius:0; background:transparent; }
+  .mb-donation-page h2 { font-size:21px; }
+  .mb-donation-page p { font-size:15px; line-height:1.75; }
+  .mb-donation-page .mb-support-pix { margin-top:18px; padding:20px; background:var(--surface); border-radius:16px; }
+  .mb-donation-page .mb-support-pix strong { font-size:18px; letter-spacing:0; }
+  .mb-donation-page .mb-support-pix button { min-height:50px; }
+ .mb-donation-page #como-doar { scroll-margin-top:90px; }
+ .mb-donation-page header>.mb-btn { margin-top:12px; min-height:50px; }
+}
+
+@layer components {
+ .mb-add-reading { display:grid; place-items:center; flex:0 0 64px; width:64px; height:64px; align-self:center; margin-inline:6px; border:1px dashed var(--line); border-radius:50%; background:var(--surface-2); color:var(--primary); }
+ .mb-add-reading:hover { background:var(--primary-soft); border-color:var(--primary); }
+ .mb-add-reading:focus-visible { outline:2px solid var(--primary); outline-offset:4px; }
+}
