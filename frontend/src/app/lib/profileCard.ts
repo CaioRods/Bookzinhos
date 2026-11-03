@@ -1,3 +1,4 @@
+import {loadProfileImage,profileImageFallback} from './profileImage';
 import type { Book, ProgressionSummary, UserProfile } from "./types";
 import { getFullUrl } from "./types";
 import { colorToHex, type SceneTheme } from "./appearance";
@@ -23,22 +24,6 @@ function imageUrl(value?: string | null): string | null {
     const resolved = new URL(value.startsWith("/scenery/") ? value : getFullUrl(value) || "", window.location.href);
     return ["http:", "https:"].includes(resolved.protocol) && !resolved.username && !resolved.password ? resolved.href : null;
   } catch { return null; }
-}
-
-function loadImage(value?: string | null): Promise<HTMLImageElement | null> {
-  const url = imageUrl(value);
-  if (!url) return Promise.resolve(null);
-  return new Promise(resolve => {
-    const img = new Image();
-    const finish = (image: HTMLImageElement | null) => {
-      clearTimeout(timer); img.onload = null; img.onerror = null; resolve(image);
-    };
-    const timer = setTimeout(() => { finish(null); img.src = ""; }, 6000);
-    img.crossOrigin = "anonymous";
-    img.onload = () => finish(img.naturalWidth && img.naturalHeight ? img : null);
-    img.onerror = () => finish(null);
-    img.src = url;
-  });
 }
 
 /** Wrap even unbroken handles and CJK text without dropping Unicode code points. */
@@ -99,7 +84,7 @@ export async function renderProfileCard(input: ProfileCardInput): Promise<Blob> 
   const selected = new Set(profile.shelf || []);
   const byId = new Map(input.books.filter(book => book.isPublic === true && selected.has(book.id)).map(book => [book.id, book]));
   const books = [...selected].map(id => byId.get(id)).filter((book): book is Book => !!book).slice(0, 12);
-  const [art, avatar, ...covers] = await Promise.all([loadImage(theme.imageUrl), loadImage(profile.avatar), ...books.map(book => loadImage(book.coverImagePath))]);
+  const [art, avatar, ...covers] = await Promise.all([loadProfileImage(imageUrl(theme.imageUrl), profileImageFallback(profile.username,'banner')), loadProfileImage(imageUrl(profile.avatar), profileImageFallback(profile.username,'avatar')), ...books.map(book => loadProfileImage(imageUrl(book.coverImagePath),profileImageFallback(profile.username,'cover',book.id)))]);
   const canvas = document.createElement("canvas"); canvas.width = WIDTH;
   let ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Não foi possível criar a imagem do perfil.");

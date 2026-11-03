@@ -1,3 +1,4 @@
+const {registerPublicProfileImages} = require('./public-profile-images');
 // Public sharing is a separate, explicit DTO: never serialize account or book rows.
 function stringArray(value) {
   try { const parsed = JSON.parse(value || '[]'); return Array.isArray(parsed) ? parsed.filter(item => typeof item === 'string') : []; }
@@ -27,6 +28,7 @@ function reviewDTO(review, book) {
 }
 
 function registerPublicProfileRoutes({app, db, sql, loadReviews}) {
+  registerPublicProfileImages({app,db,sql});
   app.get('/public/profiles/:username', async (req,res) => {
     res.set('Cache-Control','no-store');
     try {
