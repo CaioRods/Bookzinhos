@@ -1,0 +1,38 @@
+{
+  "name": "myBooks",
+  "short_name": "myBooks",
+  "description": "Sua biblioteca, suas Booklists e seus livros disponíveis offline.",
+  "start_url": "/library",
+  "display": "standalone",
+  "background_color": "#faf7f2",
+  "theme_color": "#64344f",
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "/icon-512-v6.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-install-1024-v6.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512-v6.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-install-1024-v6.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "id": "/",
+  "scope": "/"
+}
