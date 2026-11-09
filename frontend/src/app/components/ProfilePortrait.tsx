@@ -14,7 +14,6 @@ import type { ProgressionSummary, UserProfile } from "../lib/types";
 import type { SceneTheme } from "../lib/appearance";
 import { CropArtwork } from "./CropArtwork";
 import { ProfileBannerViewer } from "./ProfileBannerViewer";
-import { ThemeImage } from "./ThemeImage";
 import { Avatar } from "./Ui";
 import { ProfileProgressAvatar } from "./ProfileProgressAvatar";
 
@@ -24,7 +23,6 @@ export function ProfilePortrait({
   progression,
   own = false,
   actions,
-  metrics,
   onEdit,
   onChangeScene,
   onEditScene,
@@ -34,7 +32,6 @@ export function ProfilePortrait({
   progression?: ProgressionSummary | null;
   own?: boolean;
   actions?: ReactNode;
-  metrics?: ReactNode;
   onEdit?: () => void;
   onChangeScene?: () => void;
   onEditScene?: () => void;
@@ -42,22 +39,24 @@ export function ProfilePortrait({
   const illustrated = theme.id !== "none" && !!theme.imageUrl;
   return (
     <header
-      className={`mb-profile-portrait mb-profile-clean ${illustrated ? "has-scenery" : "is-neutral"}`}
+      data-banner-src={illustrated ? theme.imageUrl : undefined}
+      data-banner-name={theme.name}
+      data-profile-banner
+      className={`mb-profile-portrait ${illustrated ? "has-scenery" : "is-neutral"}`}
     >
       {illustrated && (
-        <div className="mb-profile-acrylic" aria-hidden="true">
-          <ThemeImage theme={theme} crop={theme.profile} />
-        </div>
+        <>
+          <div className="mb-profile-portrait-art">
+            <CropArtwork theme={theme} crop={theme.profile} surface="profile" />
+          </div>
+          <ProfileBannerViewer key={theme.imageUrl + theme.id} theme={theme} />
+        </>
       )}
-      <div className="mb-profile-clean-cover" data-profile-banner data-banner-src={illustrated ? theme.imageUrl : undefined} data-banner-name={theme.name}>
-        {illustrated && <div className="mb-profile-portrait-art"><CropArtwork theme={theme} crop={theme.profile} surface="profile" /></div>}
-        {illustrated && <ProfileBannerViewer key={theme.imageUrl + theme.id} theme={theme} />}
-        {own && onChangeScene && <div className="mb-profile-clean-scene-tools">
-          <button className="mb-btn" onClick={onChangeScene} aria-label="Alterar cenário" title="Alterar cenário"><Camera size={17}/><span>Cenário</span></button>
-          {onEditScene && <button className="mb-btn" onClick={onEditScene} aria-label="Editar cenário atual" title="Editar cenário atual"><Pencil size={17}/></button>}
-        </div>}
-      </div>
+      {!illustrated && <div className="mb-profile-portrait-shade" />}
       <div className="mb-profile-portrait-content">
+        <p className="mb-profile-portrait-kicker">
+          {own ? "MEU PERFIL" : "UM LEITOR, MUITAS HISTÓRIAS"}
+        </p>
         <div className="mb-profile-portrait-identity">
           <div className="mb-profile-portrait-avatar">
             {progression ? (
@@ -89,14 +88,14 @@ export function ProfilePortrait({
           <div className="mb-profile-portrait-details">
             <div className="mb-profile-portrait-name">
               <h1>{profile.displayName || profile.username}</h1>
-
+              <div className="mb-profile-portrait-actions">{actions}</div>
             </div>
             <p className="mb-profile-portrait-handle">
               @{profile.handle || profile.username.toLowerCase()}
             </p>
-          </div>
-        </div>
-        {profile.bio && <p className="mb-profile-portrait-bio">{profile.bio}</p>}
+            <p className="mb-profile-portrait-bio">
+              {profile.bio || progression?.title || "Novo leitor por aqui ✨"}
+            </p>
             <div className="mb-profile-portrait-socials">
               {profile.instagram && (
                 <a
@@ -125,9 +124,20 @@ export function ProfilePortrait({
                 </span>
               )}
             </div>
-        <div className="mb-profile-portrait-actions">{actions}</div>
+          </div>
+        </div>
       </div>
-      {metrics && <div className="mb-profile-portrait-metrics">{metrics}</div>}
+      <blockquote>
+        “Boas histórias
+        <br />
+        nos levam mais longe.”
+      </blockquote>
+      {own && onChangeScene && (
+        <div className="mb-profile-scene-actions"><button className="mb-profile-change-scene" onClick={onChangeScene}>
+          <Camera size={17} />
+          Alterar cenário
+        </button>{onEditScene && <button className="mb-profile-change-scene" aria-label="Editar cenário atual" title="Editar cenário atual" onClick={onEditScene}><Pencil size={17}/></button>}</div>
+      )}
     </header>
   );
 }
@@ -156,7 +166,7 @@ export function ProfileMetrics({
   ];
   return (
     <section
-      className="mb-profile-stat-strip mb-profile-stats-clean"
+      className="mb-profile-stat-strip"
       aria-label="Estatísticas do leitor"
     >
       {items.map(({ label, value, icon: Icon }, index) => (
@@ -169,7 +179,7 @@ export function ProfileMetrics({
             <strong>{value.toLocaleString("pt-BR")}</strong>
             <span>{label}</span>
           </div>
-
+          <div className="mb-profile-stat-art" aria-hidden="true" />
         </div>
       ))}
     </section>

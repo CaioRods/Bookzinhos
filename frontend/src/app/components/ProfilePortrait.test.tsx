@@ -76,15 +76,6 @@ describe("shared profile portrait", () => {
       screen.getByRole("link", { name: /Instagram/ }).getAttribute("href"),
     ).toBe("https://instagram.com/reader");
   });
-  it("keeps identity and actions outside the scenery crop surface", () => {
-    const {container}=render(<ProfilePortrait profile={{...profile,bio:"Minha biografia"}} theme={NO_THEME} own onChangeScene={vi.fn()} actions={<button>Compartilhar</button>}/>);
-    const cover=container.querySelector('[data-profile-banner]')!;
-    expect(cover.contains(screen.getByRole('heading',{name:'Nome do leitor'}))).toBe(false);
-    expect(cover.contains(screen.getByText('Minha biografia'))).toBe(false);
-    expect(cover.contains(screen.getByRole('button',{name:'Compartilhar'}))).toBe(false);
-    expect(cover.contains(screen.getByRole('button',{name:'Alterar cenário'}))).toBe(true);
-    expect(container.querySelector('blockquote')).toBeNull();
-  });
   it("shows all six real reading and community statistics", () => {
     render(
       <ProfileMetrics

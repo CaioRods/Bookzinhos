@@ -1,4 +1,9 @@
 @layer components {
+  .mb-profile-portrait.has-scenery .mb-profile-portrait-content,
+  .mb-profile-portrait.has-scenery blockquote { pointer-events: none; }
+
+  .mb-profile-portrait.has-scenery .mb-profile-portrait-content :is(a, button) { pointer-events: auto; }
+
   .mb-profile-banner-trigger {
     position: absolute;
     inset: 0;
@@ -10,7 +15,7 @@
   .mb-profile-banner-trigger > span {
     position: absolute;
     left: 18px;
-    bottom: 14px;
+    bottom: 24px;
     display: grid;
     place-items: center;
     width: 44px;
@@ -19,6 +24,12 @@
     border-radius: 12px;
     background: rgb(20 20 22 / 65%);
     backdrop-filter: blur(8px);
+  }
+
+  @media (max-width: 1023px) {
+    .mb-profile-banner-trigger > span {
+      inset: calc(78px + env(safe-area-inset-top)) 16px auto auto;
+    }
   }
 
   .mb-profile-banner-trigger:hover > span { background: rgb(20 20 22 / 85%); }
