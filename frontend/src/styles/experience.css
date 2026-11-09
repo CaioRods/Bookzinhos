@@ -17,6 +17,20 @@
     overflow: hidden;
     border-radius: 22px;
   }
+  .mb-book-personalized .mb-book-breadcrumb {
+    margin-bottom: 12px;
+  }
+  .mb-book-open {
+    margin-bottom: 16px;
+  }
+  .mb-book-open .mb-btn {
+    min-height: 52px;
+    padding-inline: 24px;
+    font-size: 15px;
+  }
+  @media (max-width: 767px) {
+    .mb-book-open .mb-btn { width: 100%; }
+  }
   .mb-book-banner {
     height: 250px;
     position: relative;
