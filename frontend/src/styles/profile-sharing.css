@@ -1,7 +1,12 @@
 @layer components {
  .mb-public-profile {min-height:100dvh;background:var(--background);color:var(--foreground);}
  .mb-public-profile-header {position:sticky;top:0;z-index:40;display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:76px;padding:12px max(24px,calc((100vw - 1280px)/2));border-bottom:1px solid var(--line);background:var(--surface);}
- .mb-public-profile-header>a:first-child {display:flex;align-items:center;}
+ .mb-public-profile-header-start {display:flex;align-items:center;gap:12px;}
+ .mb-profile-back {min-height:44px;flex-shrink:0;}
+ .mb-desktop-actions .mb-profile-back {margin-inline-end:auto;}
+ @media(max-width:360px) {
+  .mb-public-profile-header-start .mb-wordmark {display:none;}
+ }
  .mb-public-profile-content {max-width:1280px;margin:0 auto;min-width:0;}
  .mb-public-profile .mb-profile-portrait {min-height:380px;}
  .mb-public-profile .mb-profile-portrait-content {padding-top:64px;padding-bottom:120px;}
