@@ -2,8 +2,8 @@ import { ProfileShare } from "../components/ProfileShare";
 import { ProfilePortrait, ProfileMetrics } from "../components/ProfilePortrait";
 import { usePublicProfileScene } from "../lib/profileScene";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import { useParams, useNavigate, Link } from "react-router";
-import { ArrowLeft, MessageCircle, UserPlus, UserCheck, Star } from "lucide-react";
+import { useParams, Link } from "react-router";
+import { MessageCircle, UserPlus, UserCheck, Star } from "lucide-react";
 import { fetchBooks, fetchProgression, fetchUserProfile, fetchPublicProfile, followUser, unfollowUser } from "../lib/api";
 import { useLiveData } from "../lib/useLiveData";
 import { getUsername } from "../lib/session";
@@ -20,7 +20,6 @@ type Tab = "resenhas" | "estante" | "lidos" | "favoritos";
 
 export function UserProfile() {
   const { username } = useParams<{ username: string }>();
-  const navigate = useNavigate();
   const me = getUsername();
   const [tab, setTab] = useState<Tab>(()=>me?"resenhas":"estante");
 
@@ -104,7 +103,6 @@ export function UserProfile() {
         <div className="text-center space-y-4">
           <div className="text-4xl">🐾</div>
           <h2 className="text-lg font-bold text-foreground">Leitor não encontrado</h2>
-          <button onClick={() => navigate(-1)} className="mb-btn mb-btn-primary">Voltar</button>
         </div>
       </div>
     );
@@ -124,7 +122,6 @@ export function UserProfile() {
         metrics={<ProfileMetrics addedBooks={profile.stats?.uploaded ?? 0} reading={profile.stats?.reading ?? profile.reading?.length ?? 0} finished={profile.stats?.finished ?? finishedBooks.length} favorites={profile.stats?.saved ?? savedBooks.length} followers={profile.followers ?? 0} following={profile.following ?? 0}/>}
       />
       <div className="mb-profile-cinematic-body">
-      <button onClick={()=>navigate(-1)} className="mb-profile-back mb-btn mb-btn-ghost mb-btn-sm"><ArrowLeft size={15}/> Voltar</button>
       {progression && <div className="mb-public-progression-grid mb-public-progression-grid--badges"><BadgeGallery badges={progression.badges} /></div>}
 
       {/* ── Abas ───────────────────────────────────────────────────────────── */}

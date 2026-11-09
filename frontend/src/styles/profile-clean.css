@@ -1,9 +1,30 @@
 @layer components {
+ .dark .mb-app-window[data-profile=true],
+ .dark .mb-public-profile {
+  --background:#1b1b1c;
+  --background-tint:#212122;
+  --surface:#272728;
+  --surface-2:#303032;
+  --surface-3:#3c3c3e;
+  --foreground:#f4f4f4;
+  --text-2:#cdcdcf;
+  --text-3:#adadb0;
+ }
+
  .mb-profile-portrait.mb-profile-clean {--profile-cover-height:240px;min-height:0;overflow:visible;background:var(--background);color:var(--foreground);}
+ .dark .mb-profile-portrait.mb-profile-clean.is-neutral {background:var(--background);color:var(--foreground);}
+ .dark .mb-profile-clean.is-neutral .mb-profile-portrait-actions .mb-btn {
+  background:var(--surface);
+  border-color:var(--line);
+ }
+ .dark .mb-profile-clean.is-neutral .mb-profile-portrait-actions .mb-btn:hover {background:var(--surface-2);}
+ .dark .mb-profile-clean.is-neutral .mb-profile-portrait-socials a {background:none;}
  .mb-profile-clean .mb-profile-clean-cover {height:var(--profile-cover-height);position:relative;isolation:isolate;overflow:hidden;background:var(--surface-2);border-radius:0 0 20px 20px;}
  .mb-profile-clean-cover .mb-profile-portrait-art {inset:0;}
  .mb-profile-acrylic {
   --acrylic-rim:rgb(255 255 255 / 60%);
+  --acrylic-midtone:70%;
+  --acrylic-saturation:1.14;
   position:absolute;
   inset:calc(var(--profile-cover-height) + 6px) 12px 4px;
   z-index:-1;
@@ -13,13 +34,17 @@
   background:var(--surface);
   box-shadow:0 10px 24px -18px color-mix(in srgb,var(--foreground) 36%,transparent);
  }
- .dark .mb-profile-acrylic {--acrylic-rim:rgb(255 255 255 / 14%);}
+ .dark .mb-profile-acrylic {
+  --acrylic-rim:rgb(255 255 255 / 8%);
+  --acrylic-midtone:82%;
+  --acrylic-saturation:.45;
+ }
  .mb-profile-acrylic > svg {
   position:absolute;
   inset:-36px;
   width:calc(100% + 72px);
   height:calc(100% + 72px);
-  filter:blur(21px) saturate(1.14);
+  filter:blur(21px) saturate(var(--acrylic-saturation));
  }
  .mb-profile-acrylic::after {
   content:"";
@@ -32,7 +57,7 @@
    radial-gradient(ellipse at top left,color-mix(in srgb,var(--surface) 55%,transparent),transparent 68%),
    linear-gradient(155deg,
     color-mix(in srgb,var(--surface) 79%,transparent),
-    color-mix(in srgb,var(--background) 70%,transparent) 48%,
+    color-mix(in srgb,var(--background) var(--acrylic-midtone),transparent) 48%,
     color-mix(in srgb,var(--background) 94%,transparent));
  }
  .mb-profile-clean.has-scenery .mb-profile-portrait-handle,

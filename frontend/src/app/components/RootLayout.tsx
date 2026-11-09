@@ -1,4 +1,5 @@
 import { PublicProfileLayout } from "./PublicProfileLayout";
+import { ProfileBackButton } from "./ProfileBackButton";
 import { OfflineStatus } from "./OfflineStatus";
 import { ReaderNamesProvider } from "./ReaderName";
 import { useProfileScene } from "../lib/profileScene";
@@ -155,7 +156,8 @@ export function RootLayout() {
     return items;
   }, [unreadCount, admin]);
 
-  if (!username && /^\/user\/[^/]+\/?$/.test(location.pathname)) {
+  const isPublicProfile = /^\/user\/[^/]+\/?$/.test(location.pathname);
+  if (!username && isPublicProfile) {
     return <PublicProfileLayout><Outlet /></PublicProfileLayout>;
   }
 
@@ -257,6 +259,7 @@ export function RootLayout() {
 
         {/* ── Ações da conta (desktop) ────────────────────────────────────── */}
         <div className="mb-desktop-actions hidden lg:flex items-center">
+          {isPublicProfile && <ProfileBackButton />}
           <GlobalSearch />
           <NotificationsMenu />
           {username && <AccountMenu displayName={displayName} avatar={avatar} username={username} admin={admin} progression={progression} onLogout={async () => { try { await logout(); } finally { clearSession(); window.location.href = "/"; } }} />}
@@ -266,9 +269,11 @@ export function RootLayout() {
         <header className="mb-mobile-header lg:hidden sticky top-0 z-40 h-16 px-5 flex items-center justify-between border-b border-[var(--line)]">
           {selectedTheme.id !== "none" && location.pathname !== "/profile" && !location.pathname.startsWith("/user/") && <div className="mb-mobile-theme-art" aria-hidden="true"><CropArtwork theme={selectedTheme} crop={selectedTheme.profile} surface="profile" opacity={selectedTheme.sidebarOpacity}/></div>}
           <div className="mb-mobile-header-controls">
-          <Link to="/" className="flex items-center gap-2">
-            <Brand />
-          </Link>
+            {isPublicProfile ? <ProfileBackButton /> : (
+              <Link to="/" className="flex items-center gap-2">
+                <Brand />
+              </Link>
+            )}
           <div className="flex items-center gap-1">
             <NotificationsMenu />
             {username && <AccountMenu displayName={displayName} avatar={avatar} username={username} admin={admin} progression={progression} onLogout={async () => { try { await logout(); } finally { clearSession(); window.location.href = "/"; } }} />}
