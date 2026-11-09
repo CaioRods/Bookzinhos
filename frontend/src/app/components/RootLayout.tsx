@@ -152,6 +152,7 @@ export function RootLayout() {
       { path: "/social", icon: Users, label: "Comunidade", badge: unreadCount },
       { path: "/my-books", icon: BookOpen, label: "Meus livros" },
       { path: "/notes", icon: PenLine, label: "Anotações" },
+      { path: "/profile", icon: User, label: "Perfil" },
     ];
     return items;
   }, [unreadCount, admin]);
