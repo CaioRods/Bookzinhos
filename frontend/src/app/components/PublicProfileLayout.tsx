@@ -4,14 +4,14 @@ import {LogIn} from 'lucide-react';
 import {Brand} from './Brand';
 import {ProfileBackButton} from './ProfileBackButton';
 
-/** Public profiles permit reading; every interactive action hands off to login. */
+/** Public profiles permit reading; account actions hand off to login. */
 export function PublicProfileLayout({children}:{children:ReactNode}){
  const location=useLocation(),navigate=useNavigate();
  const params=new URLSearchParams(location.search);params.set('auth','login');
  const login=`${location.pathname}?${params}${location.hash}`;
  const gate=(event:MouseEvent)=>{
   const target=event.target as HTMLElement;
-  if(target.closest('[data-public-login], [data-public-back]'))return;
+  if(target.closest('[data-public-login], [data-public-back], [data-public-banner-view]'))return;
   if(target.closest('a,button,input,select,textarea,[role="button"]')){
    event.preventDefault();event.stopPropagation();navigate(login);
   }

@@ -1,0 +1,139 @@
+@layer components {
+  .mb-profile-banner-trigger {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    color: #fff;
+    cursor: zoom-in;
+  }
+
+  .mb-profile-banner-trigger > span {
+    position: absolute;
+    left: 18px;
+    bottom: 14px;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border: 1px solid #ffffff59;
+    border-radius: 12px;
+    background: rgb(20 20 22 / 65%);
+    backdrop-filter: blur(8px);
+  }
+
+  .mb-profile-banner-trigger:hover > span { background: rgb(20 20 22 / 85%); }
+  .mb-profile-banner-trigger:focus-visible { outline: 2px solid white; outline-offset: -4px; }
+
+  .mb-banner-viewer-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10001;
+    background: rgb(14 14 16 / 74%);
+    backdrop-filter: blur(18px);
+    animation: mb-banner-backdrop-in 440ms ease-out;
+  }
+
+  @keyframes mb-banner-backdrop-in {
+    from { background: transparent; backdrop-filter: blur(0); }
+    to { background: rgb(14 14 16 / 74%); backdrop-filter: blur(18px); }
+  }
+
+  .mb-banner-viewer {
+    position: fixed;
+    inset: 0;
+    z-index: 10002;
+    outline: none;
+  }
+
+  .mb-banner-viewer-stage {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    overscroll-behavior: contain;
+    touch-action: pan-x pan-y;
+    scrollbar-width: none;
+    user-select: none;
+  }
+
+  .mb-banner-viewer-stage[data-zoomed=true] { overflow: auto; cursor: grab; }
+  .mb-banner-viewer-stage[data-zoomed=true]:active { cursor: grabbing; }
+
+  .mb-banner-viewer-canvas {
+    display: grid;
+    place-items: center;
+    width: max-content;
+    min-width: 100%;
+    min-height: 100%;
+    padding: 12px;
+  }
+
+  .mb-banner-viewer-frame {
+    width: calc(var(--banner-zoom) * min(1440px, 100vw - 24px, (100dvh - 144px) * var(--banner-ratio)));
+    aspect-ratio: var(--banner-ratio);
+  }
+
+  .mb-banner-viewer-art {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    border-radius: 12px;
+    transform-origin: top left;
+    background: #1c1c1d;
+    box-shadow: 0 18px 54px #0007;
+  }
+
+  .mb-banner-viewer-art > svg { display: block; width: 100%; height: 100%; pointer-events: none; }
+
+  .mb-banner-viewer-close,
+  .mb-banner-viewer-controls {
+    position: absolute;
+    color: #f5f5f5;
+    background: rgb(29 29 31 / 94%);
+    border: 1px solid #ffffff38;
+    box-shadow: 0 8px 24px #0004;
+  }
+
+  .mb-banner-viewer-close {
+    top: max(12px, env(safe-area-inset-top));
+    right: max(12px, env(safe-area-inset-right));
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    cursor: pointer;
+  }
+
+  .mb-banner-viewer-controls {
+    bottom: max(12px, env(safe-area-inset-bottom));
+    left: 50%;
+    translate: -50% 0;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 3px;
+    border-radius: 999px;
+  }
+
+  .mb-banner-viewer-controls > button {
+    display: grid;
+    place-items: center;
+    min-width: 44px;
+    height: 44px;
+    padding: 0 6px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+  }
+
+  .mb-banner-viewer-controls > button:disabled { opacity: .45; cursor: default; }
+  .mb-banner-viewer-controls > button:hover:not(:disabled),
+  .mb-banner-viewer-close:hover { background: #444446; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mb-banner-viewer-overlay { animation: none; }
+  }
+
+  :root[data-reduce-motion=true] .mb-banner-viewer-overlay { animation: none; }
+}
