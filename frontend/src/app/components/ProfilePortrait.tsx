@@ -13,6 +13,7 @@ import {
 import type { ProgressionSummary, UserProfile } from "../lib/types";
 import type { SceneTheme } from "../lib/appearance";
 import { CropArtwork } from "./CropArtwork";
+import { ThemeImage } from "./ThemeImage";
 import { Avatar } from "./Ui";
 import { ProfileProgressAvatar } from "./ProfileProgressAvatar";
 
@@ -22,6 +23,7 @@ export function ProfilePortrait({
   progression,
   own = false,
   actions,
+  metrics,
   onEdit,
   onChangeScene,
   onEditScene,
@@ -31,6 +33,7 @@ export function ProfilePortrait({
   progression?: ProgressionSummary | null;
   own?: boolean;
   actions?: ReactNode;
+  metrics?: ReactNode;
   onEdit?: () => void;
   onChangeScene?: () => void;
   onEditScene?: () => void;
@@ -40,6 +43,11 @@ export function ProfilePortrait({
     <header
       className={`mb-profile-portrait mb-profile-clean ${illustrated ? "has-scenery" : "is-neutral"}`}
     >
+      {illustrated && (
+        <div className="mb-profile-acrylic" aria-hidden="true">
+          <ThemeImage theme={theme} crop={theme.profile} />
+        </div>
+      )}
       <div className="mb-profile-clean-cover" data-profile-banner data-banner-src={illustrated ? theme.imageUrl : undefined} data-banner-name={theme.name}>
         {illustrated && <div className="mb-profile-portrait-art"><CropArtwork theme={theme} crop={theme.profile} surface="profile" /></div>}
         {own && onChangeScene && <div className="mb-profile-clean-scene-tools">
@@ -117,6 +125,7 @@ export function ProfilePortrait({
             </div>
         <div className="mb-profile-portrait-actions">{actions}</div>
       </div>
+      {metrics && <div className="mb-profile-portrait-metrics">{metrics}</div>}
     </header>
   );
 }

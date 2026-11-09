@@ -1,7 +1,48 @@
 @layer components {
- .mb-profile-portrait.mb-profile-clean {min-height:0;overflow:visible;background:var(--background);color:var(--foreground);}
- .mb-profile-clean .mb-profile-clean-cover {height:240px;position:relative;isolation:isolate;overflow:hidden;background:var(--surface-2);border-radius:0 0 20px 20px;}
+ .mb-profile-portrait.mb-profile-clean {--profile-cover-height:240px;min-height:0;overflow:visible;background:var(--background);color:var(--foreground);}
+ .mb-profile-clean .mb-profile-clean-cover {height:var(--profile-cover-height);position:relative;isolation:isolate;overflow:hidden;background:var(--surface-2);border-radius:0 0 20px 20px;}
  .mb-profile-clean-cover .mb-profile-portrait-art {inset:0;}
+ .mb-profile-clean.has-scenery .mb-profile-clean-cover {background:transparent;}
+ .mb-profile-clean.has-scenery .mb-profile-portrait-art {
+  mask-image:linear-gradient(to bottom,#000 calc(100% - 42px),transparent);
+ }
+ .mb-profile-acrylic {
+  position:absolute;
+  inset:calc(var(--profile-cover-height) - 42px) 0 0;
+  z-index:-1;
+  overflow:hidden;
+  pointer-events:none;
+ }
+ .mb-profile-acrylic > svg {
+  position:absolute;
+  inset:-48px;
+  width:calc(100% + 96px);
+  height:calc(100% + 96px);
+  filter:blur(28px) saturate(1.15);
+ }
+ .mb-profile-acrylic::after {
+  content:"";
+  position:absolute;
+  inset:0;
+  background:
+   linear-gradient(to bottom, transparent 12%, var(--background) 100%),
+   linear-gradient(110deg, color-mix(in srgb,var(--background) 90%,transparent) 12%, color-mix(in srgb,var(--background) 62%,transparent));
+ }
+ .mb-profile-clean.has-scenery .mb-profile-portrait-handle,
+ .mb-profile-clean.has-scenery .mb-profile-pandinha,
+ .mb-profile-clean.has-scenery .mb-profile-stat span {
+  color:color-mix(in srgb,var(--text-2) 78%,var(--foreground));
+ }
+ .mb-profile-clean.has-scenery .mb-profile-portrait-actions .mb-btn:not(:hover) {
+  background:color-mix(in srgb,var(--surface) 82%,transparent);
+ }
+ .mb-profile-portrait-metrics {position:relative;margin:0 34px;padding-bottom:22px;}
+ @media (prefers-reduced-transparency: reduce), (forced-colors: active) {
+  .mb-profile-clean.has-scenery .mb-profile-clean-cover {background:var(--surface-2);}
+  .mb-profile-clean.has-scenery .mb-profile-portrait-art {mask-image:none;}
+  .mb-profile-acrylic {display:none;}
+  .mb-profile-clean.has-scenery .mb-profile-portrait-actions .mb-btn:not(:hover) {background:var(--surface);}
+ }
  .mb-profile-clean .mb-profile-clean-scene-tools {position:absolute;right:24px;bottom:16px;display:flex;gap:8px;}
  .mb-profile-clean-scene-tools .mb-btn {min-height:40px;padding:8px 12px;border:1px solid #ffffff60;background:#1a172366;color:white;backdrop-filter:blur(12px);font-size:12px;border-radius:12px;}
  .mb-profile-portrait.mb-profile-clean .mb-profile-portrait-content {padding:0 34px 28px;}
@@ -32,7 +73,12 @@
  .mb-profile-stats-clean .mb-profile-stat strong {font-size:22px;color:var(--foreground);font-family:var(--font-sans);font-weight:650;}
  .mb-profile-stats-clean .mb-profile-stat span {margin-top:7px;font-size:11px;line-height:1.4;color:var(--text-3);}
  @media(max-width:767px) {
-  .mb-profile-clean .mb-profile-clean-cover {height:210px;border-radius:0 0 16px 16px;}
+  .mb-profile-portrait.mb-profile-clean {--profile-cover-height:210px;}
+  .mb-profile-clean .mb-profile-clean-cover {border-radius:0 0 16px 16px;}
+  .mb-profile-portrait-metrics {margin-inline:14px;}
+  .mb-profile-acrylic::after {
+   background:linear-gradient(to bottom,color-mix(in srgb,var(--background) 82%,transparent),var(--background));
+  }
   .mb-profile-portrait.mb-profile-clean .mb-profile-portrait-content {padding:0 20px 24px;}
   .mb-profile-clean .mb-profile-portrait-identity {gap:15px;}
   .mb-profile-clean .mb-profile-portrait-name h1 {font-size:25px;}
